@@ -5,11 +5,15 @@ import logging as logger
 from typing import Iterator, Tuple
 
 import aiohttp
+import nest_asyncio
 import polars as pl
 import requests
+from tqdm import tqdm
 from tqdm.asyncio import tqdm_asyncio
 
+nest_asyncio.apply()
 # https://github.com/jldbc/pybaseball/blob/master/pybaseball/statcast.py
+# used for root_url, single_game, date_range
 ROOT_URL = "https://baseballsavant.mlb.com"
 SINGLE_GAME = "/statcast_search/csv?all=true&type=details&game_pk={game_pk}"
 DATE_RANGE = "/statcast_search/csv?all=true&hfPT=&hfAB=&hfBBT=&hfPR=&hfZ=&stadium=&hfBBL=&hfNewZones=&hfGT=R%7CPO%7CS%7C=&hfSea=&hfSit=&player_type=pitcher&hfOuts=&opponent=&pitcher_throws=&batter_stands=&hfSA=&game_date_gt={start_dt}&game_date_lt={end_dt}&team={team}&position=&hfRO=&home_road=&hfFlag=&metric_1=&hfInn=&min_pitches=0&min_results=0&group_by=name&sort_col=pitches&player_event_sort=h_launch_speed&sort_order=desc&min_abs=0&type=details&"
@@ -49,9 +53,17 @@ def statcast_single_game(game_pk: int, extra_stats: bool) -> pl.DataFrame:
     return pl.read_csv(io.StringIO(statcast_content.decode("utf-8")))
 
 
-async def fetch_data(session, url):
-    async with session.get(url) as response:
-        return await response.read()
+async def fetch_data(session, url, retries=3):
+    for attempt in range(retries):
+        try:
+            async with session.get(url) as response:
+                return await response.read()
+        except aiohttp.ClientPayloadError as e:
+            if attempt < retries - 1:
+                await asyncio.sleep(1)  # Wait before retrying
+                continue
+            else:
+                raise e
 
 
 async def fetch_all_data(urls):
@@ -94,17 +106,14 @@ async def statcast_date_range(
     ]
 
     responses = await fetch_all_data(urls)
-    with tqdm_asyncio(total=len(responses), desc="Processing data") as pbar:
-        for data in responses:
-            data = pl.read_csv(io.StringIO(data.decode("utf-8")))
-            if schema is None:
-                schema = data.schema
-            else:
-                data = data.with_columns(
-                    [pl.col(col).cast(schema[col]) for col in schema]
-                )
-            data_list.append(data)
-            pbar.update(1)
+
+    for data in tqdm(responses, desc="Processing regular data"):
+        data = pl.read_csv(io.StringIO(data.decode("utf-8")))
+        if schema is None:
+            schema = data.schema
+        else:
+            data = data.with_columns([pl.col(col).cast(schema[col]) for col in schema])
+        data_list.append(data)
 
     df = pl.concat(data_list)
 
@@ -114,17 +123,17 @@ async def statcast_date_range(
         df_list = []
         urls = [ROOT_URL + EXTRA_STATS.format(pos=pos) for pos in ["pitcher", "batter"]]
         responses = await fetch_all_data(urls)
-        for data in responses:
+        for data in tqdm(responses, desc="Processing extra data"):
             data = pl.read_csv(io.StringIO(data.decode("utf-8")))
             df_list.append(data)
-        p_df = df_list[0]
-        b_df = df_list[1]
-        df = df.join(
-            p_df, left_on="pitcher", right_on="player_id", suffix="_pitcher", how="left"
-        )
-        df = df.join(
-            b_df, left_on="batter", right_on="player_id", suffix="_batter", how="left"
-        )
+
+        p_df = df_list[0].drop("player_name")
+        p_df = p_df.rename(lambda x: f"{x}_pitcher")
+        b_df = df_list[1].drop("player_name")
+        b_df = b_df.rename(lambda x: f"{x}_batter")
+        df = df.join(p_df, left_on="pitcher", right_on="player_id_pitcher", how="left")
+        df = df.join(b_df, left_on="batter", right_on="player_id_batter", how="left")
+
         return df
 
 
@@ -171,6 +180,7 @@ def handle_dates(start_dt: str, end_dt: str):
     return start_dt_date, end_dt_date
 
 
+# this function comes from https://github.com/jldbc/pybaseball/blob/master/pybaseball/statcast.py
 def statcast_date_range_helper(
     start: dt.date, stop: dt.date, step: int, verbose: bool = True
 ) -> Iterator[Tuple[dt.date, dt.date]]:
@@ -187,14 +197,10 @@ def statcast_date_range_helper(
         season_start, season_end = YEAR_RANGES.get(low.year, date_span)
         if low < season_start:
             low = season_start
-            if verbose:
-                print("Skipping offseason dates")
         elif low > season_end:
             low, _ = YEAR_RANGES.get(
                 low.year + 1, (dt.date(month=3, day=15, year=low.year + 1), None)
             )
-            if verbose:
-                print("Skipping offseason dates")
 
         if low > stop:
             return
