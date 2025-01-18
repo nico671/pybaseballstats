@@ -1,0 +1,203 @@
+import asyncio
+import datetime as dt
+import io
+import logging as logger
+from typing import Iterator, Tuple
+
+import aiohttp
+import polars as pl
+import requests
+from tqdm.asyncio import tqdm_asyncio
+
+# https://github.com/jldbc/pybaseball/blob/master/pybaseball/statcast.py
+ROOT_URL = "https://baseballsavant.mlb.com"
+SINGLE_GAME = "/statcast_search/csv?all=true&type=details&game_pk={game_pk}"
+DATE_RANGE = "/statcast_search/csv?all=true&hfPT=&hfAB=&hfBBT=&hfPR=&hfZ=&stadium=&hfBBL=&hfNewZones=&hfGT=R%7CPO%7CS%7C=&hfSea=&hfSit=&player_type=pitcher&hfOuts=&opponent=&pitcher_throws=&batter_stands=&hfSA=&game_date_gt={start_dt}&game_date_lt={end_dt}&team={team}&position=&hfRO=&home_road=&hfFlag=&metric_1=&hfInn=&min_pitches=0&min_results=0&group_by=name&sort_col=pitches&player_event_sort=h_launch_speed&sort_order=desc&min_abs=0&type=details&"
+EXTRA_STATS = "/statcast_search/csv?hfPT=&hfAB=&hfGT=R%7C&hfPR=&hfZ=&hfStadium=&hfBBL=&hfNewZones=&hfPull=&hfC=&hfSea=2024%7C2023%7C2022%7C2021%7C2020%7C2019%7C2018%7C2017%7C2016%7C2015%7C2014%7C2013%7C2012%7C2011%7C2010%7C2009%7C2008%7C&hfSit=&player_type={pos}&game_date_gt=&game_date_lt=&hfOuts=&hfOpponent=&pitcher_throws=&batter_stands=&hfSA=&hfMo=&hfTeam=&home_road=&hfRO=&position=&hfInfield=&hfOutfield=&hfInn=&hfBBT=&hfFlag=is%5C.%5C.remove%5C.%5C.bunts%7Cis%5C.%5C.competitive%7C&metric_1=&group_by=name&min_pitches=0&min_results=0&min_pas=0&sort_col=pitches&player_event_sort=api_p_release_speed&sort_order=desc&chk_stats_pa=on&chk_stats_abs=on&chk_stats_bip=on&chk_stats_hits=on&chk_stats_singles=on&chk_stats_dbls=on&chk_stats_triples=on&chk_stats_hrs=on&chk_stats_so=on&chk_stats_k_percent=on&chk_stats_bb=on&chk_stats_bb_percent=on&chk_stats_whiffs=on&chk_stats_swings=on&chk_stats_api_break_z_with_gravity=on&chk_stats_api_break_x_arm=on&chk_stats_api_break_z_induced=on&chk_stats_api_break_x_batter_in=on&chk_stats_ba=on&chk_stats_xba=on&chk_stats_xbadiff=on&chk_stats_obp=on&chk_stats_xobp=on&chk_stats_xobpdiff=on&chk_stats_slg=on&chk_stats_xslg=on&chk_stats_xslgdiff=on&chk_stats_woba=on&chk_stats_xwoba=on&chk_stats_wobadiff=on&chk_stats_barrels_total=on&chk_stats_babip=on&chk_stats_iso=on&chk_stats_run_exp=on&chk_stats_pitcher_run_exp=on&chk_stats_swing_miss_percent=on&chk_stats_batter_run_value_per_100=on&chk_stats_pitcher_run_value_per_100=on&chk_stats_velocity=on&chk_stats_effective_speed=on&chk_stats_spin_rate=on&chk_stats_release_pos_z=on&chk_stats_release_pos_x=on&chk_stats_release_extension=on&chk_stats_plate_x=on&chk_stats_plate_z=on&chk_stats_arm_angle=on&chk_stats_launch_speed=on&chk_stats_hyper_speed=on&chk_stats_sweetspot_speed_mph=on&chk_stats_launch_angle=on&chk_stats_bbdist=on&chk_stats_swing_length=on&chk_stats_hardhit_percent=on&chk_stats_barrels_per_bbe_percent=on&chk_stats_barrels_per_pa_percent=on&chk_stats_pos3_int_start_distance=on&chk_stats_pos4_int_start_distance=on&chk_stats_pos5_int_start_distance=on&chk_stats_pos6_int_start_distance=on&chk_stats_pos7_int_start_distance=on&chk_stats_pos8_int_start_distance=on&chk_stats_pos9_int_start_distance=on#results"
+YEAR_RANGES = {
+    2022: (dt.date(2022, 3, 17), dt.date(2022, 11, 5)),
+    2016: (dt.date(2016, 4, 3), dt.date(2016, 11, 2)),
+    2019: (dt.date(2019, 3, 20), dt.date(2019, 10, 30)),
+    2017: (dt.date(2017, 4, 2), dt.date(2017, 11, 1)),
+    2023: (dt.date(2023, 3, 15), dt.date(2023, 11, 1)),
+    2020: (dt.date(2020, 7, 23), dt.date(2020, 10, 27)),
+    2018: (dt.date(2018, 3, 29), dt.date(2018, 10, 28)),
+    2015: (dt.date(2015, 4, 5), dt.date(2015, 11, 1)),
+    2024: (dt.date(2024, 3, 15), dt.date(2024, 10, 25)),
+    2021: (dt.date(2021, 3, 15), dt.date(2021, 11, 2)),
+}
+
+
+def statcast_single_game(game_pk: int, extra_stats: bool) -> pl.DataFrame:
+    """
+    Pulls statcast data for a single game.
+
+    Args:
+    game_pk: the MLB game primary key
+
+    Returns:
+    A DataFrame of statcast data for the game.
+    """
+    try:
+        statcast_content = requests.get(
+            ROOT_URL + SINGLE_GAME.format(game_pk=game_pk), timeout=None
+        ).content
+        print(statcast_content)
+    except Exception as e:
+        logger.error(f"Failed to pull data for game_pk: {game_pk}. {str(e)}")
+        return pl.DataFrame()
+    return pl.read_csv(io.StringIO(statcast_content.decode("utf-8")))
+
+
+async def fetch_data(session, url):
+    async with session.get(url) as response:
+        return await response.read()
+
+
+async def fetch_all_data(urls):
+    async with aiohttp.ClientSession() as session:
+        tasks = [fetch_data(session, url) for url in urls]
+        return await tqdm_asyncio.gather(*tasks, desc="Fetching data")
+
+
+async def statcast_date_range(
+    start_dt: str, end_dt: str, team: str = None, extra_stats: bool = False
+) -> pl.DataFrame:
+    """
+    Pulls statcast data for a date range.
+
+    Args:
+    start_dt: the start date in 'YYYY-MM-DD' format
+    end_dt: the end date in 'YYYY-MM-DD' format
+    team: the team abbreviation (e.g. 'WSH'). If None, data for all teams will be returned.
+
+    Returns:
+    A DataFrame of statcast data for the date range.
+    """
+    if start_dt is None or end_dt is None:
+        raise ValueError("Both start_dt and end_dt must be provided.")
+    print(f"Pulling data for date range: {start_dt} to {end_dt}.")
+    start_dt, end_dt = handle_dates(start_dt, end_dt)
+    date_ranges = list(statcast_date_range_helper(start_dt, end_dt, 1))
+
+    data_list = []
+    schema = None
+
+    urls = [
+        ROOT_URL
+        + DATE_RANGE.format(
+            start_dt=str(start),
+            end_dt=str(end),
+            team=team if team else "",
+        )
+        for start, end in date_ranges
+    ]
+
+    responses = await fetch_all_data(urls)
+    with tqdm_asyncio(total=len(responses), desc="Processing data") as pbar:
+        for data in responses:
+            data = pl.read_csv(io.StringIO(data.decode("utf-8")))
+            if schema is None:
+                schema = data.schema
+            else:
+                data = data.with_columns(
+                    [pl.col(col).cast(schema[col]) for col in schema]
+                )
+            data_list.append(data)
+            pbar.update(1)
+
+    df = pl.concat(data_list)
+
+    if not extra_stats:
+        return df
+    else:
+        df_list = []
+        urls = [ROOT_URL + EXTRA_STATS.format(pos=pos) for pos in ["pitcher", "batter"]]
+        responses = await fetch_all_data(urls)
+        for data in responses:
+            data = pl.read_csv(io.StringIO(data.decode("utf-8")))
+            df_list.append(data)
+        p_df = df_list[0]
+        b_df = df_list[1]
+        df = df.join(
+            p_df, left_on="pitcher", right_on="player_id", suffix="_pitcher", how="left"
+        )
+        df = df.join(
+            b_df, left_on="batter", right_on="player_id", suffix="_batter", how="left"
+        )
+        return df
+
+
+def statcast(
+    start_dt: str, end_dt: str, team: str = None, extra_stats: bool = False
+) -> pl.DataFrame:
+    """
+    Pulls statcast data for a date range.
+
+    Args:
+    start_dt: the start date in 'YYYY-MM-DD' format
+    end_dt: the end date in 'YYYY-MM-DD' format
+    team: the team abbreviation (e.g. 'WSH'). If None, data for all teams will be returned.
+    extra_stats: whether to include extra stats
+
+    Returns:
+    A DataFrame of statcast data for the date range.
+    """
+
+    async def async_statcast():
+        return await statcast_date_range(start_dt, end_dt, team, extra_stats)
+
+    return asyncio.run(async_statcast())
+
+
+STATCAST_DATE_FORMAT = "%Y-%m-%d"
+
+
+def handle_dates(start_dt: str, end_dt: str):
+    """
+    Helper function to handle date inputs.
+
+    Args:
+    start_dt: the start date in 'YYYY-MM-DD' format
+    end_dt: the end date in 'YYYY-MM-DD' format
+
+    Returns:
+    A tuple of datetime.date objects for the start and end dates.
+    """
+    start_dt_date = dt.datetime.strptime(start_dt, STATCAST_DATE_FORMAT).date()
+    end_dt_date = dt.datetime.strptime(end_dt, STATCAST_DATE_FORMAT).date()
+    if start_dt_date > end_dt_date:
+        raise ValueError("start_dt must be before end_dt.")
+    return start_dt_date, end_dt_date
+
+
+def statcast_date_range_helper(
+    start: dt.date, stop: dt.date, step: int, verbose: bool = True
+) -> Iterator[Tuple[dt.date, dt.date]]:
+    """
+    Iterate over dates. Skip the offseason dates. Returns a pair of dates for beginning and end of each segment.
+    Range is inclusive of the stop date.
+    If verbose is enabled, it will print a message if it skips offseason dates.
+    This version is Statcast specific, relying on skipping predefined dates from STATCAST_VALID_DATES.
+    """
+    low = start
+
+    while low <= stop:
+        date_span = low.replace(month=3, day=15), low.replace(month=11, day=15)
+        season_start, season_end = YEAR_RANGES.get(low.year, date_span)
+        if low < season_start:
+            low = season_start
+            if verbose:
+                print("Skipping offseason dates")
+        elif low > season_end:
+            low, _ = YEAR_RANGES.get(
+                low.year + 1, (dt.date(month=3, day=15, year=low.year + 1), None)
+            )
+            if verbose:
+                print("Skipping offseason dates")
+
+        if low > stop:
+            return
+        high = min(low + dt.timedelta(step - 1), stop)
+        yield low, high
+        low += dt.timedelta(days=step)
