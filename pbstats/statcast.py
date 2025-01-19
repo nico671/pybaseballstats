@@ -72,7 +72,7 @@ def statcast_single_game(game_pk: int, extra_stats: bool) -> pl.DataFrame:
         return df
 
 
-async def fetch_data(session, url, retries=3):
+async def fetch_data(session, url, retries=2):
     for attempt in range(retries):
         try:
             async with session.get(url) as response:
@@ -112,7 +112,6 @@ async def statcast_date_range(
     date_ranges = list(statcast_date_range_helper(start_dt, end_dt, 1))
 
     data_list = []
-    schema = None
 
     urls = [
         ROOT_URL
@@ -123,36 +122,46 @@ async def statcast_date_range(
         )
         for start, end in date_ranges
     ]
-
+    schema = None
     responses = await fetch_all_data(urls)
-
     for data in tqdm(responses, desc="Processing regular data"):
-        data = pl.read_csv(io.StringIO(data.decode("utf-8")))
+        # scan csv as lazyframe and drop columns that will always be null
+        data = pl.scan_csv(data)
         if schema is None:
-            schema = data.schema
+            schema = data.collect_schema()
         else:
-            data = data.with_columns([pl.col(col).cast(schema[col]) for col in schema])
+            data = data.cast(schema)
         data_list.append(data)
-
+    print("Concatenating data.")
     df = pl.concat(data_list)
-
+    print("Data concatenated.")
     if not extra_stats:
+        print("Done")
         return df
     else:
-        df_list = []
-        urls = [ROOT_URL + EXTRA_STATS.format(pos=pos) for pos in ["pitcher", "batter"]]
-        responses = await fetch_all_data(urls)
-        for data in tqdm(responses, desc="Processing extra data"):
-            data = pl.read_csv(io.StringIO(data.decode("utf-8")))
-            df_list.append(data)
+        return await add_extra_stats(df, start_dt, end_dt)
 
-        p_df = df_list[0]
-        p_df = p_df.drop("player_name").rename(lambda x: f"{x}_pitcher")
-        b_df = df_list[1]
-        b_df = b_df.drop("player_name").rename(lambda x: f"{x}_batter")
-        df = df.join(p_df, left_on="pitcher", right_on="player_id_pitcher", how="left")
-        df = df.join(b_df, left_on="batter", right_on="player_id_batter", how="left")
-        return df
+
+async def add_extra_stats(df, start_dt, end_dt):
+    df_list = []
+    urls = [
+        ROOT_URL + EXTRA_STATS.format(pos=pos, start_dt=start_dt, end_dt=end_dt)
+        for pos in ["pitcher", "batter"]
+    ]
+    responses = await fetch_all_data(urls)
+    for data in tqdm(responses, desc="Processing extra data"):
+        data = pl.scan_csv(data)
+        df_list.append(data)
+
+    p_df = df_list[0]
+    p_df = p_df.drop("player_name").rename(lambda x: f"{x}_pitcher")
+    b_df = df_list[1]
+    b_df = b_df.drop("player_name").rename(lambda x: f"{x}_batter")
+    print("Joining data.")
+    df = df.join(p_df, left_on="pitcher", right_on="player_id_pitcher", how="left")
+    df = df.join(b_df, left_on="batter", right_on="player_id_batter", how="left")
+    print("Done")
+    return df
 
 
 def statcast(
