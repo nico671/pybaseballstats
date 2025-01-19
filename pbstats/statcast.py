@@ -50,7 +50,26 @@ def statcast_single_game(game_pk: int, extra_stats: bool) -> pl.DataFrame:
     except Exception as e:
         logger.error(f"Failed to pull data for game_pk: {game_pk}. {str(e)}")
         return pl.DataFrame()
-    return pl.read_csv(io.StringIO(statcast_content.decode("utf-8")))
+    if not extra_stats:
+        return pl.read_csv(io.StringIO(statcast_content.decode("utf-8")))
+    else:
+        df = pl.read_csv(io.StringIO(statcast_content.decode("utf-8")))
+        df_list = []
+        urls = [ROOT_URL + EXTRA_STATS.format(pos=pos) for pos in ["pitcher", "batter"]]
+        for url in urls:
+            try:
+                extra_content = requests.get(url, timeout=None).content
+                df_list.append(pl.read_csv(io.StringIO(extra_content.decode("utf-8"))))
+            except Exception as e:
+                logger.error(f"Failed to pull data for game_pk: {game_pk}. {str(e)}")
+                return pl.DataFrame()
+        p_df = df_list[0]
+        p_df = p_df.drop("player_name").rename(lambda x: f"{x}_pitcher")
+        b_df = df_list[1]
+        b_df = b_df.drop("player_name").rename(lambda x: f"{x}_batter")
+        df = df.join(p_df, left_on="pitcher", right_on="player_id_pitcher", how="left")
+        df = df.join(b_df, left_on="batter", right_on="player_id_batter", how="left")
+        return df
 
 
 async def fetch_data(session, url, retries=3):
@@ -127,13 +146,12 @@ async def statcast_date_range(
             data = pl.read_csv(io.StringIO(data.decode("utf-8")))
             df_list.append(data)
 
-        p_df = df_list[0].drop("player_name")
-        p_df = p_df.rename(lambda x: f"{x}_pitcher")
-        b_df = df_list[1].drop("player_name")
-        b_df = b_df.rename(lambda x: f"{x}_batter")
+        p_df = df_list[0]
+        p_df = p_df.drop("player_name").rename(lambda x: f"{x}_pitcher")
+        b_df = df_list[1]
+        b_df = b_df.drop("player_name").rename(lambda x: f"{x}_batter")
         df = df.join(p_df, left_on="pitcher", right_on="player_id_pitcher", how="left")
         df = df.join(b_df, left_on="batter", right_on="player_id_batter", how="left")
-
         return df
 
 
