@@ -6,6 +6,7 @@ from typing import Iterator, Tuple
 
 import aiohttp
 import nest_asyncio
+import pandas as pd
 import polars as pl
 import requests
 from tqdm import tqdm
@@ -17,6 +18,7 @@ nest_asyncio.apply()
 ROOT_URL = "https://baseballsavant.mlb.com"
 SINGLE_GAME = "/statcast_search/csv?all=true&type=details&game_pk={game_pk}"
 DATE_RANGE = "/statcast_search/csv?all=true&hfPT=&hfAB=&hfBBT=&hfPR=&hfZ=&stadium=&hfBBL=&hfNewZones=&hfGT=R%7CPO%7CS%7C=&hfSea=&hfSit=&player_type=pitcher&hfOuts=&opponent=&pitcher_throws=&batter_stands=&hfSA=&game_date_gt={start_dt}&game_date_lt={end_dt}&team={team}&position=&hfRO=&home_road=&hfFlag=&metric_1=&hfInn=&min_pitches=0&min_results=0&group_by=name&sort_col=pitches&player_event_sort=h_launch_speed&sort_order=desc&min_abs=0&type=details&"
+# my own url
 EXTRA_STATS = "/statcast_search/csv?hfPT=&hfAB=&hfGT=R%7C&hfPR=&hfZ=&hfStadium=&hfBBL=&hfNewZones=&hfPull=&hfC=&hfSea=2024%7C2023%7C2022%7C2021%7C2020%7C2019%7C2018%7C2017%7C2016%7C2015%7C2014%7C2013%7C2012%7C2011%7C2010%7C2009%7C2008%7C&hfSit=&player_type={pos}&game_date_gt=&game_date_lt=&hfOuts=&hfOpponent=&pitcher_throws=&batter_stands=&hfSA=&hfMo=&hfTeam=&home_road=&hfRO=&position=&hfInfield=&hfOutfield=&hfInn=&hfBBT=&hfFlag=is%5C.%5C.remove%5C.%5C.bunts%7Cis%5C.%5C.competitive%7C&metric_1=&group_by=name&min_pitches=0&min_results=0&min_pas=0&sort_col=pitches&player_event_sort=api_p_release_speed&sort_order=desc&chk_stats_pa=on&chk_stats_abs=on&chk_stats_bip=on&chk_stats_hits=on&chk_stats_singles=on&chk_stats_dbls=on&chk_stats_triples=on&chk_stats_hrs=on&chk_stats_so=on&chk_stats_k_percent=on&chk_stats_bb=on&chk_stats_bb_percent=on&chk_stats_whiffs=on&chk_stats_swings=on&chk_stats_api_break_z_with_gravity=on&chk_stats_api_break_x_arm=on&chk_stats_api_break_z_induced=on&chk_stats_api_break_x_batter_in=on&chk_stats_ba=on&chk_stats_xba=on&chk_stats_xbadiff=on&chk_stats_obp=on&chk_stats_xobp=on&chk_stats_xobpdiff=on&chk_stats_slg=on&chk_stats_xslg=on&chk_stats_xslgdiff=on&chk_stats_woba=on&chk_stats_xwoba=on&chk_stats_wobadiff=on&chk_stats_barrels_total=on&chk_stats_babip=on&chk_stats_iso=on&chk_stats_run_exp=on&chk_stats_pitcher_run_exp=on&chk_stats_swing_miss_percent=on&chk_stats_batter_run_value_per_100=on&chk_stats_pitcher_run_value_per_100=on&chk_stats_velocity=on&chk_stats_effective_speed=on&chk_stats_spin_rate=on&chk_stats_release_pos_z=on&chk_stats_release_pos_x=on&chk_stats_release_extension=on&chk_stats_plate_x=on&chk_stats_plate_z=on&chk_stats_arm_angle=on&chk_stats_launch_speed=on&chk_stats_hyper_speed=on&chk_stats_sweetspot_speed_mph=on&chk_stats_launch_angle=on&chk_stats_bbdist=on&chk_stats_swing_length=on&chk_stats_hardhit_percent=on&chk_stats_barrels_per_bbe_percent=on&chk_stats_barrels_per_pa_percent=on&chk_stats_pos3_int_start_distance=on&chk_stats_pos4_int_start_distance=on&chk_stats_pos5_int_start_distance=on&chk_stats_pos6_int_start_distance=on&chk_stats_pos7_int_start_distance=on&chk_stats_pos8_int_start_distance=on&chk_stats_pos9_int_start_distance=on#results"
 YEAR_RANGES = {
     2022: (dt.date(2022, 3, 17), dt.date(2022, 11, 5)),
@@ -31,13 +33,18 @@ YEAR_RANGES = {
     2021: (dt.date(2021, 3, 15), dt.date(2021, 11, 2)),
 }
 
+STATCAST_DATE_FORMAT = "%Y-%m-%d"
 
-def statcast_single_game(game_pk: int, extra_stats: bool) -> pl.DataFrame:
+
+def statcast_single_game(
+    game_pk: int, extra_stats: bool, return_pandas: bool = False
+) -> pl.DataFrame | pd.DataFrame:
     """
     Pulls statcast data for a single game.
 
     Args:
     game_pk: the MLB game primary key
+    extra_stats: whether to include extra stats
 
     Returns:
     A DataFrame of statcast data for the game.
@@ -46,12 +53,15 @@ def statcast_single_game(game_pk: int, extra_stats: bool) -> pl.DataFrame:
         statcast_content = requests.get(
             ROOT_URL + SINGLE_GAME.format(game_pk=game_pk), timeout=None
         ).content
-        print(statcast_content)
     except Exception as e:
         logger.error(f"Failed to pull data for game_pk: {game_pk}. {str(e)}")
-        return pl.DataFrame()
+        return pl.DataFrame() if not return_pandas else pd.DataFrame()
     if not extra_stats:
-        return pl.read_csv(io.StringIO(statcast_content.decode("utf-8")))
+        return (
+            pl.read_csv(io.StringIO(statcast_content.decode("utf-8")))
+            if not return_pandas
+            else pd.read_csv(io.StringIO(statcast_content.decode("utf-8")))
+        )
     else:
         df = pl.read_csv(io.StringIO(statcast_content.decode("utf-8")))
         df_list = []
@@ -72,7 +82,7 @@ def statcast_single_game(game_pk: int, extra_stats: bool) -> pl.DataFrame:
         return df
 
 
-async def fetch_data(session, url, retries=2):
+async def _fetch_data(session, url, retries=2):
     for attempt in range(retries):
         try:
             async with session.get(url) as response:
@@ -85,15 +95,19 @@ async def fetch_data(session, url, retries=2):
                 raise e
 
 
-async def fetch_all_data(urls):
+async def _fetch_all_data(urls):
     async with aiohttp.ClientSession() as session:
-        tasks = [fetch_data(session, url) for url in urls]
+        tasks = [_fetch_data(session, url) for url in urls]
         return await tqdm_asyncio.gather(*tasks, desc="Fetching data")
 
 
-async def statcast_date_range(
-    start_dt: str, end_dt: str, team: str = None, extra_stats: bool = False
-) -> pl.DataFrame:
+async def _statcast_date_range_helper(
+    start_dt: str,
+    end_dt: str,
+    team: str = None,
+    extra_stats: bool = False,
+    return_pandas: bool = False,
+) -> pl.LazyFrame | pd.DataFrame:
     """
     Pulls statcast data for a date range.
 
@@ -108,8 +122,8 @@ async def statcast_date_range(
     if start_dt is None or end_dt is None:
         raise ValueError("Both start_dt and end_dt must be provided.")
     print(f"Pulling data for date range: {start_dt} to {end_dt}.")
-    start_dt, end_dt = handle_dates(start_dt, end_dt)
-    date_ranges = list(statcast_date_range_helper(start_dt, end_dt, 1))
+    start_dt, end_dt = _handle_dates(start_dt, end_dt)
+    date_ranges = list(_create_date_ranges(start_dt, end_dt, 1))
 
     data_list = []
 
@@ -123,7 +137,7 @@ async def statcast_date_range(
         for start, end in date_ranges
     ]
     schema = None
-    responses = await fetch_all_data(urls)
+    responses = await _fetch_all_data(urls)
     for data in tqdm(responses, desc="Processing regular data"):
         # scan csv as lazyframe and drop columns that will always be null
         data = pl.scan_csv(data)
@@ -137,18 +151,20 @@ async def statcast_date_range(
     print("Data concatenated.")
     if not extra_stats:
         print("Done")
-        return df
+        return df if not return_pandas else df.to_pandas()
     else:
-        return await add_extra_stats(df, start_dt, end_dt)
+        return await _add_extra_stats(df, start_dt, end_dt, return_pandas=return_pandas)
 
 
-async def add_extra_stats(df, start_dt, end_dt):
+async def _add_extra_stats(
+    df: pl.LazyFrame, start_dt: dt.date, end_dt: dt.date, return_pandas: bool = False
+) -> pl.LazyFrame | pd.DataFrame:
     df_list = []
     urls = [
         ROOT_URL + EXTRA_STATS.format(pos=pos, start_dt=start_dt, end_dt=end_dt)
         for pos in ["pitcher", "batter"]
     ]
-    responses = await fetch_all_data(urls)
+    responses = await _fetch_all_data(urls)
     for data in tqdm(responses, desc="Processing extra data"):
         data = pl.scan_csv(data)
         df_list.append(data)
@@ -161,12 +177,16 @@ async def add_extra_stats(df, start_dt, end_dt):
     df = df.join(p_df, left_on="pitcher", right_on="player_id_pitcher", how="left")
     df = df.join(b_df, left_on="batter", right_on="player_id_batter", how="left")
     print("Done")
-    return df
+    return df if not return_pandas else df.to_pandas()
 
 
-def statcast(
-    start_dt: str, end_dt: str, team: str = None, extra_stats: bool = False
-) -> pl.DataFrame:
+def statcast_date_range(
+    start_dt: str,
+    end_dt: str,
+    team: str = None,
+    extra_stats: bool = False,
+    return_pandas: bool = False,
+) -> pl.LazyFrame | pd.DataFrame:
     """
     Pulls statcast data for a date range.
 
@@ -175,21 +195,21 @@ def statcast(
     end_dt: the end date in 'YYYY-MM-DD' format
     team: the team abbreviation (e.g. 'WSH'). If None, data for all teams will be returned.
     extra_stats: whether to include extra stats
+    return_pandas: whether to return a pandas DataFrame (default is False, returning a polars LazyFrame)
 
     Returns:
     A DataFrame of statcast data for the date range.
     """
 
     async def async_statcast():
-        return await statcast_date_range(start_dt, end_dt, team, extra_stats)
+        return await _statcast_date_range_helper(
+            start_dt, end_dt, team, extra_stats, return_pandas
+        )
 
     return asyncio.run(async_statcast())
 
 
-STATCAST_DATE_FORMAT = "%Y-%m-%d"
-
-
-def handle_dates(start_dt: str, end_dt: str):
+def _handle_dates(start_dt: str, end_dt: str) -> Tuple[dt.date, dt.date]:
     """
     Helper function to handle date inputs.
 
@@ -208,7 +228,7 @@ def handle_dates(start_dt: str, end_dt: str):
 
 
 # this function comes from https://github.com/jldbc/pybaseball/blob/master/pybaseball/statcast.py
-def statcast_date_range_helper(
+def _create_date_ranges(
     start: dt.date, stop: dt.date, step: int, verbose: bool = True
 ) -> Iterator[Tuple[dt.date, dt.date]]:
     """
