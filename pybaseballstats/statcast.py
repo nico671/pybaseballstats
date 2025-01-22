@@ -5,17 +5,18 @@ import logging as logger
 import pandas as pd
 import polars as pl
 import requests
-from statcast_utils import (
-    EXTRA_STATS,
+
+from .statcast_utils import (
     ROOT_URL,
     SINGLE_GAME,
+    _add_extra_stats,
     _statcast_date_range_helper,
 )
 
 
 def statcast_single_game(
     game_pk: int, extra_stats: bool, return_pandas: bool = False
-) -> pl.DataFrame | pd.DataFrame:
+) -> pl.LazyFrame | pd.DataFrame:
     """
     Pulls statcast data for a single game.
 
@@ -32,31 +33,18 @@ def statcast_single_game(
         ).content
     except Exception as e:
         logger.error(f"Failed to pull data for game_pk: {game_pk}. {str(e)}")
-        return pl.DataFrame() if not return_pandas else pd.DataFrame()
+        return pl.LazyFrame() if not return_pandas else pd.DataFrame()
     if not extra_stats:
         return (
-            pl.read_csv(io.StringIO(statcast_content.decode("utf-8")))
+            pl.scan_csv(io.StringIO(statcast_content.decode("utf-8")))
             if not return_pandas
             else pd.read_csv(io.StringIO(statcast_content.decode("utf-8")))
         )
     else:
-        df = pl.read_csv(io.StringIO(statcast_content.decode("utf-8")))
-        df_list = []
-        urls = [ROOT_URL + EXTRA_STATS.format(pos=pos) for pos in ["pitcher", "batter"]]
-        for url in urls:
-            try:
-                extra_content = requests.get(url, timeout=None).content
-                df_list.append(pl.read_csv(io.StringIO(extra_content.decode("utf-8"))))
-            except Exception as e:
-                logger.error(f"Failed to pull data for game_pk: {game_pk}. {str(e)}")
-                return pl.DataFrame()
-        p_df = df_list[0]
-        p_df = p_df.drop("player_name").rename(lambda x: f"{x}_pitcher")
-        b_df = df_list[1]
-        b_df = b_df.drop("player_name").rename(lambda x: f"{x}_batter")
-        df = df.join(p_df, left_on="pitcher", right_on="player_id_pitcher", how="left")
-        df = df.join(b_df, left_on="batter", right_on="player_id_batter", how="left")
-        return df
+        df = pl.scan_csv(io.StringIO(statcast_content.decode("utf-8")))
+        start_dt = df.select(pl.col("game_date").min())
+        end_dt = df.select(pl.col("game_date").max())
+        return asyncio.run(_add_extra_stats(df, start_dt, end_dt, return_pandas))
 
 
 def statcast_date_range(

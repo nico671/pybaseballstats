@@ -5,8 +5,8 @@ from typing import Iterator, Tuple
 import aiohttp
 import pandas as pd
 import polars as pl
-import tqdm.asyncio as tqdm_asyncio
 from tqdm import tqdm
+from tqdm.asyncio import tqdm_asyncio
 
 # https://github.com/jldbc/pybaseball/blob/master/pybaseball/statcast.py
 # used for root_url, single_game, date_range
@@ -39,8 +39,10 @@ async def _fetch_data(session, url, retries=2):
         except aiohttp.ClientPayloadError as e:
             if attempt < retries - 1:
                 await asyncio.sleep(1)  # Wait before retrying
+                print(f"Retrying... {retries - attempt - 1} attempts left.")
                 continue
             else:
+                print(f"Failed to fetch data from {url}.")
                 raise e
 
 
