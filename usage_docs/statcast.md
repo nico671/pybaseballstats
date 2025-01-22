@@ -2,6 +2,8 @@
 
 ## Data Source
 
+Data is pulled from the MLB's Statcast API, which is powered by Baseball Savant. The API I am providing is modeled on the search functionality provided at [Baseball Savant](https://baseballsavant.mlb.com/).
+
 ## Functions
 
 1. `statcast_date_range`
