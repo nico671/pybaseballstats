@@ -17,15 +17,15 @@ from .statcast_utils import (
 def statcast_single_game(
     game_pk: int, extra_stats: bool, return_pandas: bool = False
 ) -> pl.LazyFrame | pd.DataFrame:
-    """
-    Pulls statcast data for a single game.
+    """Pulls statcast data for a single game.
 
     Args:
-    game_pk: the MLB game primary key
-    extra_stats: whether to include extra stats
+        game_pk (int): game_pk of the game you want to pull data for
+        extra_stats (bool): whether or not to include extra stats
+        return_pandas (bool, optional): whether or not to return as a Pandas DataFrame. Defaults to False (returns Polars LazyFrame).
 
     Returns:
-    A DataFrame of statcast data for the game.
+        pl.LazyFrame | pd.DataFrame: DataFrame of statcast data for the game
     """
     try:
         statcast_content = requests.get(
