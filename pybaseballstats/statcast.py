@@ -6,7 +6,7 @@ import pandas as pd
 import polars as pl
 import requests
 
-from .statcast_utils import (
+from .utils.statcast_utils import (
     ROOT_URL,
     SINGLE_GAME,
     _add_extra_stats,
@@ -62,7 +62,7 @@ def statcast_date_range(
     end_dt: the end date in 'YYYY-MM-DD' format
     team: the team abbreviation (e.g. 'WSH'). If None, data for all teams will be returned.
     extra_stats: whether to include extra stats
-    return_pandas: whether to return a pandas DataFrame (default is False, returning a polars LazyFrame)
+    return_pandas: whether to return a pandas DataFrame (default is False, returning a Polars LazyFrame)
 
     Returns:
     A DataFrame of statcast data for the date range.

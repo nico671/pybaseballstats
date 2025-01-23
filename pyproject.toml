@@ -1,0 +1,43 @@
+[project]
+name = "pybaseballstats"
+version = "0.0.3"
+description = "A Python package for scraping baseball data."
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "aiohttp>=3.11.11",
+    "asyncio>=3.4.3",
+    "bs4>=0.0.2",
+    "pandas>=2.2.3",
+    "polars>=1.20.0",
+    "pytest>=8.3.4",
+    "requests>=2.32.3",
+    "ruff>=0.9.3",
+    "tqdm>=4.67.1",
+]
+authors = [{ name = "Nicolas Carbone", email = "carbone.nicolas0@gmail.com" }]
+license = { text = "MIT" }
+maintainers = [
+    { name = "Nicolas Carbone", email = "carbone.nicolas0@gmail.com" },
+]
+keywords = [
+    "baseball",
+    "stats",
+    "data",
+    "savant",
+    "Baseball Savant",
+    "Fangraphs",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+]
+
+[project.urls]
+Repository = "https://github.com/nico671/pybaseballstats"
+[tool.setuptools]
+packages = { find = { include = [
+    "pybaseballstats/__init__.py",
+], exclude = [
+    "pybaseballstats/utils/*",
+] } }

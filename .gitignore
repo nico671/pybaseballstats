@@ -1,3 +1,8 @@
 /notebooks
 /__pycache__
-pbstats/__pycache__
+pybaseballstats/__pycache__
+dist/
+.pytest_cache/
+.venv/
+tests/__pycache__
+pybaseballstats/utils/__pycache__

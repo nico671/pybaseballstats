@@ -130,7 +130,13 @@ def fangraphs_batting_date_range(
         pl.DataFrame | pd.DataFrame: The requested data as a Polars or Pandas DataFrame.
     """
     df_list = []
-
+    if stat_types is None:
+        stat_types = FangraphsBattingStatType
+    if len(stat_types) == 0:
+        print(
+            "Warning: No stat types provided, returning None, to return all stattypes, pass in None."
+        )
+        return None
     for stat_type in stat_types:
         print(f"Fetching data for {stat_type}...")
         df = get_table_data(
@@ -161,9 +167,15 @@ def fangraphs_batting_season_range(
     pos="all",
     league="",
     qual="y",
-):
+) -> pl.DataFrame | pd.DataFrame:
     df_list = []
-
+    if stat_types is None:
+        stat_types = FangraphsBattingStatType
+    if len(stat_types) == 0:
+        print(
+            "Warning: No stat types provided, returning None, to return all stattypes, pass in None."
+        )
+        return None
     for stat_type in stat_types:
         print(f"Fetching data for {stat_type}...")
         df = get_table_data(
@@ -187,16 +199,16 @@ def fangraphs_batting_season_range(
 
 
 def fangraphs_pitching_date_range():
-    pass
+    print("Not implemented yet.")
 
 
 def fangraphs_pitching_season_range():
-    pass
+    print("Not implemented yet.")
 
 
 def fangraphs_fielding_date_range():
-    pass
+    print("Not implemented yet.")
 
 
 def fangraphs_fielding_season_range():
-    pass
+    print("Not implemented yet.")
