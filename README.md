@@ -4,13 +4,16 @@ A Python package for scraping baseball statistics from the web. Inspired by the 
 
 ## Available Sources
 
-1. Baseball Savant
-    - This source provides high quality pitch-by-pitch data for all MLB games since 2015. This data is useful for analyzing pitch movement, pitch usage, and other pitching statistics.
+1. [Baseball Savant](https://baseballsavant.mlb.com/)
+    - This source provides high quality pitch-by-pitch data for all MLB games since 2015.
+2. [Fangraphs](https://www.fangraphs.com/)
+    - This source provides pitching, batting and fielding statistics for all MLB players since 1871.
 
 ## Installation
 
-pybaseballstats can be installed using pip or any other package manager.:
-Example:
+pybaseballstats can be installed using pip or any other package manager (I use [uv](https://docs.astral.sh/uv/)).
+
+Examples:
 
 ```bash
 pip install pybaseballstats
@@ -26,3 +29,13 @@ uv add pybaseballstats
 
 Usage documentation can be found at /usage_docs/
 Technical documentation can be found at /technical_docs/
+
+## Contributing
+
+Improvements and bug fixes are welcome! Please open an issue or submit a pull request. If you are opening an issue please keep in mind that I am enrolled in university full-time and may not be able to respond immediately. I work on this in my free time, but I will do my best to fix any issues that are opened. To submit a pull request, please fork the repository and make your changes on a new branch. Make your changes and please create new tests if you are adding new functionality (updates to my own tests are more than welcome as well). Make sure all tests pass and once you are finished, submit a pull request and I will review your changes. Please include a detailed description of the changes you made and why you made them as a part of your pull request.
+
+## Credit and Acknowledgement
+
+This project was heavily inspired by the pybaseball package by James LeDoux. The goal of this project is to provide a similar set of functionality with continual updates and improvements, as the original pybaseball package has lagged behind with updates and key functionality has been broken (hence my decision to create this new package).
+
+All of the data scraped by this package is publicly available and free to use. The data is sourced from Baseball Savant and Fangraphs, and all credit for the data goes to those organizations.
