@@ -1,4 +1,0 @@
-numpy>=2.2.2
-pandas>=2.2.3
-polars>=1.20.0
-requests>=2.32.3
