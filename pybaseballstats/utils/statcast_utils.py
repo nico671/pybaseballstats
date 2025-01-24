@@ -102,7 +102,7 @@ async def _statcast_date_range_helper(
     print("Data concatenated.")
     if not extra_stats:
         print("Done")
-        return df if not return_pandas else df.to_pandas()
+        return df if not return_pandas else df.collect().to_pandas()
     else:
         return await _add_extra_stats(df, start_dt, end_dt, return_pandas=return_pandas)
 
@@ -128,7 +128,7 @@ async def _add_extra_stats(
     df = df.join(p_df, left_on="pitcher", right_on="player_id_pitcher", how="left")
     df = df.join(b_df, left_on="batter", right_on="player_id_batter", how="left")
     print("Done")
-    return df if not return_pandas else df.to_pandas()
+    return df if not return_pandas else df.collect().to_pandas()
 
 
 def _handle_dates(start_dt: str, end_dt: str) -> Tuple[dt.date, dt.date]:

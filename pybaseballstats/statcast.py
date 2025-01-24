@@ -65,7 +65,7 @@ def statcast_date_range(
     return_pandas: whether to return a pandas DataFrame (default is False, returning a Polars LazyFrame)
 
     Returns:
-    A DataFrame of statcast data for the date range.
+        pl.LazyFrame | pd.Dataframe: A DataFrame of statcast data for the date range.
     """
 
     async def async_statcast():

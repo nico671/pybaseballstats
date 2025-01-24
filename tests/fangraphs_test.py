@@ -29,7 +29,7 @@ data = pyb.fangraphs_batting_range(
     return_pandas=False,
     pos="all",
     league="",
-    qual="y",
+    min_at_bats="y",
     start_season=None,
     end_season=None,
 )

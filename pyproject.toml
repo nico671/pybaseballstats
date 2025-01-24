@@ -11,6 +11,7 @@ dependencies = [
     "ipykernel>=6.29.5",
     "pandas>=2.2.3",
     "polars>=1.20.0",
+    "pyarrow>=19.0.0",
     "pytest>=8.3.4",
     "requests>=2.32.3",
     "ruff>=0.9.3",
@@ -28,6 +29,9 @@ keywords = [
     "savant",
     "Baseball Savant",
     "Fangraphs",
+    "MLB",
+    "scraping",
+    "sabermetrics",
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -42,3 +46,8 @@ packages = { find = { include = [
 ], exclude = [
     "pybaseballstats/utils/*",
 ] } }
+
+[tool.poetry.dev-dependencies]
+ipykernel = ">=6.29.5"
+pytest = ">=8.3.4"
+ruff = ">=0.9.3"
