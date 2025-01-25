@@ -47,7 +47,8 @@ async def _fetch_data(session, url, retries=2):
 
 
 async def _fetch_all_data(urls):
-    async with aiohttp.ClientSession() as session:
+    session_timeout = aiohttp.ClientTimeout(total=None, sock_connect=10, sock_read=30)
+    async with aiohttp.ClientSession(timeout=session_timeout) as session:
         tasks = [_fetch_data(session, url) for url in urls]
         return await tqdm_asyncio.gather(*tasks, desc="Fetching data")
 

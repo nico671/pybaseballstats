@@ -195,6 +195,21 @@ def fangraphs_batting_range(
         raise ValueError(
             "Either start_date and end_date must not be None or start_season and end_season must not be None"
         )
+
+    elif (start_date is not None and end_date is None) or (
+        start_date is None and end_date is not None
+    ):
+        raise ValueError(
+            "Both start_date and end_date must be provided if one is provided"
+        )
+
+    elif (start_season is not None and end_season is None) or (
+        start_season is None and end_season is not None
+    ):
+        raise ValueError(
+            "Both start_season and end_season must be provided if one is provided"
+        )
+
     df_list = []
     if stat_types is None:
         stat_types = {}
@@ -207,8 +222,7 @@ def fangraphs_batting_range(
             "Warning: setting a custom minimum at bats value may result in missing data"
         )
     for stat_type in tqdm(stat_types, desc="Fetching data"):
-        # print(f"Fetching data for {stat_type}...")
-        print(league)
+        print(f"Fetching data for {stat_type}...")
         df = get_table_data(
             stat_type=stat_types[stat_type],
             pos=pos,
@@ -220,7 +234,7 @@ def fangraphs_batting_range(
             end_season=end_season if end_season is not None else "",
         )
         if df is not None:
-            # print(f"Data fetched for {stat_type}")
+            print(f"Data fetched for {stat_type}")
             df_list.append(df)
         else:
             print(f"Warning: No data returned for {stat_type}")
