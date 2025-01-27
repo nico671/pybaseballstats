@@ -1,8 +1,8 @@
 from enum import Enum
 
-import bs4 as BeautifulSoup
 import polars as pl
 import requests
+from bs4 import BeautifulSoup
 
 
 class FangraphsBattingStatType(Enum):

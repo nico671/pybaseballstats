@@ -11,8 +11,7 @@ from pybaseballstats.utils.fangraphs_utils import (
     FangraphsLeagueTypes,
     get_table_data,
 )
-
-url = "https://www.fangraphs.com/leaders/major-league?pos={pos}&stats=bat&lg={league}&qual={min_at_bats}&type={stat_type}&season={end_season}&season1={start_season}&ind=0&startdate={start_date}&enddate={end_date}&month=0&team=0&pagenum=1&pageitems=2000000000"
+from pybaseballstats.utils.statcast_utils import _handle_dates
 
 
 # TODO: Add more options
@@ -31,6 +30,11 @@ def fangraphs_batting_range(
     pos: FangraphsBattingPosTypes = FangraphsBattingPosTypes.ALL,
     league: FangraphsLeagueTypes = FangraphsLeagueTypes.ALL,
     min_at_bats: str = "y",
+    # age: str = ",",
+    # rost: int = 0,
+    # game_type: str = "",
+    # team: int = 0,
+    # handedness: str = "",
 ) -> pl.DataFrame | pd.DataFrame:
     """Pulls batting data from Fangraphs for a given date range or season range. Additional options include filtering by position and league, as well as the ability to specify which stats to pull.
 
@@ -68,7 +72,8 @@ def fangraphs_batting_range(
         raise ValueError(
             "Both start_season and end_season must be provided if one is provided"
         )
-
+    if start_date is not None and end_date is not None:
+        start_date, end_date = _handle_dates(start_date, end_date)
     df_list = []
     if stat_types is None:
         stat_types = {}
@@ -81,7 +86,6 @@ def fangraphs_batting_range(
             "Warning: setting a custom minimum at bats value may result in missing data"
         )
     for stat_type in tqdm(stat_types, desc="Fetching data"):
-        print(f"Fetching data for {stat_type}...")
         df = get_table_data(
             stat_type=stat_types[stat_type],
             pos=pos,
@@ -93,7 +97,6 @@ def fangraphs_batting_range(
             end_season=end_season if end_season is not None else "",
         )
         if df is not None:
-            print(f"Data fetched for {stat_type}")
             df_list.append(df)
         else:
             print(f"Warning: No data returned for {stat_type}")
