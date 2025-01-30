@@ -12,14 +12,13 @@ from pybaseballstats.utils.fangraphs_utils import (
 )
 from pybaseballstats.utils.statcast_utils import _handle_dates
 
+
 # TODO: Add more options
 # - Add support for specifying team (team=) options are given by ints so need to make an enum for that
 # - add support for restricting only to active roster players (rost=) (0 for all, 1 for active roster)
 # - add support for season type (postseason=) ("" for regular season, "Y" for all postseason, "W" for world series, "L" for league championship series, "D" for division series, "F" for wild card game)
 # - add support for handedness (hand=) ("" for all, "R" for right handed batters, "L" for left handed batters, "S" for switch hitters)
 # - add support for age (age=) ("start_age,end_age")
-
-
 def fangraphs_batting_range(
     start_date: str = None,
     end_date: str = None,
@@ -52,6 +51,7 @@ def fangraphs_batting_range(
     Returns:
         pl.DataFrame | pd.DataFrame: A Polars or Pandas DataFrame containing the requested data.
     """
+    # input validation
     if (start_date is None or end_date is None) and (
         start_season is None or end_season is None
     ):
@@ -72,8 +72,10 @@ def fangraphs_batting_range(
         raise ValueError(
             "Both start_season and end_season must be provided if one is provided"
         )
+    # convert start_date and end_date to datetime objects
     if start_date is not None and end_date is not None:
         start_date, end_date = _handle_dates(start_date, end_date)
+    # run the async function and return the result
     return asyncio.run(
         fangraphs_batting_range_async(
             start_date,

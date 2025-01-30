@@ -11,6 +11,7 @@ from bs4 import BeautifulSoup
 from tqdm import tqdm
 
 
+# simple enum for Fangraphs batting stat types
 class FangraphsBattingStatType(Enum):
     DASHBOARD = 8
     STANDARD = 0
@@ -33,6 +34,7 @@ class FangraphsBattingStatType(Enum):
     STATCAST_PLATE_DISCIPLINE = 15
 
 
+# enum for Fangraphs batting positions
 class FangraphsBattingPosTypes(Enum):
     CATCHER = "c"
     FIRST_BASE = "1b"
@@ -52,6 +54,7 @@ class FangraphsBattingPosTypes(Enum):
         return self.value
 
 
+# enum for Fangraphs league types
 class FangraphsLeagueTypes(Enum):
     ALL = ""
     NATIONAL_LEAGUE = "nl"
@@ -61,6 +64,7 @@ class FangraphsLeagueTypes(Enum):
         return self.value
 
 
+#
 async def fetch_data(
     session,
     stat_type,
