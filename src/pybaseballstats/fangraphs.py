@@ -1,18 +1,16 @@
+import asyncio
 from typing import List
 
 import pandas as pd
 import polars as pl
-from polars import selectors as cs
-from tqdm import tqdm
 
 from pybaseballstats.utils.fangraphs_utils import (
     FangraphsBattingPosTypes,
     FangraphsBattingStatType,
     FangraphsLeagueTypes,
-    get_table_data,
+    fangraphs_batting_range_async,
 )
 from pybaseballstats.utils.statcast_utils import _handle_dates
-
 
 # TODO: Add more options
 # - Add support for specifying team (team=) options are given by ints so need to make an enum for that
@@ -20,6 +18,8 @@ from pybaseballstats.utils.statcast_utils import _handle_dates
 # - add support for season type (postseason=) ("" for regular season, "Y" for all postseason, "W" for world series, "L" for league championship series, "D" for division series, "F" for wild card game)
 # - add support for handedness (hand=) ("" for all, "R" for right handed batters, "L" for left handed batters, "S" for switch hitters)
 # - add support for age (age=) ("start_age,end_age")
+
+
 def fangraphs_batting_range(
     start_date: str = None,
     end_date: str = None,
@@ -74,39 +74,19 @@ def fangraphs_batting_range(
         )
     if start_date is not None and end_date is not None:
         start_date, end_date = _handle_dates(start_date, end_date)
-    df_list = []
-    if stat_types is None:
-        stat_types = {}
-        for stat_type in FangraphsBattingStatType:
-            stat_types[stat_type] = stat_type.value
-    elif len(stat_types) == 0:
-        raise ValueError("stat_types must not be an empty list")
-    if min_at_bats != "y":
-        print(
-            "Warning: setting a custom minimum at bats value may result in missing data"
+    return asyncio.run(
+        fangraphs_batting_range_async(
+            start_date,
+            end_date,
+            start_season,
+            end_season,
+            stat_types,
+            return_pandas,
+            pos,
+            league,
+            min_at_bats,
         )
-    for stat_type in tqdm(stat_types, desc="Fetching data"):
-        df = get_table_data(
-            stat_type=stat_types[stat_type],
-            pos=pos,
-            league=league,
-            start_date=start_date if start_date is not None else "",
-            end_date=end_date if end_date is not None else "",
-            min_at_bats=min_at_bats,
-            start_season=start_season if start_season is not None else "",
-            end_season=end_season if end_season is not None else "",
-        )
-        if df is not None:
-            df_list.append(df)
-        else:
-            print(f"Warning: No data returned for {stat_type}")
-
-    df = df_list[0]
-    for i in range(1, len(df_list)):
-        df = df.join(df_list[i], on="Name", how="full").select(
-            ~cs.ends_with("_right"),
-        )
-    return df.to_pandas() if return_pandas else df
+    )
 
 
 def fangraphs_pitching_date_range():

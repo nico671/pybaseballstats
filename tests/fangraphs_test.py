@@ -101,7 +101,7 @@ def test_fangraphs_batting_range_yes_and_no_qual():
         return_pandas=False,
         pos="all",
         league="",
-        min_at_bats="0",
+        min_at_bats="50",
         start_season=None,
         end_season=None,
     )
@@ -111,32 +111,32 @@ def test_fangraphs_batting_range_yes_and_no_qual():
     assert data1.shape[1] == data2.shape[1]
 
 
-# # print(pyb.show_fangraphs_batting_stat_types())
-# # print(pyb.show_batting_pos_options())
-# #     # stat type
-# #     stat_types[stat_type],
-# #     # position
-# #     "all",
-# #     # league
-# #     "",
-# #     # start date
-# #     "2024-04-01",
-# #     # end date
-# #     "2024-05-01",
-# #     # qual
-# #     "y",
-# #     # start season
-# #     "",
-# #     # end season
-# #     "",
-# data = pyb.fangraphs_batting_range(
-#     start_date="2024-04-01",
-#     end_date="2024-05-01",
-#     stat_types=None,
-#     return_pandas=False,
-#     pos="all",
-#     league="",
-#     min_at_bats="y",
-#     start_season=None,
-#     end_season=None,
-# )
+# # # print(pyb.show_fangraphs_batting_stat_types())
+# # # print(pyb.show_batting_pos_options())
+# # #     # stat type
+# # #     stat_types[stat_type],
+# # #     # position
+# # #     "all",
+# # #     # league
+# # #     "",
+# # #     # start date
+# # #     "2024-04-01",
+# # #     # end date
+# # #     "2024-05-01",
+# # #     # qual
+# # #     "y",
+# # #     # start season
+# # #     "",
+# # #     # end season
+# # #     "",
+# # data = pyb.fangraphs_batting_range(
+# #     start_date="2024-04-01",
+# #     end_date="2024-05-01",
+# #     stat_types=None,
+# #     return_pandas=False,
+# #     pos="all",
+# #     league="",
+# #     min_at_bats="y",
+# #     start_season=None,
+# #     end_season=None,
+# # )
