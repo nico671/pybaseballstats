@@ -99,7 +99,7 @@ async def fangraphs_batting_range_async(
     pos: FangraphsBattingPosTypes = FangraphsBattingPosTypes.ALL,
     league: FangraphsLeagueTypes = FangraphsLeagueTypes.ALL,
     min_at_bats: str = "y",
-    # age: str = ",",
+    age: str = None,
     # rost: int = 0,
     # game_type: str = "",
     # team: int = 0,
@@ -147,9 +147,19 @@ async def fangraphs_batting_range_async(
 
 
 def get_table_data(
-    stat_type, pos, league, start_date, end_date, min_at_bats, start_season, end_season
+    stat_type,
+    pos,
+    league,
+    start_date,
+    end_date,
+    min_at_bats,
+    start_season,
+    end_season,
+    age=None,
 ):
     url = "https://www.fangraphs.com/leaders/major-league?pos={pos}&stats=bat&lg={league}&qual={min_at_bats}&type={stat_type}&season={end_season}&season1={start_season}&ind=0&startdate={start_date}&enddate={end_date}&month=0&team=0&pagenum=1&pageitems=2000000000"
+    if age:
+        url += f"&age={age}"
     url = url.format(
         pos=pos,
         league=league,
@@ -194,14 +204,6 @@ def get_table_data(
             col_id = cell.get("data-col-id")
 
             if col_id and col_id != "divider":
-                # if col_id == "Name":
-                #     row_data[col_id] = cell.find("a").text
-                #     if cell.find("a"):
-                #         row_data[col_id] = cell.find("a").text
-                #     elif cell.find("span"):
-                #         row_data[col_id] = cell.find("span").text
-                #     else:
-                #         text = cell.text.strip()
                 if cell.find("a"):
                     row_data[col_id] = cell.find("a").text
                 elif cell.find("span"):

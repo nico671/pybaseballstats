@@ -29,7 +29,8 @@ def fangraphs_batting_range(
     pos: FangraphsBattingPosTypes = FangraphsBattingPosTypes.ALL,
     league: FangraphsLeagueTypes = FangraphsLeagueTypes.ALL,
     min_at_bats: str = "y",
-    # age: str = ",",
+    start_age: int = None,
+    end_age: int = None,
     # rost: int = 0,
     # game_type: str = "",
     # team: int = 0,
@@ -47,6 +48,7 @@ def fangraphs_batting_range(
         pos (FangraphsBattingPosTypes, optional): What batter positions you want to include in your search. Defaults to FangraphsBattingPosTypes.ALL.
         league (FangraphsLeagueTypes, optional): What leagues you want included in your search. Defaults to FangraphsLeagueTypes.ALL.
         min_at_bats (str, optional): Minimum number of at bats to be included in the dataset (ex min_at_bats="123"). Defaults to "y" (qualified hitters).
+
 
     Returns:
         pl.DataFrame | pd.DataFrame: A Polars or Pandas DataFrame containing the requested data.
@@ -72,6 +74,20 @@ def fangraphs_batting_range(
         raise ValueError(
             "Both start_season and end_season must be provided if one is provided"
         )
+    if start_age is None and end_age is None:
+        age = ""
+    elif start_age is not None and end_age is not None:
+        if start_age < 14 or start_age > 56:
+            raise ValueError("start_age must be between 14 and 56")
+        elif end_age < start_age:
+            raise ValueError("end_age must be greater than start_age")
+        else:
+            age = f"{start_age},{end_age}"
+    else:
+        raise ValueError(
+            "Both start_age and end_age must be provided if one is provided"
+        )
+    print(age)
     # convert start_date and end_date to datetime objects
     if start_date is not None and end_date is not None:
         start_date, end_date = _handle_dates(start_date, end_date)
@@ -87,21 +103,14 @@ def fangraphs_batting_range(
             pos,
             league,
             min_at_bats,
+            age,
         )
     )
 
 
-def fangraphs_pitching_date_range():
+def fangraphs_pitching_range():
     print("Not implemented yet.")
 
 
-def fangraphs_pitching_season_range():
-    print("Not implemented yet.")
-
-
-def fangraphs_fielding_date_range():
-    print("Not implemented yet.")
-
-
-def fangraphs_fielding_season_range():
+def fangraphs_fielding_range():
     print("Not implemented yet.")

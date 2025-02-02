@@ -111,24 +111,52 @@ def test_fangraphs_batting_range_yes_and_no_qual():
     assert data1.shape[1] == data2.shape[1]
 
 
-# # # print(pyb.show_fangraphs_batting_stat_types())
-# # # print(pyb.show_batting_pos_options())
-# # #     # stat type
-# # #     stat_types[stat_type],
-# # #     # position
-# # #     "all",
-# # #     # league
-# # #     "",
-# # #     # start date
-# # #     "2024-04-01",
-# # #     # end date
-# # #     "2024-05-01",
-# # #     # qual
-# # #     "y",
-# # #     # start season
-# # #     "",
-# # #     # end season
-# # #     "",
+def test_fangraphs_batting_range_age_inputs():
+    with pytest.raises(ValueError):
+        pyb.fangraphs_batting_range(
+            start_date="2024-04-01",
+            end_date="2024-05-01",
+            stat_types=None,
+            return_pandas=False,
+            pos="all",
+            league="",
+            min_at_bats="y",
+            start_season=20,
+            end_season=None,
+            start_age=20,
+        )
+    with pytest.raises(ValueError):
+        pyb.fangraphs_batting_range(
+            start_date="2024-04-01",
+            end_date="2024-05-01",
+            stat_types=None,
+            return_pandas=False,
+            pos="all",
+            league="",
+            min_at_bats="y",
+            start_season=20,
+            end_season=None,
+            start_age=24,
+            end_age=20,
+        )
+    data = pyb.fangraphs_batting_range(
+        start_date="2024-04-01",
+        end_date="2024-05-01",
+        stat_types=None,
+        return_pandas=False,
+        pos="all",
+        league="",
+        min_at_bats="y",
+        start_season=None,
+        end_season=None,
+        start_age=20,
+        end_age=24,
+    )
+    assert data is not None
+    assert data.shape[0] == 129
+    assert data.shape[1] == 244
+
+
 # # data = pyb.fangraphs_batting_range(
 # #     start_date="2024-04-01",
 # #     end_date="2024-05-01",

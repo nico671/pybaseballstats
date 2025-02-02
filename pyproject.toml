@@ -1,6 +1,6 @@
 [project]
 name = "pybaseballstats"
-version = "0.0.11"
+version = "0.0.12"
 description = "A Python package for scraping baseball data."
 readme = "README.md"
 requires-python = ">=3.11"
