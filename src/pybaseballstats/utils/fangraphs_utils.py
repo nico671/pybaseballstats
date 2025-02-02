@@ -75,6 +75,7 @@ async def fetch_data(
     min_at_bats,
     start_season,
     end_season,
+    handedness,
 ):
     return await get_table_data_async(
         session,
@@ -86,6 +87,7 @@ async def fetch_data(
         min_at_bats=min_at_bats,
         start_season=start_season,
         end_season=end_season,
+        handedness=handedness,
     )
 
 
@@ -103,7 +105,7 @@ async def fangraphs_batting_range_async(
     # rost: int = 0,
     # game_type: str = "",
     # team: int = 0,
-    # handedness: str = "",
+    handedness: str = "",
 ) -> pl.DataFrame | pd.DataFrame:
     df_list = []
     if stat_types is None:
@@ -129,6 +131,7 @@ async def fangraphs_batting_range_async(
                 min_at_bats,
                 start_season,
                 end_season,
+                handedness,
             )
             for stat_type in stat_types
         ]
@@ -156,8 +159,9 @@ def get_table_data(
     start_season,
     end_season,
     age=None,
+    handedness="",
 ):
-    url = "https://www.fangraphs.com/leaders/major-league?pos={pos}&stats=bat&lg={league}&qual={min_at_bats}&type={stat_type}&season={end_season}&season1={start_season}&ind=0&startdate={start_date}&enddate={end_date}&month=0&team=0&pagenum=1&pageitems=2000000000"
+    url = "https://www.fangraphs.com/leaders/major-league?pos={pos}&stats=bat&lg={league}&qual={min_at_bats}&type={stat_type}&season={end_season}&season1={start_season}&ind=0&startdate={start_date}&enddate={end_date}&hand={handedness}&month=0&team=0&pagenum=1&pageitems=2000000000"
     if age:
         url += f"&age={age}"
     url = url.format(
@@ -169,6 +173,7 @@ def get_table_data(
         end_date=end_date,
         start_season=start_season,
         end_season=end_season,
+        handedness=handedness,
     )
     # Assuming `cont` contains the HTML content
     cont = requests.get(url).content.decode("utf-8")
@@ -239,6 +244,7 @@ async def get_table_data_async(
     min_at_bats,
     start_season,
     end_season,
+    handedness,
 ):
     url = "https://www.fangraphs.com/leaders/major-league?pos={pos}&stats=bat&lg={league}&qual={min_at_bats}&type={stat_type}&season={end_season}&season1={start_season}&ind=0&startdate={start_date}&enddate={end_date}&month=0&team=0&pagenum=1&pageitems=2000000000"
     url = url.format(

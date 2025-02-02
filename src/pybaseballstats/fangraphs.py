@@ -18,7 +18,6 @@ from pybaseballstats.utils.statcast_utils import _handle_dates
 # - add support for restricting only to active roster players (rost=) (0 for all, 1 for active roster)
 # - add support for season type (postseason=) ("" for regular season, "Y" for all postseason, "W" for world series, "L" for league championship series, "D" for division series, "F" for wild card game)
 # - add support for handedness (hand=) ("" for all, "R" for right handed batters, "L" for left handed batters, "S" for switch hitters)
-# - add support for age (age=) ("start_age,end_age")
 def fangraphs_batting_range(
     start_date: str = None,
     end_date: str = None,
@@ -34,7 +33,7 @@ def fangraphs_batting_range(
     # rost: int = 0,
     # game_type: str = "",
     # team: int = 0,
-    # handedness: str = "",
+    handedness: str = "",
 ) -> pl.DataFrame | pd.DataFrame:
     """Pulls batting data from Fangraphs for a given date range or season range. Additional options include filtering by position and league, as well as the ability to specify which stats to pull.
 
@@ -48,7 +47,8 @@ def fangraphs_batting_range(
         pos (FangraphsBattingPosTypes, optional): What batter positions you want to include in your search. Defaults to FangraphsBattingPosTypes.ALL.
         league (FangraphsLeagueTypes, optional): What leagues you want included in your search. Defaults to FangraphsLeagueTypes.ALL.
         min_at_bats (str, optional): Minimum number of at bats to be included in the dataset (ex min_at_bats="123"). Defaults to "y" (qualified hitters).
-
+        age (str, optional): Age range for players to include in the dataset (ex. age="20,25"). Defaults to None.
+        handedness (str, optional): Handedness of batters to include in the dataset. Defaults to "" (all batters), options are "" (all), "R" (right_handed), "L" (left_handed), "S" (switch).
 
     Returns:
         pl.DataFrame | pd.DataFrame: A Polars or Pandas DataFrame containing the requested data.
@@ -87,7 +87,8 @@ def fangraphs_batting_range(
         raise ValueError(
             "Both start_age and end_age must be provided if one is provided"
         )
-    print(age)
+    if handedness not in ["", "R", "L", "S"]:
+        raise ValueError("handedness must be one of the following: '', 'R', 'L', 'S'")
     # convert start_date and end_date to datetime objects
     if start_date is not None and end_date is not None:
         start_date, end_date = _handle_dates(start_date, end_date)
@@ -104,6 +105,7 @@ def fangraphs_batting_range(
             league,
             min_at_bats,
             age,
+            handedness,
         )
     )
 
