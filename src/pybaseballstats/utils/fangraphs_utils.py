@@ -6,12 +6,50 @@ import aiohttp
 import pandas as pd
 import polars as pl
 import polars.selectors as cs
-import requests
 from bs4 import BeautifulSoup
 from tqdm import tqdm
 
 
-# simple enum for Fangraphs batting stat types
+class FangraphsTeams(Enum):
+    ALL = 0
+    ANGELS = 1
+    ASTROS = 17
+    ATHLETICS = 10
+    BLUE_JAYS = 14
+    BRAVES = 16
+    BREWERS = 23
+    CARDINALS = 28
+    CUBS = 17
+    DIAMONDBACKS = 15
+    DODGERS = 22
+    GIANTS = 30
+    GUARDIANS = 5
+    MARINERS = 11
+    MARLINS = 20
+    METS = 25
+    NATIONALS = 24
+    ORIOLES = 2
+    PADRES = 29
+    PHILLIES = 26
+    PIRATES = 27
+    RANGERS = 13
+    RAYS = 12
+    RED_SOX = 3
+    REDS = 18
+    ROCKIES = 19
+    ROYALS = 7
+    TIGERS = 6
+    TWINS = 8
+    WHITE_SOX = 4
+    YANKEES = 9
+
+
+class FangraphsStatSplitTypes(Enum):
+    PLAYER = ""
+    TEAM = "ts"
+    LEAGUE = "ss"
+
+
 class FangraphsBattingStatType(Enum):
     DASHBOARD = 8
     STANDARD = 0
@@ -32,9 +70,15 @@ class FangraphsBattingStatType(Enum):
     STATCAST_PITCH_TYPE_VALUE = 13
     STATCAST_PITCH_TYPE_VALUE_PER_100 = 14
     STATCAST_PLATE_DISCIPLINE = 15
+    PITCH_INFO_PITCH_TYPE = 16
+    PITCH_INFO_PITCH_VELOCITY = 17
+    PITCH_INFO_H_MOVEMENT = 18
+    PITCH_INFO_V_MOVEMENT = 19
+    PITCH_INFO_PITCH_TYPE_VALUE = 20
+    PITCH_INFO_PITCH_TYPE_VALUE_PER_100 = 21
+    PITCH_INFO_PLATE_DISCIPLINE = 22
 
 
-# enum for Fangraphs batting positions
 class FangraphsBattingPosTypes(Enum):
     CATCHER = "c"
     FIRST_BASE = "1b"
@@ -54,7 +98,6 @@ class FangraphsBattingPosTypes(Enum):
         return self.value
 
 
-# enum for Fangraphs league types
 class FangraphsLeagueTypes(Enum):
     ALL = ""
     NATIONAL_LEAGUE = "nl"
@@ -62,33 +105,6 @@ class FangraphsLeagueTypes(Enum):
 
     def __str__(self):
         return self.value
-
-
-#
-async def fetch_data(
-    session,
-    stat_type,
-    pos,
-    league,
-    start_date,
-    end_date,
-    min_at_bats,
-    start_season,
-    end_season,
-    handedness,
-):
-    return await get_table_data_async(
-        session,
-        stat_type=stat_type,
-        pos=pos,
-        league=league,
-        start_date=start_date,
-        end_date=end_date,
-        min_at_bats=min_at_bats,
-        start_season=start_season,
-        end_season=end_season,
-        handedness=handedness,
-    )
 
 
 async def fangraphs_batting_range_async(
@@ -101,137 +117,47 @@ async def fangraphs_batting_range_async(
     pos: FangraphsBattingPosTypes = FangraphsBattingPosTypes.ALL,
     league: FangraphsLeagueTypes = FangraphsLeagueTypes.ALL,
     min_at_bats: str = "y",
-    age: str = None,
-    # rost: int = 0,
-    # game_type: str = "",
-    # team: int = 0,
+    rost: int = 0,
+    team: str = "",
     handedness: str = "",
 ) -> pl.DataFrame | pd.DataFrame:
-    df_list = []
+    # Prepare stat types dictionary
     if stat_types is None:
-        stat_types = {}
-        for stat_type in FangraphsBattingStatType:
-            stat_types[stat_type] = stat_type.value
+        stat_types = {stat: stat.value for stat in list(FangraphsBattingStatType)}
     elif len(stat_types) == 0:
         raise ValueError("stat_types must not be an empty list")
     if min_at_bats != "y":
-        print(
-            "Warning: setting a custom minimum at bats value may result in missing data"
-        )
+        print("Warning: using a custom minimum at bats may result in missing data")
 
     async with aiohttp.ClientSession() as session:
         tasks = [
-            fetch_data(
+            get_table_data_async(
                 session,
-                stat_types[stat_type],
-                pos,
-                league,
-                start_date,
-                end_date,
-                min_at_bats,
-                start_season,
-                end_season,
-                handedness,
+                stat_type=stat_types[stat],
+                pos=pos,
+                league=league,
+                start_date=start_date,
+                end_date=end_date,
+                min_at_bats=min_at_bats,
+                start_season=start_season,
+                end_season=end_season,
+                handedness=handedness,
+                rost=rost,
+                team=team,
             )
-            for stat_type in stat_types
+            for stat in stat_types
         ]
-        df_list = []
-        for f in tqdm(
-            asyncio.as_completed(tasks), total=len(tasks), desc="Fetching data"
-        ):
-            df_list.append(await f)
+        df_list = [
+            await t
+            for t in tqdm(
+                asyncio.as_completed(tasks), total=len(tasks), desc="Fetching data"
+            )
+        ]
 
     df = df_list[0]
-    for i in range(1, len(df_list)):
-        df = df.join(df_list[i], on="Name", how="full").select(
-            ~cs.ends_with("_right"),
-        )
+    for next_df in df_list[1:]:
+        df = df.join(next_df, on="Name", how="full").select(~cs.ends_with("_right"))
     return df.to_pandas() if return_pandas else df
-
-
-def get_table_data(
-    stat_type,
-    pos,
-    league,
-    start_date,
-    end_date,
-    min_at_bats,
-    start_season,
-    end_season,
-    age=None,
-    handedness="",
-):
-    url = "https://www.fangraphs.com/leaders/major-league?pos={pos}&stats=bat&lg={league}&qual={min_at_bats}&type={stat_type}&season={end_season}&season1={start_season}&ind=0&startdate={start_date}&enddate={end_date}&hand={handedness}&month=0&team=0&pagenum=1&pageitems=2000000000"
-    if age:
-        url += f"&age={age}"
-    url = url.format(
-        pos=pos,
-        league=league,
-        min_at_bats=min_at_bats,
-        stat_type=stat_type,
-        start_date=start_date,
-        end_date=end_date,
-        start_season=start_season,
-        end_season=end_season,
-        handedness=handedness,
-    )
-    # Assuming `cont` contains the HTML content
-    cont = requests.get(url).content.decode("utf-8")
-
-    # Parse the HTML content with BeautifulSoup
-    soup = BeautifulSoup(cont, "html.parser")
-
-    # Find the main table using the provided CSS selector
-    main_table = soup.select_one(
-        "#content > div.leaders-major_leaders-major__table__hcmbm > div.fg-data-grid.table-type > div.table-wrapper-outer > div > div.table-scroll > table"
-    )
-
-    # Find the table header
-    thead = main_table.find("thead")
-
-    # Extract column names from the data-col-id attribute of the <th> elements, excluding "divider"
-    headers = [
-        th["data-col-id"]
-        for th in thead.find_all("th")
-        if "data-col-id" in th.attrs and th["data-col-id"] != "divider"
-    ]
-
-    # Find the table body within the main table
-    tbody = main_table.find("tbody")
-
-    # Initialize a list to store the extracted data
-    data = []
-
-    # Iterate over each row in the table body
-    for row in tbody.find_all("tr"):
-        row_data = {header: None for header in headers}  # Initialize with None
-        for cell in row.find_all("td"):
-            col_id = cell.get("data-col-id")
-
-            if col_id and col_id != "divider":
-                if cell.find("a"):
-                    row_data[col_id] = cell.find("a").text
-                elif cell.find("span"):
-                    row_data[col_id] = cell.find("span").text
-                else:
-                    text = cell.text.strip().replace("%", "")
-                    if text == "":
-                        row_data[col_id] = None
-                    else:
-                        try:
-                            row_data[col_id] = float(text) if "." in text else int(text)
-                        except ValueError:
-                            row_data[col_id] = text
-                        except Exception as e:
-                            print(e)
-                            print(cell.attrs["data-col-id"])
-                            row_data[col_id] = text
-        # Print row_data for debugging
-        data.append(row_data)
-
-    # Create a Polars DataFrame from the extracted data
-    df = pl.DataFrame(data, infer_schema_length=None)
-    return df
 
 
 async def get_table_data_async(
@@ -245,51 +171,52 @@ async def get_table_data_async(
     start_season,
     end_season,
     handedness,
+    rost,
+    team,
 ):
-    url = "https://www.fangraphs.com/leaders/major-league?pos={pos}&stats=bat&lg={league}&qual={min_at_bats}&type={stat_type}&season={end_season}&season1={start_season}&ind=0&startdate={start_date}&enddate={end_date}&month=0&team=0&pagenum=1&pageitems=2000000000"
+    url = (
+        "https://www.fangraphs.com/leaders/major-league?"
+        "pos={pos}&stats=bat&lg={league}&qual={min_at_bats}&type={stat_type}"
+        "&season={end_season}&season1={start_season}&ind=0"
+        "&startdate={start_date}&enddate={end_date}&hand={handedness}"
+        "&rost={rost}&month=0&team={team}&pagenum=1&pageitems=2000000000"
+    )
     url = url.format(
         pos=pos,
         league=league,
         min_at_bats=min_at_bats,
         stat_type=stat_type,
-        start_date=start_date,
-        end_date=end_date,
-        start_season=start_season,
-        end_season=end_season,
+        start_date=start_date if start_date is not None else "",
+        end_date=end_date if end_date is not None else "",
+        start_season=start_season if start_season is not None else "",
+        end_season=end_season if end_season is not None else "",
+        handedness=handedness,
+        rost=rost,
+        team=team,
     )
-    async with session.get(url) as response:
-        cont = await response.text()
+    try:
+        async with session.get(url) as response:
+            cont = await response.text()
+    except aiohttp.ClientOSError as e:
+        print(f"ClientOSError: {e}")
+        return pl.DataFrame()
 
-    # Parse the HTML content with BeautifulSoup
     soup = BeautifulSoup(cont, "html.parser")
-
-    # Find the main table using the provided CSS selector
     main_table = soup.select_one(
         "#content > div.leaders-major_leaders-major__table__hcmbm > div.fg-data-grid.table-type > div.table-wrapper-outer > div > div.table-scroll > table"
     )
-
-    # Find the table header
     thead = main_table.find("thead")
-
-    # Extract column names from the data-col-id attribute of the <th> elements, excluding "divider"
     headers = [
         th["data-col-id"]
         for th in thead.find_all("th")
         if "data-col-id" in th.attrs and th["data-col-id"] != "divider"
     ]
-
-    # Find the table body within the main table
     tbody = main_table.find("tbody")
-
-    # Initialize a list to store the extracted data
     data = []
-
-    # Iterate over each row in the table body
     for row in tbody.find_all("tr"):
-        row_data = {header: None for header in headers}  # Initialize with None
+        row_data = {header: None for header in headers}
         for cell in row.find_all("td"):
             col_id = cell.get("data-col-id")
-
             if col_id and col_id != "divider":
                 if cell.find("a"):
                     row_data[col_id] = cell.find("a").text
@@ -304,21 +231,10 @@ async def get_table_data_async(
                             row_data[col_id] = float(text) if "." in text else int(text)
                         except ValueError:
                             row_data[col_id] = text
-                        except Exception as e:
-                            print(e)
-                            print(cell.attrs["data-col-id"])
-                            row_data[col_id] = text
         data.append(row_data)
 
-    # Create a Polars DataFrame from the extracted data
+    # Ensure "Name" column exists for joins
     df = pl.DataFrame(data, infer_schema_length=None)
+    if "Name" not in df.columns:
+        df = df.with_column(pl.lit(None).alias("Name"))
     return df
-
-
-def show_fangraphs_batting_stat_types():
-    for stat_type in FangraphsBattingStatType:
-        print(stat_type)
-
-
-def show_batting_pos_options():
-    print("c,1b,2b,3b,ss,lf,cf,rf,dh,of,p,all")
