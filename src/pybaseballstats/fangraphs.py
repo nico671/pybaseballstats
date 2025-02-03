@@ -26,11 +26,10 @@ def fangraphs_batting_range(
     pos: FangraphsBattingPosTypes = FangraphsBattingPosTypes.ALL,
     league: FangraphsLeagueTypes = FangraphsLeagueTypes.ALL,
     min_at_bats: str = "y",
-    # start_age: int = None,
-    # end_age: int = None,
+    start_age: int = None,  # new parameter
+    end_age: int = None,  # new parameter
     handedness: str = "",
     rost: int = 0,
-    # game_type: str = "",
     team: FangraphsTeams = FangraphsTeams.ALL,
     stat_split: FangraphsStatSplitTypes = FangraphsStatSplitTypes.PLAYER,
 ) -> pl.DataFrame | pd.DataFrame:
@@ -45,6 +44,8 @@ def fangraphs_batting_range(
     pos (FangraphsBattingPosTypes, optional): The position type to filter by. Defaults to FangraphsBattingPosTypes.ALL.
     league (FangraphsLeagueTypes, optional): The league type to filter by. Defaults to FangraphsLeagueTypes.ALL.
     min_at_bats (str, optional): Minimum at-bats qualifier. Defaults to "y".
+    start_age (int, optional): The start age for the range. Defaults to None.
+    end_age (int, optional): The end age for the range. Defaults to None.
     handedness (str, optional): The handedness of the batter ('', 'R', 'L', 'S'). Defaults to "".
     rost (int, optional): Roster status (0 for all players, 1 for active roster). Defaults to 0.
     team (FangraphsTeams, optional): The team to filter by. Defaults to FangraphsTeams.ALL.
@@ -78,27 +79,25 @@ def fangraphs_batting_range(
         raise ValueError(
             "Both start_season and end_season must be provided if one is provided"
         )
-    # if start_age is None and end_age is None:
-    #     age = ""
-    # elif start_age is not None and end_age is not None:
-    #     if start_age < 14 or start_age > 56:
-    #         raise ValueError("start_age must be between 14 and 56")
-    #     elif end_age < start_age:
-    #         raise ValueError("end_age must be greater than start_age")
-    #     else:
-    #         age = f"{start_age},{end_age}"
-    # else:
-    #     raise ValueError(
-    #         "Both start_age and end_age must be provided if one is provided"
-    #     )
     if handedness not in ["", "R", "L", "S"]:
         raise ValueError("handedness must be one of the following: '', 'R', 'L', 'S'")
     if rost not in [0, 1]:
         raise ValueError("rost must be either 0 (all players) or 1 (active roster)")
-    # if game_type not in ["", "Y", "W", "L", "D", "F"]:
-    #     raise ValueError(
-    #         "game_type must be one of the following: '', 'Y', 'W', 'L', 'D', 'F'"
-    #     )
+
+    # Validate and format age as "start_age,end_age"
+    if start_age is None and end_age is None:
+        age = ""
+    elif start_age is not None and end_age is not None:
+        if start_age < 14 or start_age > 56:
+            raise ValueError("start_age must be between 14 and 56")
+        elif end_age < start_age:
+            raise ValueError("end_age must be greater than start_age")
+        else:
+            age = f"{start_age},{end_age}"
+    else:
+        raise ValueError(
+            "Both start_age and end_age must be provided if one is provided"
+        )
 
     if stat_split.value != "":
         team = f"{team},{stat_split.value}"
@@ -119,11 +118,10 @@ def fangraphs_batting_range(
             pos=pos,
             league=league,
             min_at_bats=min_at_bats,
-            # age=age,
             rost=rost,
-            # game_type,
             team=team,
             handedness=handedness,
+            age=age,  # pass age as "start_age,end_age"
         )
     )
 

@@ -106,53 +106,58 @@ def test_qual_vs_non_qual():
     assert data_qual.shape[1] == data_non_qual.shape[1]
 
 
-# # Test age input validation and output shape
-# def test_age_inputs():
-#     with pytest.raises(ValueError):
-#         pyb.fangraphs_batting_range(
-#             start_date="2024-04-01",
-#             end_date="2024-05-01",
-#             stat_types=None,
-#             return_pandas=False,
-#             pos="all",
-#             league="",
-#             min_at_bats="y",
-#             start_season=20,
-#             end_season=None,
-#             start_age=20,
-#         )
-#     with pytest.raises(ValueError):
-#         pyb.fangraphs_batting_range(
-#             start_date="2024-04-01",
-#             end_date="2024-05-01",
-#             stat_types=None,
-#             return_pandas=False,
-#             pos="all",
-#             league="",
-#             min_at_bats="y",
-#             start_season=20,
-#             end_season=None,
-#             start_age=24,
-#             end_age=20,
-#         )
-#     data = pyb.fangraphs_batting_range(
-#         start_date=None,
-#         end_date=None,
-#         stat_types=None,
-#         return_pandas=False,
-#         pos="all",
-#         league="",
-#         min_at_bats="y",
-#         start_season=2024,
-#         end_season=2024,
-#         start_age=20,
-#         end_age=24,
-#         handedness="",
-#         rost=0,
-#     )
-#     assert data is not None
-#     assert data.shape[0] == 118
-#     assert data.shape[1] == 313
+# Test age input validation and output shape
+def test_age_inputs():
+    with pytest.raises(ValueError):
+        pyb.fangraphs_batting_range(
+            start_date="2024-04-01",
+            end_date="2024-05-01",
+            stat_types=None,
+            return_pandas=False,
+            pos="all",
+            league="",
+            min_at_bats="y",
+            start_season=20,
+            end_season=None,
+            start_age=20,
+        )
+    with pytest.raises(ValueError):
+        pyb.fangraphs_batting_range(
+            start_date="2024-04-01",
+            end_date="2024-05-01",
+            stat_types=None,
+            return_pandas=False,
+            pos="all",
+            league="",
+            min_at_bats="y",
+            start_season=None,
+            end_season=None,
+            start_age=24,
+            end_age=20,
+        )
+    with pytest.raises(ValueError):
+        pyb.fangraphs_batting_range(
+            start_date="2024-04-01",
+            end_date="2024-05-01",
+            stat_types=None,
+            return_pandas=False,
+            pos="all",
+            league="",
+            min_at_bats="y",
+            start_season=20,
+            end_season=28,
+            start_age=24,
+            end_age=20,
+        )
+    data = pyb.fangraphs_batting_range(
+        start_season=2024,
+        end_season=2024,
+        start_age=20,
+        end_age=24,
+    )
+    assert data is not None
+    assert data.shape[0] == 26
+    assert data.shape[1] == 313
 
 
 # Test handedness filtering using parameterization
@@ -196,8 +201,5 @@ def test_active_roster_filter():
         rost=1,
     )
     assert data is not None
-    assert data.shape[0] > 0
-    assert isinstance(data, pl.DataFrame)
-
-
-# ...additional tests can be added as needed...
+    assert data.shape[0] == 123
+    assert data.shape[1] == 313

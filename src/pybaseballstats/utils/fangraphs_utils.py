@@ -120,6 +120,7 @@ async def fangraphs_batting_range_async(
     rost: int = 0,
     team: str = "",
     handedness: str = "",
+    age: str = "",
 ) -> pl.DataFrame | pd.DataFrame:
     # Prepare stat types dictionary
     if stat_types is None:
@@ -144,6 +145,7 @@ async def fangraphs_batting_range_async(
                 handedness=handedness,
                 rost=rost,
                 team=team,
+                age=age,  # pass age parameter
             )
             for stat in stat_types
         ]
@@ -173,13 +175,14 @@ async def get_table_data_async(
     handedness,
     rost,
     team,
+    age: str = "",  # new age parameter
 ):
     url = (
         "https://www.fangraphs.com/leaders/major-league?"
         "pos={pos}&stats=bat&lg={league}&qual={min_at_bats}&type={stat_type}"
         "&season={end_season}&season1={start_season}&ind=0"
         "&startdate={start_date}&enddate={end_date}&hand={handedness}"
-        "&rost={rost}&month=0&team={team}&pagenum=1&pageitems=2000000000"
+        "&rost={rost}&team={team}&age={age}&pagenum=1&pageitems=2000000000"
     )
     url = url.format(
         pos=pos,
@@ -193,6 +196,7 @@ async def get_table_data_async(
         handedness=handedness,
         rost=rost,
         team=team,
+        age=age,
     )
     try:
         async with session.get(url) as response:
@@ -235,6 +239,6 @@ async def get_table_data_async(
 
     # Ensure "Name" column exists for joins
     df = pl.DataFrame(data, infer_schema_length=None)
-    if "Name" not in df.columns:
-        df = df.with_column(pl.lit(None).alias("Name"))
+    # if "Name" not in df.columns:
+    #     df = df.with_columns(pl.lit(None).alias("Name"))
     return df
