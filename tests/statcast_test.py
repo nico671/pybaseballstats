@@ -93,3 +93,24 @@ def test_statcast_date_range_flipped_dates():
             return_pandas=False,
             extra_stats=False,
         )
+
+
+def test_statcast_date_range_with_team():
+    data = pyb.statcast_date_range(
+        start_dt=START_DT,
+        end_dt=END_DT,
+        team="WSH",
+        extra_stats=False,
+        return_pandas=False,
+    )
+    assert isinstance(data, pl.LazyFrame)
+    data = data.collect()
+    assert isinstance(data, pl.DataFrame)
+    assert data.shape[1] == 113
+
+
+def test_statcast_single_game_return_pandas_extra_stats():
+    data = pyb.statcast_single_game(game_pk=634, extra_stats=True, return_pandas=True)
+    assert isinstance(data, pd.DataFrame)
+    assert data.shape[0] == 303
+    assert data.shape[1] == 249
