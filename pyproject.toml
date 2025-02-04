@@ -8,6 +8,7 @@ dependencies = [
     "aiohttp>=3.11.11",
     "asyncio>=3.4.3",
     "bs4>=0.0.2",
+    "matplotlib>=3.10.0",
     "nest-asyncio>=1.6.0",
     "pandas>=2.2.3",
     "polars>=1.20.0",
@@ -53,6 +54,14 @@ ruff = ">=0.9.3"
 
 [tool.uv.workspace]
 members = ["pybaseballstats"]
+
+[tool.uv.sources]
+pybaseballstats = { workspace = true }
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "pybaseballstats",
+]

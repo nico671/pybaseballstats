@@ -182,7 +182,7 @@ async def get_table_data_async(
         "pos={pos}&stats=bat&lg={league}&qual={min_at_bats}&type={stat_type}"
         "&season={end_season}&season1={start_season}&ind=0"
         "&startdate={start_date}&enddate={end_date}&hand={handedness}"
-        "&rost={rost}&team={team}&age={age}&pagenum=1&pageitems=2000000000"
+        "&rost={rost}&team={team}&pagenum=1&pageitems=2000000000&age={age}"
     )
     url = url.format(
         pos=pos,
