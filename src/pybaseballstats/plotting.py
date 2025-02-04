@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import matplotlib
 import polars as pl
 from matplotlib import patches
@@ -10,8 +12,17 @@ STADIUM_SCALE = 2.495 / 2.33
 # https://github.com/jldbc/pybaseball/blob/master/pybaseball/plotting.py
 
 
-def plot_stadium(team: str, title: str = None, width: int = None, height: int = None):
-    stad_data = pl.read_csv("data/mlbstadiums.csv")
+# TODO: make the stadium plot more general and add docstrings for all functions
+def plot_stadium(team: str, title: str = None):
+    # Construct absolute path to the CSV file
+    csv_path = Path(__file__).parent.parent.parent / "data" / "mlbstadiums.csv"
+    print(csv_path)
+    try:
+        stad_data = pl.read_csv(csv_path)
+    except FileNotFoundError:
+        raise FileNotFoundError(
+            f"CSV file '{csv_path}' not found. Please ensure the file exists at the correct path."
+        )
     filtered_stad_data = stad_data.filter(pl.col("team") == team)
     filtered_stad_data = filtered_stad_data.with_columns(
         [
@@ -21,10 +32,7 @@ def plot_stadium(team: str, title: str = None, width: int = None, height: int = 
         ]
     )
     stadium = plt.figure()
-    if width is not None and height is not None:
-        stadium.set_size_inches(width / stadium.dpi, height, stadium.dpi)
-    else:
-        stadium.set_size_inches(5, 5)
+    stadium.set_size_inches(5, 5)
     axis = stadium.add_axes([0, 0, 1, 1], frameon=False, aspect=1)
     axis.set_xlim(0, 250)
     axis.set_ylim(-250, 0)
@@ -46,7 +54,7 @@ def plot_stadium(team: str, title: str = None, width: int = None, height: int = 
 
 
 def scatter_plot_over_stadium(data, team_stadium):
-    base = plot_stadium(team_stadium, width=450, height=500)
+    base = plot_stadium(team_stadium)
     data = data.filter(pl.col("hc_x").is_not_null() & pl.col("hc_y").is_not_null())
     data = data.with_columns(
         [
@@ -66,17 +74,17 @@ def scatter_plot_over_stadium(data, team_stadium):
     return base
 
 
-def plot_strike_zone():
+def plot_strike_zone(sz_top=3.389, sz_bot=1.586):
     fig, ax = plt.subplots(1, 1, figsize=(8, 8))
     # Set the aspect ratio to be equal
     ax.set_xlim(-3, 3)
     ax.set_ylim(0, 5)
     coords = [
         # 17 inches wide, heights taken from average strike zone top and bottom from statcast data
-        (-8.5 / 12, 3.389),
-        (-8.5 / 12, 1.586),
-        (8.5 / 12, 1.586),
-        (8.5 / 12, 3.389),
+        (8.5 / 12, sz_top),
+        (8.5 / 12, sz_bot),
+        (-8.5 / 12, sz_bot),
+        (-8.5 / 12, sz_top),
     ]
     home = plt.Polygon(coords, edgecolor="black", facecolor="none")
     ax.add_patch(home)
@@ -87,7 +95,9 @@ def plot_scatter_on_sz(data):
     data = data.filter(
         pl.col("plate_z").is_not_null() & pl.col("plate_x").is_not_null()
     )
-    sz = plot_strike_zone()
+    mean_sz_top = data.select(pl.col("sz_top").mean()).item()
+    mean_sz_bot = data.select(pl.col("sz_bot").mean()).item()
+    sz = plot_strike_zone(mean_sz_top, mean_sz_bot)
     data = data.with_columns(
         [
             pl.col("plate_z").cast(pl.Float64).alias("plate_z"),
