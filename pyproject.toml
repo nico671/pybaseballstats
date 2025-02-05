@@ -1,6 +1,6 @@
 [project]
 name = "pybaseballstats"
-version = "0.0.12"
+version = "0.0.13"
 description = "A Python package for scraping baseball data."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -62,6 +62,4 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [dependency-groups]
-dev = [
-    "pybaseballstats",
-]
+dev = ["pybaseballstats"]

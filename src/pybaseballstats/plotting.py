@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import matplotlib
+import pandas as pd
 import polars as pl
 from matplotlib import patches
 from matplotlib import pyplot as plt
@@ -92,6 +93,19 @@ def plot_strike_zone(sz_top=3.389, sz_bot=1.586):
 
 
 def plot_scatter_on_sz(data):
+    if (
+        "sz_top" not in data.columns
+        or "sz_bot" not in data.columns
+        or "plate_z" not in data.columns
+        or "plate_x" not in data.columns
+    ):
+        raise ValueError(
+            "Dataframe must contain columns 'sz_top', 'sz_bot', 'plate_z', and 'plate_x'"
+        )
+    if data.shape[0] == 0:
+        raise ValueError("Dataframe is empty")
+    if type(data) is pd.DataFrame:
+        data = pl.DataFrame(data)
     data = data.filter(
         pl.col("plate_z").is_not_null() & pl.col("plate_x").is_not_null()
     )
