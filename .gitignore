@@ -6,3 +6,6 @@ dist/
 .venv/
 tests/__pycache__
 pybaseballstats/utils/__pycache__
+src/pybaseballstats/__pycache__
+src/pybaseballstats/data/__pycache__
+src/pybaseballstats.egg-info/

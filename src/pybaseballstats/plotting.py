@@ -16,8 +16,7 @@ STADIUM_SCALE = 2.495 / 2.33
 # TODO: make the stadium plot more general and add docstrings for all functions
 def plot_stadium(team: str, title: str = None):
     # Construct absolute path to the CSV file
-    csv_path = Path(__file__).parent.parent.parent / "data" / "mlbstadiums.csv"
-    print(csv_path)
+    csv_path = Path(__file__).parent / "data" / "mlbstadiums.csv"
     try:
         stad_data = pl.read_csv(csv_path)
     except FileNotFoundError:

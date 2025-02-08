@@ -1,12 +1,11 @@
 [project]
 name = "pybaseballstats"
-version = "0.0.13"
+version = "0.0.16"
 description = "A Python package for scraping baseball data."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "aiohttp>=3.11.11",
-    "asyncio>=3.4.3",
     "bs4>=0.0.2",
     "matplotlib>=3.10.0",
     "nest-asyncio>=1.6.0",
@@ -15,6 +14,7 @@ dependencies = [
     "pyarrow>=19.0.0",
     "pytest>=8.3.4",
     "requests>=2.32.3",
+    "ruff>=0.9.5",
     "tqdm>=4.67.1",
 ]
 authors = [{ name = "Nicolas Carbone", email = "carbone.nicolas0@gmail.com" }]
@@ -40,12 +40,6 @@ classifiers = [
 
 [project.urls]
 Repository = "https://github.com/nico671/pybaseballstats"
-[tool.setuptools]
-packages = { find = { include = [
-    "pybaseballstats/__init__.py",
-], exclude = [
-    "pybaseballstats/utils/*",
-] } }
 
 [tool.poetry.dev-dependencies]
 ipykernel = ">=6.29.5"
@@ -54,12 +48,12 @@ ruff = ">=0.9.3"
 
 [tool.uv.workspace]
 members = ["pybaseballstats"]
-
-[tool.uv.sources]
-pybaseballstats = { workspace = true }
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
 
-[dependency-groups]
-dev = ["pybaseballstats"]
+[tool.setuptools]
+packages = { find = { where = ["src/"] } }
+
+[tool.setuptools.package-data]
+"pybaseballstats" = ["data/*.csv"]
