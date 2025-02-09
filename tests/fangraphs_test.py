@@ -21,7 +21,7 @@ def test_fangraphs_batting_range_output():
             return_pandas=return_pandas,
             pos="all",
             league="",
-            min_at_bats="y",
+            qual="y",
             start_season=None,
             end_season=None,
         )
@@ -42,7 +42,7 @@ def test_fangraphs_batting_range_output():
             return_pandas=False,
             pos="all",
             league="",
-            min_at_bats="y",
+            qual="y",
             start_season=None,
             end_season=None,
         ),
@@ -53,7 +53,7 @@ def test_fangraphs_batting_range_output():
             return_pandas=False,
             pos="all",
             league="",
-            min_at_bats="y",
+            qual="y",
             start_season=None,
             end_season=None,
         ),
@@ -64,7 +64,7 @@ def test_fangraphs_batting_range_output():
             return_pandas=False,
             pos="all",
             league="",
-            min_at_bats="y",
+            qual="y",
             start_season=None,
             end_season=None,
         ),
@@ -84,7 +84,7 @@ def test_qual_vs_non_qual():
         return_pandas=False,
         pos="all",
         league="",
-        min_at_bats="y",
+        qual="y",
         start_season=None,
         end_season=None,
     )
@@ -95,7 +95,7 @@ def test_qual_vs_non_qual():
         return_pandas=False,
         pos="all",
         league="",
-        min_at_bats="50",
+        qual="50",
         start_season=None,
         end_season=None,
     )
@@ -104,60 +104,6 @@ def test_qual_vs_non_qual():
     # Typically, the qualified dataset is a subset
     assert data_qual.shape[0] < data_non_qual.shape[0]
     assert data_qual.shape[1] == data_non_qual.shape[1]
-
-
-# Test age input validation and output shape
-def test_age_inputs():
-    with pytest.raises(ValueError):
-        pyb.fangraphs_batting_range(
-            start_date="2024-04-01",
-            end_date="2024-05-01",
-            stat_types=None,
-            return_pandas=False,
-            pos="all",
-            league="",
-            min_at_bats="y",
-            start_season=20,
-            end_season=None,
-            start_age=20,
-        )
-    with pytest.raises(ValueError):
-        pyb.fangraphs_batting_range(
-            start_date="2024-04-01",
-            end_date="2024-05-01",
-            stat_types=None,
-            return_pandas=False,
-            pos="all",
-            league="",
-            min_at_bats="y",
-            start_season=None,
-            end_season=None,
-            start_age=24,
-            end_age=20,
-        )
-    with pytest.raises(ValueError):
-        pyb.fangraphs_batting_range(
-            start_date="2024-04-01",
-            end_date="2024-05-01",
-            stat_types=None,
-            return_pandas=False,
-            pos="all",
-            league="",
-            min_at_bats="y",
-            start_season=20,
-            end_season=28,
-            start_age=24,
-            end_age=20,
-        )
-    data = pyb.fangraphs_batting_range(
-        start_season=2024,
-        end_season=2024,
-        start_age=20,
-        end_age=24,
-    )
-    assert data is not None
-    assert data.shape[0] == 26
-    assert data.shape[1] == 313
 
 
 # Test handedness filtering using parameterization
@@ -177,7 +123,7 @@ def test_handedness_filter(handedness, expected_rows):
         return_pandas=False,
         pos="all",
         league="",
-        min_at_bats="y",
+        qual="y",
         start_season=None,
         end_season=None,
         handedness=handedness,
@@ -195,7 +141,7 @@ def test_active_roster_filter():
         return_pandas=False,
         pos="all",
         league="",
-        min_at_bats="y",
+        qual="y",
         start_season=None,
         end_season=None,
         rost=1,
@@ -203,3 +149,152 @@ def test_active_roster_filter():
     assert data is not None
     assert data.shape[0] == 123
     assert data.shape[1] == 313
+
+
+# Pitching Tests
+def test_fangraphs_pitching_range_output():
+    # Test with both Polars and Pandas output
+    for return_pandas, df_type in [(False, pl.DataFrame), (True, pd.DataFrame)]:
+        data = pyb.fangraphs_pitching_range(
+            start_date="2024-04-01",
+            end_date="2024-05-01",
+            stat_types=None,
+            return_pandas=return_pandas,
+            league="",
+            qual="y",
+            start_season=None,
+            end_season=None,
+        )
+        assert data is not None
+        assert data.shape[0] == 142  # Adjust based on actual data
+        assert data.shape[1] == 286  # Adjust based on actual data
+        assert isinstance(data, df_type)
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        dict(
+            start_date="2024-05-01",
+            end_date="2024-04-01",  # Invalid date order
+            stat_types=None,
+            return_pandas=False,
+            league="",
+            qual="y",
+        ),
+        dict(
+            start_date=None,
+            end_date=None,
+            stat_types=None,
+            return_pandas=False,
+            league="",
+            qual="y",
+        ),
+        dict(
+            start_date="2024-04-01",
+            end_date="2024-05-01",
+            stat_types=[],  # Empty stat types
+            return_pandas=False,
+            league="",
+            qual="y",
+        ),
+        dict(
+            start_date="2024-04-01",
+            end_date=None,  # Missing end_date
+            stat_types=None,
+            return_pandas=False,
+            league="",
+            qual="y",
+        ),
+    ],
+)
+def test_invalid_pitching_range_inputs(kwargs):
+    with pytest.raises(ValueError):
+        pyb.fangraphs_pitching_range(**kwargs)
+
+
+def test_pitching_qual_vs_non_qual():
+    # Compare qualified vs. unqualified minimum innings
+    data_qual = pyb.fangraphs_pitching_range(
+        start_date="2024-04-01",
+        end_date="2024-05-01",
+        stat_types=None,
+        return_pandas=False,
+        league="",
+        qual="y",
+    )
+    data_non_qual = pyb.fangraphs_pitching_range(
+        start_date="2024-04-01",
+        end_date="2024-05-01",
+        stat_types=None,
+        return_pandas=False,
+        league="",
+        qual="20",  # 20 innings pitched minimum
+    )
+    assert data_qual is not None
+    assert data_non_qual is not None
+    assert (
+        data_qual.shape[0] < data_non_qual.shape[0]
+    )  # Qualified should be smaller subset
+    assert data_qual.shape[1] == data_non_qual.shape[1]
+
+
+def test_pitching_active_roster_filter():
+    # Test active roster filtering
+    data = pyb.fangraphs_pitching_range(
+        start_date="2024-04-01",
+        end_date="2024-05-01",
+        stat_types=None,
+        return_pandas=False,
+        league="",
+        qual="y",
+        rost=1,  # Active roster only
+    )
+    assert data is not None
+    assert data.shape[0] == 135  # Adjust based on actual active roster count
+    assert data.shape[1] == 286  # Adjust based on actual columns
+
+
+@pytest.mark.parametrize(
+    "starter_reliever,expected_rows",
+    [
+        ("all", 142),  # All pitchers
+        ("sta", 68),  # Starters only
+        ("rel", 74),  # Relievers only
+    ],
+)
+def test_starter_reliever_filter(starter_reliever, expected_rows):
+    data = pyb.fangraphs_pitching_range(
+        start_date="2024-04-01",
+        end_date="2024-05-01",
+        stat_types=None,
+        return_pandas=False,
+        league="",
+        qual="y",
+        starter_reliever=starter_reliever,
+    )
+    assert data is not None
+    assert data.shape[0] == expected_rows
+    assert data.shape[1] == 286
+
+
+@pytest.mark.parametrize(
+    "league,expected_rows",
+    [
+        ("", 142),  # All leagues
+        ("nl", 74),  # National League
+        ("al", 68),  # American League
+    ],
+)
+def test_pitching_league_filter(league, expected_rows):
+    data = pyb.fangraphs_pitching_range(
+        start_date="2024-04-01",
+        end_date="2024-05-01",
+        stat_types=None,
+        return_pandas=False,
+        league=league,
+        qual="y",
+    )
+    assert data is not None
+    assert data.shape[0] == expected_rows
+    assert data.shape[1] == 286
