@@ -153,25 +153,25 @@ FANGRAPHS_PITCHING_URL = (
     "https://www.fangraphs.com/leaders/major-league?"
     "pos={pos}&stats=pit&lg={league}&qual={qual}&type={stat_type}"
     "&season={end_season}&season1={start_season}"
-    "&startdate={start_date}&enddate={end_date}"
-    "&rost={rost}&team={team}&pagenum=1&pageitems=2000000000"
+    "&startdate={start_date}&enddate={end_date}&hand={handedness}"
+    "&rost={rost}&team={team}&pagenum=1&pageitems=2000000000stat={starter_reliever}"
 )
 
 
 def _construct_url(
-    pos,
-    league,
-    qual,
-    stat_type,
-    start_date,
-    end_date,
-    start_season,
-    end_season,
-    handedness,
-    rost,
-    team,
-    age,
-    pitch_bat_fld: str,
+    pos: str,
+    league: str,
+    qual: str,
+    stat_type: int,
+    start_date: str,
+    end_date: str,
+    start_season: str,
+    end_season: str,
+    handedness: str,
+    rost: int,
+    team: str,
+    pitch_bat_fld: str,  # Add this parameter
+    starter_reliever: str = "",
 ) -> str:
     """
     Constructs the URL from common parameters.
@@ -189,14 +189,11 @@ def _construct_url(
         "end_season": end_season if end_season is not None else "",
         "rost": rost,
         "team": team,
+        "handedness": handedness,
     }
-    if pitch_bat_fld == "bat":
-        params["handedness"] = handedness
-        params["age"] = age
-        # Append the age parameter to the batting URL
-        url_template = FANGRAPHS_BATTING_URL + "&age={age}"
-    elif pitch_bat_fld == "pitch":
+    if pitch_bat_fld == "pit":
         url_template = FANGRAPHS_PITCHING_URL
+        params["starter_reliever"] = starter_reliever
     else:
         raise ValueError(
             "Unsupported category for pitch_bat_fld, use 'bat' or 'pitch'."
@@ -218,7 +215,6 @@ async def fangraphs_batting_range_async(
     team: str = "",
     handedness: str = "",
     age: str = "",
-    pitch_bat_fld: str = "bat",
 ) -> pl.DataFrame | pd.DataFrame:
     # Prepare stat types dictionary
     if stat_types is None:
@@ -243,6 +239,7 @@ async def fangraphs_batting_range_async(
                 handedness=handedness,
                 rost=rost,
                 team=team,
+                pitch_bat_fld="bat",
             )
             for stat in stat_types
         ]
@@ -267,13 +264,12 @@ async def fangraphs_pitching_range_async(
     end_season: str = None,
     stat_types: List[FangraphsPitchingStatType] = None,
     starter_reliever: str = "all",  # stats in url (sta, rel, all)
-    handeness: str = "",
     return_pandas: bool = False,
     league: FangraphsLeagueTypes = FangraphsLeagueTypes.ALL,
     team: FangraphsTeams = FangraphsTeams.ALL,
     qual: str = "y",
     rost: int = 0,
-    stat_split: FangraphsStatSplitTypes = FangraphsStatSplitTypes.PLAYER,
+    handedness: str = "",
 ) -> pl.DataFrame | pd.DataFrame:
     # Prepare stat types dictionary
     if stat_types is None:
@@ -296,10 +292,11 @@ async def fangraphs_pitching_range_async(
                 qual=qual,
                 start_season=start_season,
                 end_season=end_season,
-                handedness=handeness,
+                handedness=handedness,
                 rost=rost,
                 team=team,
-                pitch_bat_fld="pitch",
+                starter_reliever=starter_reliever,
+                pitch_bat_fld="pit",
             )
             for stat in stat_types
         ]
@@ -318,34 +315,34 @@ async def fangraphs_pitching_range_async(
 async def get_table_data_async(
     session,
     stat_type,
-    league,
-    start_date,
-    end_date,
-    qual,
-    start_season,
-    end_season,
-    handedness,
-    rost,
-    team,
+    league: FangraphsLeagueTypes = FangraphsLeagueTypes.ALL,
+    start_date: str = "",
+    end_date: str = "",
+    qual: str = "y",
+    start_season: str = None,
+    end_season: str = None,
+    handedness: str = "",
+    rost: int = 0,
+    team: str = "",
     pos: str = "",
-    age: str = "",  # new age parameter
     pitch_bat_fld: str = "bat",
+    starter_reliever: str = "all",
 ):
     # Use _construct_url to build the appropriate URL.
     url = _construct_url(
-        pos,
-        league,
-        qual,
-        stat_type,
-        start_date,
-        end_date,
-        start_season,
-        end_season,
-        handedness,
-        rost,
-        team,
-        age,
-        pitch_bat_fld,
+        pos=pos,
+        league=league,
+        qual=qual,
+        stat_type=stat_type,
+        start_date=start_date,
+        end_date=end_date,
+        start_season=start_season,
+        end_season=end_season,
+        handedness=handedness,
+        rost=rost,
+        team=team,
+        starter_reliever=starter_reliever,
+        pitch_bat_fld=pitch_bat_fld,
     )
     try:
         async with session.get(url) as response:
@@ -386,6 +383,5 @@ async def get_table_data_async(
                             row_data[col_id] = text
         data.append(row_data)
 
-    # Ensure "Name" column exists for joins
     df = pl.DataFrame(data, infer_schema_length=None)
     return df

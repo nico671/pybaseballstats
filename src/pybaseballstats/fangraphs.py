@@ -122,6 +122,7 @@ def fangraphs_pitching_range(
     team: FangraphsTeams = FangraphsTeams.ALL,
     qual: str = "y",
     rost: int = 0,
+    handedness: str = "",
     stat_split: FangraphsStatSplitTypes = FangraphsStatSplitTypes.PLAYER,
 ):
     # input validation
@@ -167,6 +168,7 @@ def fangraphs_pitching_range(
             qual=qual,
             rost=rost,
             team=team,
+            handedness=handedness,
         )
     )
 
