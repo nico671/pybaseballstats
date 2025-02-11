@@ -21,7 +21,7 @@ nest_asyncio.apply()
 
 
 def statcast_single_game(
-    game_pk: int, extra_stats: bool, return_pandas: bool = False
+    game_pk: int, extra_stats: bool = False, return_pandas: bool = False
 ) -> pl.LazyFrame | pd.DataFrame:
     """Pulls statcast data for a single game.
 

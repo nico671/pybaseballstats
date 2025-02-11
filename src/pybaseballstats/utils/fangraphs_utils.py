@@ -9,6 +9,14 @@ import polars.selectors as cs
 from bs4 import BeautifulSoup
 from tqdm import tqdm
 
+from pybaseballstats.utils.statcast_utils import _handle_dates
+
+
+class FangraphsFieldingStatType(Enum):
+    STANDARD = 0
+    ADVANCED = 1
+    STATCAST = 24
+
 
 class FangraphsPitchingStatType(Enum):
     DASHBOARD = 8
@@ -157,6 +165,57 @@ FANGRAPHS_PITCHING_URL = (
     "&rost={rost}&team={team}&pagenum=1&pageitems=2000000000stat={starter_reliever}"
 )
 
+FANGRAPHS_FIELDING_URL = (
+    "https://www.fangraphs.com/leaders/major-league?"
+    "pos={pos}&stats=fld&lg={league}&qual={qual}&type={stat_type}"
+    "&season={end_season}&season1={start_season}"
+    "&startdate={start_date}&enddate={end_date}"
+    "&rost={rost}&team={team}&pagenum=1&pageitems=2000000000"
+)
+
+
+def gen_input_val(
+    start_date: str = None,
+    end_date: str = None,
+    start_season: str = None,
+    end_season: str = None,
+    rost: int = 0,
+    team: FangraphsTeams = FangraphsTeams.ALL,
+    stat_split: FangraphsStatSplitTypes = FangraphsStatSplitTypes.PLAYER,
+):
+    # input validation
+    if (start_date is None or end_date is None) and (
+        start_season is None or end_season is None
+    ):
+        raise ValueError(
+            "Either start_date and end_date must not be None or start_season and end_season must not be None"
+        )
+
+    elif (start_date is not None and end_date is None) or (
+        start_date is None and end_date is not None
+    ):
+        raise ValueError(
+            "Both start_date and end_date must be provided if one is provided"
+        )
+
+    elif (start_season is not None and end_season is None) or (
+        start_season is None and end_season is not None
+    ):
+        raise ValueError(
+            "Both start_season and end_season must be provided if one is provided"
+        )
+    if rost not in [0, 1]:
+        raise ValueError("rost must be either 0 (all players) or 1 (active roster)")
+
+    if stat_split.value != "":
+        team = f"{team},{stat_split.value}"
+    else:
+        team = f"{team.value}"
+    # convert start_date and end_date to datetime objects
+    if start_date is not None and end_date is not None:
+        start_date, end_date = _handle_dates(start_date, end_date)
+    return start_date, end_date, start_season, end_season, team
+
 
 def _construct_url(
     pos: str,
@@ -189,14 +248,19 @@ def _construct_url(
         "end_season": end_season if end_season is not None else "",
         "rost": rost,
         "team": team,
-        "handedness": handedness,
     }
     if pitch_bat_fld == "pit":
         url_template = FANGRAPHS_PITCHING_URL
         params["starter_reliever"] = starter_reliever
+        params["handedness"] = handedness
+    elif pitch_bat_fld == "bat":
+        url_template = FANGRAPHS_BATTING_URL
+        params["handedness"] = handedness
+    elif pitch_bat_fld == "fld":
+        url_template = FANGRAPHS_FIELDING_URL
     else:
         raise ValueError(
-            "Unsupported category for pitch_bat_fld, use 'bat' or 'pitch'."
+            "Unsupported category for pitch_bat_fld, use 'bat' or 'pit' or 'fld'."
         )
     return url_template.format(**params)
 
@@ -214,7 +278,6 @@ async def fangraphs_batting_range_async(
     rost: int = 0,
     team: str = "",
     handedness: str = "",
-    age: str = "",
 ) -> pl.DataFrame | pd.DataFrame:
     # Prepare stat types dictionary
     if stat_types is None:
@@ -309,6 +372,7 @@ async def fangraphs_pitching_range_async(
     df = df_list[0]
     for next_df in df_list[1:]:
         df = df.join(next_df, on="Name", how="full").select(~cs.ends_with("_right"))
+
     return df.to_pandas() if return_pandas else df
 
 
@@ -325,8 +389,8 @@ async def get_table_data_async(
     rost: int = 0,
     team: str = "",
     pos: str = "",
-    pitch_bat_fld: str = "bat",
-    starter_reliever: str = "all",
+    pitch_bat_fld: str = "",
+    starter_reliever: str = "",
 ):
     # Use _construct_url to build the appropriate URL.
     url = _construct_url(
@@ -385,3 +449,55 @@ async def get_table_data_async(
 
     df = pl.DataFrame(data, infer_schema_length=None)
     return df
+
+
+async def fangraphs_fielding_range_async(
+    start_date: str = None,
+    end_date: str = None,
+    start_season: str = None,
+    end_season: str = None,
+    stat_types: List[FangraphsPitchingStatType] = None,
+    return_pandas: bool = False,
+    league: FangraphsLeagueTypes = FangraphsLeagueTypes.ALL,
+    team: FangraphsTeams = FangraphsTeams.ALL,
+    qual: str = "y",
+    rost: int = 0,
+    pos: FangraphsBattingPosTypes = FangraphsBattingPosTypes.ALL,
+):
+    if stat_types is None:
+        stat_types = {stat: stat.value for stat in list(FangraphsFieldingStatType)}
+    elif len(stat_types) == 0:
+        raise ValueError("stat_types must not be an empty list")
+    if qual != "y":
+        print(
+            "Warning: using a custom minimum pitches value may result in missing data"
+        )
+
+    async with aiohttp.ClientSession() as session:
+        tasks = [
+            get_table_data_async(
+                session,
+                stat_type=stat_types[stat],
+                league=league,
+                start_date=start_date,
+                end_date=end_date,
+                qual=qual,
+                start_season=start_season,
+                end_season=end_season,
+                rost=rost,
+                pos=pos.value,
+                team=team,
+                pitch_bat_fld="fld",
+            )
+            for stat in stat_types
+        ]
+        df_list = [
+            await t
+            for t in tqdm(
+                asyncio.as_completed(tasks), total=len(tasks), desc="Fetching data"
+            )
+        ]
+    df = df_list[0]
+    for next_df in df_list[1:]:
+        df = df.join(next_df, on="Name", how="full").select(~cs.ends_with("_right"))
+    return df.to_pandas() if return_pandas else df

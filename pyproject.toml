@@ -52,6 +52,11 @@ members = ["pybaseballstats"]
 requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
+[dependency-groups]
+dev = [
+    "ipykernel>=6.29.5",
+]
+
 [tool.setuptools]
 packages = { find = { where = ["src/"] } }
 

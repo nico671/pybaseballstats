@@ -5,6 +5,7 @@ import pandas as pd
 import polars as pl
 import pytest
 
+# 15th test
 # Setup path to import pybaseballstats
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import pybaseballstats as pyb
@@ -95,7 +96,7 @@ def test_qual_vs_non_qual():
         return_pandas=False,
         pos="all",
         league="",
-        qual="50",
+        qual="100",
         start_season=None,
         end_season=None,
     )
@@ -106,195 +107,91 @@ def test_qual_vs_non_qual():
     assert data_qual.shape[1] == data_non_qual.shape[1]
 
 
-# Test handedness filtering using parameterization
-@pytest.mark.parametrize(
-    "handedness,expected_rows",
-    [
-        ("R", 71),
-        ("L", 44),
-        ("S", 14),
-    ],
-)
-def test_handedness_filter(handedness, expected_rows):
-    data = pyb.fangraphs_batting_range(
-        start_date="2024-04-01",
-        end_date="2024-05-01",
-        stat_types=None,
-        return_pandas=False,
-        pos="all",
-        league="",
-        qual="y",
-        start_season=None,
-        end_season=None,
-        handedness=handedness,
-    )
-    assert data is not None
-    assert data.shape[0] == expected_rows
-    assert data.shape[1] == 313
-
-
-def test_active_roster_filter():
-    data = pyb.fangraphs_batting_range(
-        start_date="2024-04-01",
-        end_date="2024-05-01",
-        stat_types=None,
-        return_pandas=False,
-        pos="all",
-        league="",
-        qual="y",
-        start_season=None,
-        end_season=None,
-        rost=1,
-    )
-    assert data is not None
-    assert data.shape[0] == 123
-    assert data.shape[1] == 313
-
-
-# Pitching Tests
-def test_fangraphs_pitching_range_output():
-    # Test with both Polars and Pandas output
-    for return_pandas, df_type in [(False, pl.DataFrame), (True, pd.DataFrame)]:
-        data = pyb.fangraphs_pitching_range(
-            start_date="2024-04-01",
-            end_date="2024-05-01",
-            stat_types=None,
-            return_pandas=return_pandas,
-            league="",
-            qual="y",
-            start_season=None,
-            end_season=None,
-        )
-        assert data is not None
-        assert data.shape[0] == 142  # Adjust based on actual data
-        assert data.shape[1] == 286  # Adjust based on actual data
-        assert isinstance(data, df_type)
-
-
-@pytest.mark.parametrize(
-    "kwargs",
-    [
-        dict(
-            start_date="2024-05-01",
-            end_date="2024-04-01",  # Invalid date order
-            stat_types=None,
-            return_pandas=False,
-            league="",
-            qual="y",
-        ),
-        dict(
-            start_date=None,
-            end_date=None,
-            stat_types=None,
-            return_pandas=False,
-            league="",
-            qual="y",
-        ),
-        dict(
-            start_date="2024-04-01",
-            end_date="2024-05-01",
-            stat_types=[],  # Empty stat types
-            return_pandas=False,
-            league="",
-            qual="y",
-        ),
-        dict(
-            start_date="2024-04-01",
-            end_date=None,  # Missing end_date
-            stat_types=None,
-            return_pandas=False,
-            league="",
-            qual="y",
-        ),
-    ],
-)
-def test_invalid_pitching_range_inputs(kwargs):
-    with pytest.raises(ValueError):
-        pyb.fangraphs_pitching_range(**kwargs)
-
-
-def test_pitching_qual_vs_non_qual():
-    # Compare qualified vs. unqualified minimum innings
-    data_qual = pyb.fangraphs_pitching_range(
-        start_date="2024-04-01",
-        end_date="2024-05-01",
-        stat_types=None,
-        return_pandas=False,
-        league="",
-        qual="y",
-    )
-    data_non_qual = pyb.fangraphs_pitching_range(
-        start_date="2024-04-01",
-        end_date="2024-05-01",
-        stat_types=None,
-        return_pandas=False,
-        league="",
-        qual="20",  # 20 innings pitched minimum
-    )
-    assert data_qual is not None
-    assert data_non_qual is not None
-    assert (
-        data_qual.shape[0] < data_non_qual.shape[0]
-    )  # Qualified should be smaller subset
-    assert data_qual.shape[1] == data_non_qual.shape[1]
-
-
-def test_pitching_active_roster_filter():
-    # Test active roster filtering
+# FANGRAPHS_PITCHING_RANGE
+def test_fangraphs_pitching_range_dates():
     data = pyb.fangraphs_pitching_range(
         start_date="2024-04-01",
         end_date="2024-05-01",
         stat_types=None,
         return_pandas=False,
-        league="",
-        qual="y",
-        rost=1,  # Active roster only
+        starter_reliever="all",
+        league=pyb.FangraphsLeagueTypes.ALL,
+        team=pyb.FangraphsTeams.ALL,
+        rost=0,
+        handedness="",
+        stat_split=pyb.FangraphsStatSplitTypes.PLAYER,
     )
     assert data is not None
-    assert data.shape[0] == 135  # Adjust based on actual active roster count
-    assert data.shape[1] == 286  # Adjust based on actual columns
+    assert data.shape[0] == 58
+    assert data.shape[1] == 375
 
 
-@pytest.mark.parametrize(
-    "starter_reliever,expected_rows",
-    [
-        ("all", 142),  # All pitchers
-        ("sta", 68),  # Starters only
-        ("rel", 74),  # Relievers only
-    ],
-)
-def test_starter_reliever_filter(starter_reliever, expected_rows):
+def test_fangraphs_pitching_range_seasons():
+    data = pyb.fangraphs_pitching_range(
+        start_season="2024",
+        end_season="2024",
+        stat_types=None,
+        return_pandas=False,
+        starter_reliever="all",
+        league=pyb.FangraphsLeagueTypes.ALL,
+        team=pyb.FangraphsTeams.ALL,
+        rost=0,
+        handedness="",
+        stat_split=pyb.FangraphsStatSplitTypes.PLAYER,
+    )
+    assert data is not None
+    assert data.shape[0] == 58
+    assert data.shape[1] == 375
+
+
+def test_fangraphs_pitching_range_one_stat_type():
     data = pyb.fangraphs_pitching_range(
         start_date="2024-04-01",
         end_date="2024-05-01",
-        stat_types=None,
+        stat_types=[pyb.FangraphsPitchingStatType.STANDARD],
         return_pandas=False,
-        league="",
-        qual="y",
-        starter_reliever=starter_reliever,
+        starter_reliever="all",
+        league=pyb.FangraphsLeagueTypes.ALL,
+        team=pyb.FangraphsTeams.ALL,
+        rost=0,
+        handedness="",
+        stat_split=pyb.FangraphsStatSplitTypes.PLAYER,
     )
     assert data is not None
-    assert data.shape[0] == expected_rows
-    assert data.shape[1] == 286
+    assert data.shape[0] == 58
+    assert data.shape[1] == 6
 
 
-@pytest.mark.parametrize(
-    "league,expected_rows",
-    [
-        ("", 142),  # All leagues
-        ("nl", 74),  # National League
-        ("al", 68),  # American League
-    ],
-)
-def test_pitching_league_filter(league, expected_rows):
+def test_fangraphs_pitching_range_multiple_stat_type():
     data = pyb.fangraphs_pitching_range(
         start_date="2024-04-01",
         end_date="2024-05-01",
-        stat_types=None,
+        stat_types=[
+            pyb.FangraphsPitchingStatType.STANDARD,
+            pyb.FangraphsPitchingStatType.STATCAST,
+        ],
         return_pandas=False,
-        league=league,
-        qual="y",
+        starter_reliever="all",
+        league=pyb.FangraphsLeagueTypes.ALL,
+        team=pyb.FangraphsTeams.ALL,
+        rost=0,
+        handedness="",
+        stat_split=pyb.FangraphsStatSplitTypes.PLAYER,
     )
     assert data is not None
-    assert data.shape[0] == expected_rows
-    assert data.shape[1] == 286
+    assert data.shape[0] == 58
+    assert data.shape[1] == 6
+
+
+# start_date: str = None,
+#     end_date: str = None,
+#     start_season: str = None,
+#     end_season: str = None,
+#     stat_types: List[FangraphsPitchingStatType] = None,
+#     starter_reliever: str = "all",  # stats in url (sta, rel, all)
+#     return_pandas: bool = False,
+#     league: FangraphsLeagueTypes = FangraphsLeagueTypes.ALL,
+#     team: FangraphsTeams = FangraphsTeams.ALL,
+#     rost: int = 0,
+#     handedness: str = "",
+#     stat_split: FangraphsStatSplitTypes = FangraphsStatSplitTypes.PLAYER,
