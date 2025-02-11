@@ -91,7 +91,7 @@ def fangraphs_pitching_range(
     start_season: str = None,
     end_season: str = None,
     stat_types: List[FangraphsPitchingStatType] = None,
-    starter_reliever: str = "all",  # stats in url (sta, rel, all)
+    starter_reliever: str = "pit",  # stats in url ("sta", "rel", "pit")
     return_pandas: bool = False,
     league: FangraphsLeagueTypes = FangraphsLeagueTypes.ALL,
     team: FangraphsTeams = FangraphsTeams.ALL,
@@ -123,6 +123,8 @@ def fangraphs_pitching_range(
         pl.DataFrame | pd.DataFrame: The pitching statistics as a Polars or pandas DataFrame.
     """
     # input validation
+    if starter_reliever not in ["sta", "rel", "pit"]:
+        raise ValueError("starter_reliever must be one of 'sta', 'rel', or 'pit'.")
     start_date, end_date, start_season, end_season, team = gen_input_val(
         start_date=start_date,
         end_date=end_date,

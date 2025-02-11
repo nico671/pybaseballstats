@@ -157,12 +157,13 @@ FANGRAPHS_BATTING_URL = (
     "&startdate={start_date}&enddate={end_date}&hand={handedness}"
     "&rost={rost}&team={team}&pagenum=1&pageitems=2000000000"
 )
+# "https://www.fangraphs.com/leaders/major-league?pos={pos}&lg=&qual=y&type=8&season=&season1=&startdate=2021-04-01&enddate=2021-04-30&rost=0&pageitems=2000000000&month=0&team=0&stats={starter_reliever}"
 FANGRAPHS_PITCHING_URL = (
     "https://www.fangraphs.com/leaders/major-league?"
-    "pos={pos}&stats=pit&lg={league}&qual={qual}&type={stat_type}"
-    "&season={end_season}&season1={start_season}"
+    "pos={pos}&lg={league}&qual={qual}&type={stat_type}"
+    "&season={end_season}&season1={start_season}&stats={starter_reliever}"
     "&startdate={start_date}&enddate={end_date}&hand={handedness}"
-    "&rost={rost}&team={team}&pagenum=1&pageitems=2000000000stat={starter_reliever}"
+    "&rost={rost}&team={team}&pagenum=1&pageitems=2000000000"
 )
 
 FANGRAPHS_FIELDING_URL = (
@@ -262,6 +263,7 @@ def _construct_url(
         raise ValueError(
             "Unsupported category for pitch_bat_fld, use 'bat' or 'pit' or 'fld'."
         )
+    print(url_template.format(**params))
     return url_template.format(**params)
 
 
@@ -284,6 +286,8 @@ async def fangraphs_batting_range_async(
         stat_types = {stat: stat.value for stat in list(FangraphsBattingStatType)}
     elif len(stat_types) == 0:
         raise ValueError("stat_types must not be an empty list")
+    else:
+        stat_types = {stat: stat.value for stat in stat_types}
     if qual != "y":
         print("Warning: using a custom minimum at bats may result in missing data")
 
@@ -326,7 +330,7 @@ async def fangraphs_pitching_range_async(
     start_season: str = None,
     end_season: str = None,
     stat_types: List[FangraphsPitchingStatType] = None,
-    starter_reliever: str = "all",  # stats in url (sta, rel, all)
+    starter_reliever: str = "pit",  # stats in url ('sta', 'rel', '')
     return_pandas: bool = False,
     league: FangraphsLeagueTypes = FangraphsLeagueTypes.ALL,
     team: FangraphsTeams = FangraphsTeams.ALL,
@@ -339,6 +343,8 @@ async def fangraphs_pitching_range_async(
         stat_types = {stat: stat.value for stat in list(FangraphsPitchingStatType)}
     elif len(stat_types) == 0:
         raise ValueError("stat_types must not be an empty list")
+    else:
+        stat_types = {stat: stat.value for stat in stat_types}
     if qual != "y":
         print(
             "Warning: using a custom minimum pitches value may result in missing data"
@@ -468,6 +474,8 @@ async def fangraphs_fielding_range_async(
         stat_types = {stat: stat.value for stat in list(FangraphsFieldingStatType)}
     elif len(stat_types) == 0:
         raise ValueError("stat_types must not be an empty list")
+    else:
+        stat_types = {stat: stat.value for stat in stat_types}
     if qual != "y":
         print(
             "Warning: using a custom minimum pitches value may result in missing data"

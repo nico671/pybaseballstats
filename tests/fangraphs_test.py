@@ -114,7 +114,6 @@ def test_fangraphs_pitching_range_dates():
         end_date="2024-05-01",
         stat_types=None,
         return_pandas=False,
-        starter_reliever="all",
         league=pyb.FangraphsLeagueTypes.ALL,
         team=pyb.FangraphsTeams.ALL,
         rost=0,
@@ -132,7 +131,6 @@ def test_fangraphs_pitching_range_seasons():
         end_season="2024",
         stat_types=None,
         return_pandas=False,
-        starter_reliever="all",
         league=pyb.FangraphsLeagueTypes.ALL,
         team=pyb.FangraphsTeams.ALL,
         rost=0,
@@ -150,7 +148,6 @@ def test_fangraphs_pitching_range_one_stat_type():
         end_date="2024-05-01",
         stat_types=[pyb.FangraphsPitchingStatType.STANDARD],
         return_pandas=False,
-        starter_reliever="all",
         league=pyb.FangraphsLeagueTypes.ALL,
         team=pyb.FangraphsTeams.ALL,
         rost=0,
@@ -159,7 +156,7 @@ def test_fangraphs_pitching_range_one_stat_type():
     )
     assert data is not None
     assert data.shape[0] == 58
-    assert data.shape[1] == 6
+    assert data.shape[1] == 25
 
 
 def test_fangraphs_pitching_range_multiple_stat_type():
@@ -171,7 +168,6 @@ def test_fangraphs_pitching_range_multiple_stat_type():
             pyb.FangraphsPitchingStatType.STATCAST,
         ],
         return_pandas=False,
-        starter_reliever="all",
         league=pyb.FangraphsLeagueTypes.ALL,
         team=pyb.FangraphsTeams.ALL,
         rost=0,
@@ -180,16 +176,56 @@ def test_fangraphs_pitching_range_multiple_stat_type():
     )
     assert data is not None
     assert data.shape[0] == 58
-    assert data.shape[1] == 6
+    assert data.shape[1] == 34
 
 
-# start_date: str = None,
-#     end_date: str = None,
-#     start_season: str = None,
-#     end_season: str = None,
-#     stat_types: List[FangraphsPitchingStatType] = None,
-#     starter_reliever: str = "all",  # stats in url (sta, rel, all)
-#     return_pandas: bool = False,
+def test_fangraphs_pitching_range_starter_reliever():
+    with pytest.raises(ValueError):
+        pyb.fangraphs_pitching_range(
+            start_date="2024-04-01",
+            end_date="2024-05-01",
+            stat_types=None,
+            return_pandas=False,
+            starter_reliever="invalid",
+            league=pyb.FangraphsLeagueTypes.ALL,
+            team=pyb.FangraphsTeams.ALL,
+            rost=0,
+            handedness="",
+            stat_split=pyb.FangraphsStatSplitTypes.PLAYER,
+        )
+
+    data = pyb.fangraphs_pitching_range(
+        start_season="2024",
+        end_season="2024",
+        stat_types=None,
+        return_pandas=False,
+        starter_reliever="sta",
+        league=pyb.FangraphsLeagueTypes.ALL,
+        team=pyb.FangraphsTeams.ALL,
+        rost=0,
+        handedness="",
+        stat_split=pyb.FangraphsStatSplitTypes.PLAYER,
+    )
+    assert data is not None
+    assert data.shape[0] == 57
+    assert data.shape[1] == 375
+    data2 = pyb.fangraphs_pitching_range(
+        start_season="2024",
+        end_season="2024",
+        stat_types=None,
+        return_pandas=False,
+        starter_reliever="rel",
+        league=pyb.FangraphsLeagueTypes.ALL,
+        team=pyb.FangraphsTeams.ALL,
+        rost=0,
+        handedness="",
+        stat_split=pyb.FangraphsStatSplitTypes.PLAYER,
+    )
+    assert data2 is not None
+    assert data2.shape[0] == 169
+    assert data2.shape[1] == 375
+
+
 #     league: FangraphsLeagueTypes = FangraphsLeagueTypes.ALL,
 #     team: FangraphsTeams = FangraphsTeams.ALL,
 #     rost: int = 0,
