@@ -1,6 +1,6 @@
 [project]
 name = "pybaseballstats"
-version = "0.0.17"
+version = "0.1.0"
 description = "A Python package for scraping baseball data."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -53,9 +53,7 @@ requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [dependency-groups]
-dev = [
-    "ipykernel>=6.29.5",
-]
+dev = ["ipykernel>=6.29.5"]
 
 [tool.setuptools]
 packages = { find = { where = ["src/"] } }
