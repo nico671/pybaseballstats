@@ -1,5 +1,4 @@
 import asyncio
-from enum import Enum
 from typing import List
 
 import aiohttp
@@ -9,170 +8,19 @@ import polars.selectors as cs
 from bs4 import BeautifulSoup
 from tqdm import tqdm
 
+from pybaseballstats.utils.consts import (
+    FANGRAPHS_BATTING_URL,
+    FANGRAPHS_FIELDING_URL,
+    FANGRAPHS_PITCHING_URL,
+    FangraphsBattingPosTypes,
+    FangraphsBattingStatType,
+    FangraphsFieldingStatType,
+    FangraphsLeagueTypes,
+    FangraphsPitchingStatType,
+    FangraphsStatSplitTypes,
+    FangraphsTeams,
+)
 from pybaseballstats.utils.statcast_utils import _handle_dates
-
-
-class FangraphsFieldingStatType(Enum):
-    STANDARD = 0
-    ADVANCED = 1
-    STATCAST = 24
-
-
-class FangraphsPitchingStatType(Enum):
-    DASHBOARD = 8
-    STANDARD = 0
-    ADVANCED = 1
-    BATTED_BALL = 2
-    WIN_PROBABILITY = 3
-    VALUE = 6
-    PLUS_STATS = 23
-    STATCAST = 24
-    VIOLATIONS = 48
-    SPORTS_INFO_PITCH_TYPE = 4
-    SPORTS_INFO_PITCH_VALUE = 7
-    SPORTS_INFO_PLATE_DISCIPLINE = 5
-    STATCAST_PITCH_TYPE = 9
-    STATCAST_VELO = 10
-    STATCAST_H_MOVEMENT = 11
-    STATCAST_V_MOVEMENT = 12
-    STATCAST_PITCH_TYPE_VALUE = 13
-    STATCAST_PITCH_TYPE_VALUE_PER_100 = 14
-    STATCAST_PLATE_DISCIPLINE = 15
-    PITCH_INFO_PITCH_TYPE = 16
-    PITCH_INFO_PITCH_VELOCITY = 17
-    PITCH_INFO_H_MOVEMENT = 18
-    PITCH_INFO_V_MOVEMENT = 19
-    PITCH_INFO_PITCH_TYPE_VALUE = 20
-    PITCH_INFO_PITCH_TYPE_VALUE_PER_100 = 21
-    PITCH_INFO_PLATE_DISCIPLINE = 22
-    PITCHING_BOT_STUFF = 26
-    PITCHING_BOT_COMMAND = 27
-    PITCHING_BOT_OVR = 25
-    STUFF_PLUS = 36
-    LOCATION_PLUS = 37
-    PITCHING_PLUS = 38
-
-
-class FangraphsTeams(Enum):
-    ALL = 0
-    ANGELS = 1
-    ASTROS = 17
-    ATHLETICS = 10
-    BLUE_JAYS = 14
-    BRAVES = 16
-    BREWERS = 23
-    CARDINALS = 28
-    CUBS = 17
-    DIAMONDBACKS = 15
-    DODGERS = 22
-    GIANTS = 30
-    GUARDIANS = 5
-    MARINERS = 11
-    MARLINS = 20
-    METS = 25
-    NATIONALS = 24
-    ORIOLES = 2
-    PADRES = 29
-    PHILLIES = 26
-    PIRATES = 27
-    RANGERS = 13
-    RAYS = 12
-    RED_SOX = 3
-    REDS = 18
-    ROCKIES = 19
-    ROYALS = 7
-    TIGERS = 6
-    TWINS = 8
-    WHITE_SOX = 4
-    YANKEES = 9
-
-
-class FangraphsStatSplitTypes(Enum):
-    PLAYER = ""
-    TEAM = "ts"
-    LEAGUE = "ss"
-
-
-class FangraphsBattingStatType(Enum):
-    DASHBOARD = 8
-    STANDARD = 0
-    ADVANCED = 1
-    BATTED_BALL = 2
-    WIN_PROBABILITY = 3
-    VALUE = 6
-    PLUS_STATS = 23
-    STATCAST = 24
-    VIOLATIONS = 48
-    SPORTS_INFO_PITCH_TYPE = 4
-    SPORTS_INFO_PITCH_VALUE = 7
-    SPORTS_INFO_PLATE_DISCIPLINE = 5
-    STATCAST_PITCH_TYPE = 9
-    STATCAST_VELO = 10
-    STATCAST_H_MOVEMENT = 11
-    STATCAST_V_MOVEMENT = 12
-    STATCAST_PITCH_TYPE_VALUE = 13
-    STATCAST_PITCH_TYPE_VALUE_PER_100 = 14
-    STATCAST_PLATE_DISCIPLINE = 15
-    PITCH_INFO_PITCH_TYPE = 16
-    PITCH_INFO_PITCH_VELOCITY = 17
-    PITCH_INFO_H_MOVEMENT = 18
-    PITCH_INFO_V_MOVEMENT = 19
-    PITCH_INFO_PITCH_TYPE_VALUE = 20
-    PITCH_INFO_PITCH_TYPE_VALUE_PER_100 = 21
-    PITCH_INFO_PLATE_DISCIPLINE = 22
-
-
-class FangraphsBattingPosTypes(Enum):
-    CATCHER = "c"
-    FIRST_BASE = "1b"
-    SECOND_BASE = "2b"
-    THIRD_BASE = "3b"
-    SHORTSTOP = "ss"
-    LEFT_FIELD = "lf"
-    CENTER_FIELD = "cf"
-    RIGHT_FIELD = "rf"
-    DESIGNATED_HITTER = "dh"
-    OUTFIELD = "of"
-    PITCHER = "p"
-    NON_PITCHER = "np"
-    ALL = "all"
-
-    def __str__(self):
-        return self.value
-
-
-class FangraphsLeagueTypes(Enum):
-    ALL = ""
-    NATIONAL_LEAGUE = "nl"
-    AMERICAN_LEAGUE = "al"
-
-    def __str__(self):
-        return self.value
-
-
-FANGRAPHS_BATTING_URL = (
-    "https://www.fangraphs.com/leaders/major-league?"
-    "pos={pos}&stats=bat&lg={league}&qual={qual}&type={stat_type}"
-    "&season={end_season}&season1={start_season}"
-    "&startdate={start_date}&enddate={end_date}&hand={handedness}"
-    "&rost={rost}&team={team}&pagenum=1&pageitems=2000000000"
-)
-# "https://www.fangraphs.com/leaders/major-league?pos={pos}&lg=&qual=y&type=8&season=&season1=&startdate=2021-04-01&enddate=2021-04-30&rost=0&pageitems=2000000000&month=0&team=0&stats={starter_reliever}"
-FANGRAPHS_PITCHING_URL = (
-    "https://www.fangraphs.com/leaders/major-league?"
-    "pos={pos}&lg={league}&qual={qual}&type={stat_type}"
-    "&season={end_season}&season1={start_season}&stats={starter_reliever}"
-    "&startdate={start_date}&enddate={end_date}&hand={handedness}"
-    "&rost={rost}&team={team}&pagenum=1&pageitems=2000000000"
-)
-
-FANGRAPHS_FIELDING_URL = (
-    "https://www.fangraphs.com/leaders/major-league?"
-    "pos={pos}&stats=fld&lg={league}&qual={qual}&type={stat_type}"
-    "&season={end_season}&season1={start_season}"
-    "&startdate={start_date}&enddate={end_date}"
-    "&rost={rost}&team={team}&pagenum=1&pageitems=2000000000"
-)
 
 
 def gen_input_val(
@@ -267,6 +115,60 @@ def _construct_url(
     return url_template.format(**params)
 
 
+async def _get_fangraphs_stats_async(
+    start_date: str = None,
+    end_date: str = None,
+    start_season: str = None,
+    end_season: str = None,
+    stat_types: dict = None,
+    return_pandas: bool = False,
+    league: FangraphsLeagueTypes = FangraphsLeagueTypes.ALL,
+    team: str = "",
+    qual: str = "y",
+    rost: int = 0,
+    pos: str = "",
+    handedness: str = "",
+    pitch_bat_fld: str = "",
+    starter_reliever: str = "",
+) -> pl.DataFrame | pd.DataFrame:
+    """Generic async function to fetch Fangraphs statistics."""
+    if qual != "y":
+        print("Warning: using a custom minimum value may result in missing data")
+
+    async with aiohttp.ClientSession() as session:
+        tasks = [
+            get_table_data_async(
+                session,
+                stat_type=stat_types[stat],
+                league=league,
+                start_date=start_date,
+                end_date=end_date,
+                qual=qual,
+                start_season=start_season,
+                end_season=end_season,
+                handedness=handedness,
+                rost=rost,
+                team=team,
+                pos=pos,
+                pitch_bat_fld=pitch_bat_fld,
+                starter_reliever=starter_reliever,
+            )
+            for stat in stat_types
+        ]
+        df_list = [
+            await t
+            for t in tqdm(
+                asyncio.as_completed(tasks), total=len(tasks), desc="Fetching data"
+            )
+        ]
+
+    df = df_list[0]
+    for next_df in df_list[1:]:
+        df = df.join(next_df, on="Name", how="full").select(~cs.ends_with("_right"))
+
+    return df.to_pandas() if return_pandas else df
+
+
 async def fangraphs_batting_range_async(
     start_date: str = None,
     end_date: str = None,
@@ -281,105 +183,102 @@ async def fangraphs_batting_range_async(
     team: str = "",
     handedness: str = "",
 ) -> pl.DataFrame | pd.DataFrame:
-    # Prepare stat types dictionary
     if stat_types is None:
         stat_types = {stat: stat.value for stat in list(FangraphsBattingStatType)}
     elif len(stat_types) == 0:
         raise ValueError("stat_types must not be an empty list")
     else:
         stat_types = {stat: stat.value for stat in stat_types}
-    if qual != "y":
-        print("Warning: using a custom minimum at bats may result in missing data")
 
-    async with aiohttp.ClientSession() as session:
-        tasks = [
-            get_table_data_async(
-                session,
-                stat_type=stat_types[stat],
-                pos=pos,
-                league=league,
-                start_date=start_date,
-                end_date=end_date,
-                qual=qual,
-                start_season=start_season,
-                end_season=end_season,
-                handedness=handedness,
-                rost=rost,
-                team=team,
-                pitch_bat_fld="bat",
-            )
-            for stat in stat_types
-        ]
-        df_list = [
-            await t
-            for t in tqdm(
-                asyncio.as_completed(tasks), total=len(tasks), desc="Fetching data"
-            )
-        ]
-
-    df = df_list[0]
-    for next_df in df_list[1:]:
-        df = df.join(next_df, on="Name", how="full").select(~cs.ends_with("_right"))
-    return df.to_pandas() if return_pandas else df
+    return await _get_fangraphs_stats_async(
+        start_date=start_date,
+        end_date=end_date,
+        start_season=start_season,
+        end_season=end_season,
+        stat_types=stat_types,
+        return_pandas=return_pandas,
+        league=league,
+        team=team,
+        qual=qual,
+        rost=rost,
+        pos=pos.value,
+        handedness=handedness,
+        pitch_bat_fld="bat",
+    )
 
 
-# TODO: finish starter reliever and statsplit
 async def fangraphs_pitching_range_async(
     start_date: str = None,
     end_date: str = None,
     start_season: str = None,
     end_season: str = None,
     stat_types: List[FangraphsPitchingStatType] = None,
-    starter_reliever: str = "pit",  # stats in url ('sta', 'rel', '')
+    starter_reliever: str = "pit",
     return_pandas: bool = False,
     league: FangraphsLeagueTypes = FangraphsLeagueTypes.ALL,
-    team: FangraphsTeams = FangraphsTeams.ALL,
+    team: str = "",
     qual: str = "y",
     rost: int = 0,
     handedness: str = "",
 ) -> pl.DataFrame | pd.DataFrame:
-    # Prepare stat types dictionary
     if stat_types is None:
         stat_types = {stat: stat.value for stat in list(FangraphsPitchingStatType)}
     elif len(stat_types) == 0:
         raise ValueError("stat_types must not be an empty list")
     else:
         stat_types = {stat: stat.value for stat in stat_types}
-    if qual != "y":
-        print(
-            "Warning: using a custom minimum pitches value may result in missing data"
-        )
 
-    async with aiohttp.ClientSession() as session:
-        tasks = [
-            get_table_data_async(
-                session,
-                stat_type=stat_types[stat],
-                league=league,
-                start_date=start_date,
-                end_date=end_date,
-                qual=qual,
-                start_season=start_season,
-                end_season=end_season,
-                handedness=handedness,
-                rost=rost,
-                team=team,
-                starter_reliever=starter_reliever,
-                pitch_bat_fld="pit",
-            )
-            for stat in stat_types
-        ]
-        df_list = [
-            await t
-            for t in tqdm(
-                asyncio.as_completed(tasks), total=len(tasks), desc="Fetching data"
-            )
-        ]
-    df = df_list[0]
-    for next_df in df_list[1:]:
-        df = df.join(next_df, on="Name", how="full").select(~cs.ends_with("_right"))
+    return await _get_fangraphs_stats_async(
+        start_date=start_date,
+        end_date=end_date,
+        start_season=start_season,
+        end_season=end_season,
+        stat_types=stat_types,
+        return_pandas=return_pandas,
+        league=league,
+        team=team,
+        qual=qual,
+        rost=rost,
+        handedness=handedness,
+        pitch_bat_fld="pit",
+        starter_reliever=starter_reliever,
+    )
 
-    return df.to_pandas() if return_pandas else df
+
+async def fangraphs_fielding_range_async(
+    start_date: str = None,
+    end_date: str = None,
+    start_season: str = None,
+    end_season: str = None,
+    stat_types: List[FangraphsFieldingStatType] = None,
+    return_pandas: bool = False,
+    league: FangraphsLeagueTypes = FangraphsLeagueTypes.ALL,
+    team: str = "",
+    qual: str = "y",
+    rost: int = 0,
+    pos: FangraphsBattingPosTypes = FangraphsBattingPosTypes.ALL,
+) -> pl.DataFrame | pd.DataFrame:
+    if stat_types is None:
+        stat_types = {stat: stat.value for stat in list(FangraphsFieldingStatType)}
+    elif len(stat_types) == 0:
+        raise ValueError("stat_types must not be an empty list")
+    else:
+        stat_types = {stat: stat.value for stat in stat_types}
+
+    return await _get_fangraphs_stats_async(
+        start_date=start_date,
+        end_date=end_date,
+        start_season=start_season,
+        end_season=end_season,
+        stat_types=stat_types,
+        return_pandas=return_pandas,
+        league=league,
+        team=team,
+        qual=qual,
+        rost=rost,
+        pos=pos.value,
+        pitch_bat_fld="fld",
+    )
 
 
 async def get_table_data_async(
@@ -455,57 +354,3 @@ async def get_table_data_async(
 
     df = pl.DataFrame(data, infer_schema_length=None)
     return df
-
-
-async def fangraphs_fielding_range_async(
-    start_date: str = None,
-    end_date: str = None,
-    start_season: str = None,
-    end_season: str = None,
-    stat_types: List[FangraphsPitchingStatType] = None,
-    return_pandas: bool = False,
-    league: FangraphsLeagueTypes = FangraphsLeagueTypes.ALL,
-    team: FangraphsTeams = FangraphsTeams.ALL,
-    qual: str = "y",
-    rost: int = 0,
-    pos: FangraphsBattingPosTypes = FangraphsBattingPosTypes.ALL,
-):
-    if stat_types is None:
-        stat_types = {stat: stat.value for stat in list(FangraphsFieldingStatType)}
-    elif len(stat_types) == 0:
-        raise ValueError("stat_types must not be an empty list")
-    else:
-        stat_types = {stat: stat.value for stat in stat_types}
-    if qual != "y":
-        print(
-            "Warning: using a custom minimum pitches value may result in missing data"
-        )
-
-    async with aiohttp.ClientSession() as session:
-        tasks = [
-            get_table_data_async(
-                session,
-                stat_type=stat_types[stat],
-                league=league,
-                start_date=start_date,
-                end_date=end_date,
-                qual=qual,
-                start_season=start_season,
-                end_season=end_season,
-                rost=rost,
-                pos=pos.value,
-                team=team,
-                pitch_bat_fld="fld",
-            )
-            for stat in stat_types
-        ]
-        df_list = [
-            await t
-            for t in tqdm(
-                asyncio.as_completed(tasks), total=len(tasks), desc="Fetching data"
-            )
-        ]
-    df = df_list[0]
-    for next_df in df_list[1:]:
-        df = df.join(next_df, on="Name", how="full").select(~cs.ends_with("_right"))
-    return df.to_pandas() if return_pandas else df

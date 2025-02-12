@@ -1076,7 +1076,7 @@ wheels = [
 
 [[package]]
 name = "pybaseballstats"
-version = "0.0.17"
+version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },

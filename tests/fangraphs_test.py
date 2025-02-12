@@ -5,6 +5,8 @@ import pandas as pd
 import polars as pl
 import pytest
 
+from pybaseballstats.utils.consts import FangraphsBattingPosTypes
+
 # 15th test
 # Setup path to import pybaseballstats
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -20,7 +22,7 @@ def test_fangraphs_batting_range_output():
             end_date="2024-05-01",
             stat_types=None,
             return_pandas=return_pandas,
-            pos="all",
+            pos=FangraphsBattingPosTypes.ALL,
             league="",
             qual="y",
             start_season=None,
@@ -41,7 +43,7 @@ def test_fangraphs_batting_range_output():
             end_date="2024-04-01",
             stat_types=None,
             return_pandas=False,
-            pos="all",
+            pos=FangraphsBattingPosTypes.ALL,
             league="",
             qual="y",
             start_season=None,
@@ -52,7 +54,7 @@ def test_fangraphs_batting_range_output():
             end_date=None,
             stat_types=None,
             return_pandas=False,
-            pos="all",
+            pos=FangraphsBattingPosTypes.ALL,
             league="",
             qual="y",
             start_season=None,
@@ -63,7 +65,7 @@ def test_fangraphs_batting_range_output():
             end_date="2024-05-01",
             stat_types=[],
             return_pandas=False,
-            pos="all",
+            pos=FangraphsBattingPosTypes.ALL,
             league="",
             qual="y",
             start_season=None,
@@ -83,7 +85,7 @@ def test_qual_vs_non_qual():
         end_date="2024-05-01",
         stat_types=None,
         return_pandas=False,
-        pos="all",
+        pos=FangraphsBattingPosTypes.ALL,
         league="",
         qual="y",
         start_season=None,
@@ -94,7 +96,7 @@ def test_qual_vs_non_qual():
         end_date="2024-05-01",
         stat_types=None,
         return_pandas=False,
-        pos="all",
+        pos=FangraphsBattingPosTypes.ALL,
         league="",
         qual="100",
         start_season=None,
