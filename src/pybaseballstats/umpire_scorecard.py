@@ -27,7 +27,7 @@ def umpire_games_date_range(
     Args:
         start_date (str): Start date in 'YYYY-MM-DD' format.
         end_date (str): Start date in 'YYYY-MM-DD' format.
-        season_type (str, optional): Restrict games to only regular season games ("r"), only postseason games ("p") or both ("*"). Defaults to "*".
+        season_type (str, optional): Restrict games to only regular season games ("R"), only postseason games ("P") or both ("*"). Defaults to "*".
         home_team (UmpireScorecardTeams, optional): Restrict games to ones where the given team is the home team. Defaults to UmpireScorecardTeams.ALL.
         away_team (UmpireScorecardTeams, optional): Restrict games to ones where the given team is the away team. Defaults to UmpireScorecardTeams.ALL.
         umpire_name (str, optional): Restrict games to ones where the name of the umpire matches the parameter. If "" then all umpires are allowed. Defaults to "".
@@ -35,7 +35,7 @@ def umpire_games_date_range(
 
     Raises:
         ValueError: If start_date or end_date is None.
-        ValueError: If season_type is not one of "*", "r", or "p".
+        ValueError: If season_type is not one of "*", "R", or "P".
 
     Returns:
         pl.DataFrame | pd.DataFrame: DataFrame of umpire games for the date range.
@@ -44,8 +44,8 @@ def umpire_games_date_range(
     if start_date is None or end_date is None:
         raise ValueError("Both start_date and end_date must be provided.")
     start_date, end_date = _handle_dates(start_date, end_date)
-    if season_type not in ["*", "r", "p"]:
-        raise ValueError("season_type must be one of '*', 'r', or 'p'")
+    if season_type not in ["*", "R", "P"]:
+        raise ValueError("season_type must be one of '*', 'R', or 'P'")
     umpire_name = "" if umpire_name is None else umpire_name
     url = GAMES_URL.format(
         season_type=season_type,
@@ -75,19 +75,22 @@ def umpire_stats_date_range(
     Args:
         start_date (str): Start date in 'YYYY-MM-DD' format.
         end_date (str): Start date in 'YYYY-MM-DD' format.
-        season_type (str, optional): Restrict games to only regular season games ("r"), only postseason games ("p") or both ("*"). Defaults to "*".
+        season_type (str, optional): Restrict games to only regular season games ("R"), only postseason games ("P") or both ("*"). Defaults to "*".
         home_team (UmpireScorecardTeams, optional): Restrict games to ones where the given team is the home team. Defaults to UmpireScorecardTeams.ALL.
         away_team (UmpireScorecardTeams, optional): Restrict games to ones where the given team is the away team. Defaults to UmpireScorecardTeams.ALL.
         return_pandas (bool, optional): If true return data as pandas Dataframe instead of a polars Dataframe. Defaults to False.
     Raises:
-        ValueError: If season_type is not one of "*", "r", or "p".
+        ValueError: If season_type is not one of "*", "R", or "P".
+        ValueError: If start_date or end_date is None.
 
     Returns:
         pl.DataFrame | pd.DataFrame: DataFrame of umpire stats for the date range.
     """
+    if start_date is None or end_date is None:
+        raise ValueError("Both start_date and end_date must be provided.")
     start_date, end_date = _handle_dates(start_date, end_date)
-    if season_type not in ["*", "r", "p"]:
-        raise ValueError("season_type must be one of '*', 'r', or 'p'")
+    if season_type not in ["*", "R", "P"]:
+        raise ValueError("season_type must be one of '*', 'R', or 'P'")
     url = UMPIRES_URL.format(
         season_type=season_type,
         start_date=start_date,
@@ -116,7 +119,7 @@ def team_umpire_stats_date_range(
     Args:
         start_date (str): Start date in 'YYYY-MM-DD' format.
         end_date (str): Start date in 'YYYY-MM-DD' format.
-        season_type (str, optional): Restrict games to only regular season games ("r"), only postseason games ("p") or both ("*"). Defaults to "*".
+        season_type (str, optional): Restrict games to only regular season games ("R"), only postseason games ("P") or both ("*"). Defaults to "*".
         team (UmpireScorecardTeams, optional): Restrict data to a specific team only. Defaults to UmpireScorecardTeams.ALL.
         home_away (str, optional): Restrict data to be calculated on only home games ("h"), away games ("a") or both ("*"). Defaults to "*".
         stadium (UmpireScorecardTeams, optional): Restrict data to be calculated on only games occuring at the given stadium. Defaults to UmpireScorecardTeams.ALL.
@@ -124,15 +127,18 @@ def team_umpire_stats_date_range(
         return_pandas (bool, optional): If true return data as pandas Dataframe instead of a polars Dataframe. Defaults to False.
 
     Raises:
-        ValueError: If season_type is not one of "*", "r", or "p".
+        ValueError: If season_type is not one of "*", "R", or "P".
         ValueError: If home_away is not one of "*", "h", or "a".
+        ValueError: If start_date or end_date is None.
 
     Returns:
         pl.DataFrame | pd.DataFrame: DataFrame of team umpire stats for the date range.
     """
+    if start_date is None or end_date is None:
+        raise ValueError("Both start_date and end_date must be provided.")
     start_date, end_date = _handle_dates(start_date, end_date)
-    if season_type not in ["*", "r", "p"]:
-        raise ValueError("season_type must be one of '*', 'r', or 'p'")
+    if season_type not in ["*", "R", "P"]:
+        raise ValueError("season_type must be one of '*', 'R', or 'P'")
     if home_away not in ["*", "h", "a"]:
         raise ValueError("home_away must be one of '*', 'h', or 'a'")
     umpire_name = "" if umpire_name is None else umpire_name
