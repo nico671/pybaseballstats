@@ -9,6 +9,10 @@ from .plotting import (  # noqa: F401
     scatter_plot_over_stadium,
 )
 from .statcast import statcast_date_range, statcast_single_game  # noqa: F401
+from .umpire_scorecard import (  # noqa: F401
+    UmpireScorecardTeams,
+    umpire_games_date_range,
+)
 from .utils.fangraphs_utils import (
     FangraphsBattingPosTypes,  # noqa: F401
     FangraphsBattingStatType,  # noqa: F401
