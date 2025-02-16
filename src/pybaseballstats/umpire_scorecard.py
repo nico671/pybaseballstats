@@ -1,3 +1,5 @@
+import urllib
+
 import pandas as pd
 import polars as pl
 import requests
@@ -32,23 +34,30 @@ def umpire_games_date_range(
         return_pandas (bool, optional): If true return data as pandas Dataframe instead of a polars Dataframe. Defaults to False.
 
     Raises:
+        ValueError: If start_date or end_date is None.
         ValueError: If season_type is not one of "*", "r", or "p".
 
     Returns:
         pl.DataFrame | pd.DataFrame: DataFrame of umpire games for the date range.
     """
     # input validation
+    if start_date is None or end_date is None:
+        raise ValueError("Both start_date and end_date must be provided.")
     start_date, end_date = _handle_dates(start_date, end_date)
     if season_type not in ["*", "r", "p"]:
         raise ValueError("season_type must be one of '*', 'r', or 'p'")
+    umpire_name = "" if umpire_name is None else umpire_name
     url = GAMES_URL.format(
         season_type=season_type,
         start_date=start_date,
         end_date=end_date,
         home_team=home_team.value,
         away_team=away_team.value,
-        umpire_name=umpire_name,
+        umpire_name=urllib.parse.quote(umpire_name),
     )
+    if umpire_name != "":
+        print(url)
+        print(requests.get(url).json())
     df = pl.DataFrame(requests.get(url).json()["games"], infer_schema_length=1000000000)
     return df if not return_pandas else df.to_pandas()
 
@@ -126,11 +135,12 @@ def team_umpire_stats_date_range(
         raise ValueError("season_type must be one of '*', 'r', or 'p'")
     if home_away not in ["*", "h", "a"]:
         raise ValueError("home_away must be one of '*', 'h', or 'a'")
+    umpire_name = "" if umpire_name is None else umpire_name
     url = TEAMS_URL.format(
         season_type=season_type,
         start_date=start_date,
         end_date=end_date,
-        umpire_name=umpire_name,
+        umpire_name=urllib.parse.quote(umpire_name),
         team=team.value,
         home_away=home_away,
         stadium=stadium.value,

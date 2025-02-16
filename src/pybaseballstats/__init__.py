@@ -11,7 +11,9 @@ from .plotting import (  # noqa: F401
 from .statcast import statcast_date_range, statcast_single_game  # noqa: F401
 from .umpire_scorecard import (  # noqa: F401
     UmpireScorecardTeams,
+    team_umpire_stats_date_range,
     umpire_games_date_range,
+    umpire_stats_date_range,
 )
 from .utils.fangraphs_utils import (
     FangraphsBattingPosTypes,  # noqa: F401
