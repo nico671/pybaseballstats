@@ -2,6 +2,8 @@
 
 ## Data Source
 
+Data is sourced from the Umpire Scorecard API. Their website can be found [here](https://umpscorecards.com/home/).
+
 ## Available Functions
 
 1. umpire_games_date_range
