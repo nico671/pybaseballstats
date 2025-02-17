@@ -256,7 +256,7 @@ def test_team_umpire_stats_date_range_bad_inputs():
             return_pandas=False,
         )
     with pytest.raises(ValueError):
-        data = team_umpire_stats_date_range(
+        data = team_umpire_stats_date_range(  # noqa: F841
             start_date="2024-04-01",
             end_date="2024-05-01",
             season_type="postseason_only",
