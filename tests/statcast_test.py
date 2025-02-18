@@ -121,7 +121,7 @@ def test_statcast_single_game_return_pandas_extra_stats():
 
 def test_statcast_batter_bad_inputs():
     with pytest.raises(ValueError):
-        pyb.statcast_batter_range(
+        pyb.statcast_single_batter_range(
             start_dt=END_DT,
             end_dt=START_DT,
             player_id=0,
@@ -134,13 +134,29 @@ def test_statcast_batter():
     data = pyb.statcast_single_batter_range(
         start_dt="2024-04-01",
         end_dt="2024-06-01",
-        player_id=547180,
+        player_id="547180",
         extra_stats=True,
         return_pandas=False,
     )
     assert isinstance(data, pl.LazyFrame)
     data = data.collect()
     assert isinstance(data, pl.DataFrame)
-    assert data.shape[1] == 113
+    assert data.shape[1] == 181
     assert data.shape[0] == 872
     assert len(data.select("batter").unique()) == 1
+
+
+def test_statcast_pitcher():
+    data = pyb.statcast_single_pitcher_range(
+        start_dt="2024-04-01",
+        end_dt="2024-06-01",
+        player_id="671096",
+        extra_stats=True,
+        return_pandas=False,
+    )
+    assert isinstance(data, pl.LazyFrame)
+    data = data.collect()
+    assert isinstance(data, pl.DataFrame)
+    assert data.shape[1] == 181
+    assert data.shape[0] == 872
+    assert len(data.select("pitcher").unique()) == 1

@@ -107,7 +107,7 @@ def statcast_single_batter_range(
 
     async def async_statcast_single_batter():
         return await _statcast_single_batter_range_helper(
-            start_dt, end_dt, player_id, extra_stats, return_pandas
+            start_dt, end_dt, str(player_id), extra_stats, return_pandas
         )
 
     return asyncio.run(async_statcast_single_batter())
@@ -136,7 +136,7 @@ def statcast_single_pitcher_range(
 
     async def async_statcast_single_pitcher():
         return await _statcast_single_pitcher_range_helper(
-            start_dt, end_dt, player_id, extra_stats, return_pandas
+            start_dt, end_dt, str(player_id), extra_stats, return_pandas
         )
 
     return asyncio.run(async_statcast_single_pitcher())

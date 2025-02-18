@@ -12,6 +12,7 @@ from .statcast import (  # noqa: F401
     statcast_date_range,
     statcast_single_batter_range,
     statcast_single_game,
+    statcast_single_pitcher_range,
 )
 from .umpire_scorecard import (  # noqa: F401
     UmpireScorecardTeams,
@@ -39,6 +40,7 @@ __all__ = [
     "plot_stadium",
     "plot_strike_zone",
     "scatter_plot_over_stadium",
+    "statcast_single_pitcher_range",
     "statcast_date_range",
     "statcast_single_batter_range",
     "statcast_single_game",
