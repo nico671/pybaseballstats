@@ -12,7 +12,7 @@ from tqdm.asyncio import tqdm_asyncio
 # used for root_url, single_game, date_range
 ROOT_URL = "https://baseballsavant.mlb.com"
 SINGLE_GAME = "/statcast_search/csv?all=true&type=details&game_pk={game_pk}"
-DATE_RANGE = "/statcast_search/csv?all=true&hfPT=&hfAB=&hfBBT=&hfPR=&hfZ=&stadium=&hfBBL=&hfNewZones=&hfGT=R%7CPO%7CS%7C=&hfSea=&hfSit=&batters_lookup%5B%5D={player_id}&player_type={pos}&hfOuts=&opponent=&pitcher_throws=&batter_stands=&hfSA=&game_date_gt={start_dt}&game_date_lt={end_dt}&team={team}&position=&hfRO=&home_road=&hfFlag=&metric_1=&hfInn=&min_pitches=0&min_results=0&group_by=name&sort_col=pitches&player_event_sort=h_launch_speed&sort_order=desc&min_abs=0&type=details&"
+DATE_RANGE = "/statcast_search/csv?all=true&hfPT=&hfAB=&hfBBT=&hfPR=&hfZ=&stadium=&hfBBL=&hfNewZones=&hfGT=R%7CPO%7CS%7C=&hfSea=&hfSit=&pitchers_lookup%5B%5D={pitcher_id}&batters_lookup%5B%5D={batter_id}&player_type={pos}&hfOuts=&opponent=&pitcher_throws=&batter_stands=&hfSA=&game_date_gt={start_dt}&game_date_lt={end_dt}&team={team}&position=&hfRO=&home_road=&hfFlag=&metric_1=&hfInn=&min_pitches=0&min_results=0&group_by=name&sort_col=pitches&player_event_sort=h_launch_speed&sort_order=desc&min_abs=0&type=details&"
 # my own url
 EXTRA_STATS = "/statcast_search/csv?hfPT=&hfAB=&hfGT=R%7C&hfPR=&hfZ=&hfStadium=&hfBBL=&hfNewZones=&hfPull=&hfC=&hfSea=2024%7C2023%7C2022%7C2021%7C2020%7C2019%7C2018%7C2017%7C2016%7C2015%7C2014%7C2013%7C2012%7C2011%7C2010%7C2009%7C2008%7C&hfSit=&player_type={pos}&game_date_gt=&game_date_lt=&hfOuts=&hfOpponent=&pitcher_throws=&batter_stands=&hfSA=&hfMo=&hfTeam=&home_road=&hfRO=&position=&hfInfield=&hfOutfield=&hfInn=&hfBBT=&hfFlag=is%5C.%5C.remove%5C.%5C.bunts%7Cis%5C.%5C.competitive%7C&metric_1=&group_by=name&min_pitches=0&min_results=0&min_pas=0&sort_col=pitches&player_event_sort=api_p_release_speed&sort_order=desc&chk_stats_pa=on&chk_stats_abs=on&chk_stats_bip=on&chk_stats_hits=on&chk_stats_singles=on&chk_stats_dbls=on&chk_stats_triples=on&chk_stats_hrs=on&chk_stats_so=on&chk_stats_k_percent=on&chk_stats_bb=on&chk_stats_bb_percent=on&chk_stats_whiffs=on&chk_stats_swings=on&chk_stats_api_break_z_with_gravity=on&chk_stats_api_break_x_arm=on&chk_stats_api_break_z_induced=on&chk_stats_api_break_x_batter_in=on&chk_stats_ba=on&chk_stats_xba=on&chk_stats_xbadiff=on&chk_stats_obp=on&chk_stats_xobp=on&chk_stats_xobpdiff=on&chk_stats_slg=on&chk_stats_xslg=on&chk_stats_xslgdiff=on&chk_stats_woba=on&chk_stats_xwoba=on&chk_stats_wobadiff=on&chk_stats_barrels_total=on&chk_stats_babip=on&chk_stats_iso=on&chk_stats_run_exp=on&chk_stats_pitcher_run_exp=on&chk_stats_swing_miss_percent=on&chk_stats_batter_run_value_per_100=on&chk_stats_pitcher_run_value_per_100=on&chk_stats_velocity=on&chk_stats_effective_speed=on&chk_stats_spin_rate=on&chk_stats_release_pos_z=on&chk_stats_release_pos_x=on&chk_stats_release_extension=on&chk_stats_plate_x=on&chk_stats_plate_z=on&chk_stats_arm_angle=on&chk_stats_launch_speed=on&chk_stats_hyper_speed=on&chk_stats_sweetspot_speed_mph=on&chk_stats_launch_angle=on&chk_stats_bbdist=on&chk_stats_swing_length=on&chk_stats_hardhit_percent=on&chk_stats_barrels_per_bbe_percent=on&chk_stats_barrels_per_pa_percent=on&chk_stats_pos3_int_start_distance=on&chk_stats_pos4_int_start_distance=on&chk_stats_pos5_int_start_distance=on&chk_stats_pos6_int_start_distance=on&chk_stats_pos7_int_start_distance=on&chk_stats_pos8_int_start_distance=on&chk_stats_pos9_int_start_distance=on#results"
 YEAR_RANGES = {
@@ -88,7 +88,8 @@ async def _statcast_date_range_helper(
                 end_dt=end,
                 team=team if team is not None else "",
                 pos="pitcher",
-                player_id="",
+                batter_id="",
+                pitcher_id="",
             )
         )
     schema = None
@@ -136,7 +137,8 @@ async def _statcast_single_batter_range_helper(
         + DATE_RANGE.format(
             start_dt=start,
             end_dt=end,
-            player_id=player_id,
+            batter_id=player_id,
+            pitcher_id="",
             pos="batter",
             team="",
         )
@@ -161,6 +163,54 @@ async def _statcast_single_batter_range_helper(
     else:
         return await _add_extra_stats(
             df, start_dt, end_dt, return_pandas=return_pandas, pos_in=["batter"]
+        )
+
+
+async def _statcast_single_pitcher_range_helper(
+    start_dt: str,
+    end_dt: str,
+    player_id: int,
+    extra_stats: bool = False,
+    return_pandas: bool = False,
+) -> pl.DataFrame | pd.DataFrame:
+    if start_dt is None or end_dt is None:
+        raise ValueError("Both start_dt and end_dt must be provided.")
+    print(f"Pulling data for date range: {start_dt} to {end_dt}.")
+    start_dt, end_dt = _handle_dates(start_dt, end_dt)
+    date_ranges = list(_create_date_ranges(start_dt, end_dt, 1))
+
+    data_list = []
+    urls = [
+        ROOT_URL
+        + DATE_RANGE.format(
+            start_dt=start,
+            end_dt=end,
+            batter_id="",
+            pitcher_id=player_id,
+            pos="pitcher",
+            team="",
+        )
+        for start, end in date_ranges
+    ]
+    schema = None
+    responses = await _fetch_all_data(urls)
+    for data in tqdm(responses, desc="Processing regular data"):
+        # scan csv as lazyframe and drop columns that will always be null
+        data = pl.scan_csv(data)
+        if schema is None:
+            schema = data.collect_schema()
+        else:
+            data = data.cast(schema)
+        data_list.append(data)
+    print("Concatenating data.")
+    df = pl.concat(data_list)
+    print("Data concatenated.")
+    if not extra_stats:
+        print("Done")
+        return df if not return_pandas else df.collect().to_pandas()
+    else:
+        return await _add_extra_stats(
+            df, start_dt, end_dt, return_pandas=return_pandas, pos_in=["pitcher"]
         )
 
 
