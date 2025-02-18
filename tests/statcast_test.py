@@ -158,5 +158,5 @@ def test_statcast_pitcher():
     data = data.collect()
     assert isinstance(data, pl.DataFrame)
     assert data.shape[1] == 181
-    assert data.shape[0] == 872
+    assert data.shape[0] == 1009
     assert len(data.select("pitcher").unique()) == 1
