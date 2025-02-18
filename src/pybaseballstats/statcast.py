@@ -12,6 +12,7 @@ from .utils.statcast_utils import (
     SINGLE_GAME,
     _add_extra_stats,
     _statcast_date_range_helper,
+    _statcast_single_batter_range_helper,
 )
 
 # Apply nest_asyncio to allow nested event loops
@@ -80,3 +81,32 @@ def statcast_date_range(
         )
 
     return asyncio.run(async_statcast())
+
+
+def statcast_single_batter_range(
+    start_dt: str,
+    end_dt: str,
+    player_id: int,
+    extra_stats: bool = False,
+    return_pandas: bool = False,
+) -> pl.DataFrame | pd.DataFrame:
+    """
+    Pulls statcast data for a batter for a date range.
+
+    Args:
+    start_dt: the start date in 'YYYY-MM-DD' format
+    end_dt: the end date in 'YYYY-MM-DD' format
+    player_id: the player_id of the batter
+    extra_stats: whether to include extra stats
+    return_pandas: whether to return a pandas DataFrame (default is False, returning a Polars DataFrame)
+
+    Returns:
+        pl.DataFrame | pd.DataFrame: A DataFrame of statcast data for the date range.
+    """
+
+    async def async_statcast_single_batter():
+        return await _statcast_single_batter_range_helper(
+            start_dt, end_dt, player_id, extra_stats, return_pandas
+        )
+
+    return asyncio.run(async_statcast_single_batter())
