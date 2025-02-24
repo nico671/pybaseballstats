@@ -14,13 +14,13 @@ def statcast_bat_tracking(
     pitcher_batter: str = "batter",
     return_pandas: bool = False,
 ) -> pl.DataFrame | pd.DataFrame:
+    if start_dt is None or end_dt is None:
+        raise ValueError("start_dt and end_dt must be provided")
     start_dt, end_dt = _handle_dates(start_dt, end_dt)
     if start_dt.year < 2023 or end_dt.year < 2023:
         raise ValueError(
             "Dates must be after 2023 as bat tracking data is only available from 2023 onwards"
         )
-    if start_dt > end_dt:
-        raise ValueError("Start date must be before end date")
     if pitcher_batter not in ["pitcher", "batter"]:
         raise ValueError("pitcher_batter must be either 'pitcher' or 'batter'")
     df = pl.read_csv(
@@ -36,6 +36,8 @@ def statcast_bat_tracking(
 def statcast_exit_velo_barrels(
     year: int, pitcher_batter: str = "batter", return_pandas: bool = False
 ) -> pl.DataFrame | pd.DataFrame:
+    if year is None:
+        raise ValueError("year must be provided")
     if year < 2015:
         raise ValueError(
             "Dates must be after 2015 as exit velo/ barrels data is only available from 2015 onwards"

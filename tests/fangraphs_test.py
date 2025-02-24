@@ -19,7 +19,7 @@ def test_fangraphs_batting_range_output():
     for return_pandas, df_type in [(False, pl.DataFrame), (True, pd.DataFrame)]:
         data = pyb.fangraphs_batting_range(
             start_date="2024-04-01",
-            end_date="2024-05-01",
+            end_date="2024-04-10",
             stat_types=None,
             return_pandas=return_pandas,
             pos=FangraphsBattingPosTypes.ALL,
