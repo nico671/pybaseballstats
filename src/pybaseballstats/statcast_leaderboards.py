@@ -58,6 +58,8 @@ EXPECTED_STATS_URL = "https://baseballsavant.mlb.com/leaderboard/expected_statis
 def statcast_expected_stats(
     year: int, pitcher_batter: str = "batter", return_pandas: bool = False
 ) -> pl.DataFrame | pd.DataFrame:
+    if year is None:
+        raise ValueError("year must be provided")
     if year < 2015:
         raise ValueError(
             "Dates must be after 2015 as expected stats data is only available from 2015 onwards"
@@ -79,6 +81,8 @@ PITCH_ARSENAL_URL = "https://baseballsavant.mlb.com/leaderboard/pitch-arsenal-st
 def statcast_pitch_arsenal(
     year: int, pitcher_batter: str = "pitcher", return_pandas: bool = False
 ) -> pl.DataFrame | pd.DataFrame:
+    if year is None:
+        raise ValueError("year must be provided")
     if year < 2019:
         raise ValueError(
             "Dates must be after 2019 as pitch arsenal data is only available from 2019 onwards"
@@ -87,7 +91,7 @@ def statcast_pitch_arsenal(
         raise ValueError("pitcher_batter must be either 'pitcher' or 'batter'")
     df = pl.read_csv(
         requests.get(
-            PITCH_ARSENAL_URL.format(pitcher_batter="pitcher", year=year)
+            PITCH_ARSENAL_URL.format(pitcher_batter=pitcher_batter, year=year)
         ).content,
         truncate_ragged_lines=True,
     )

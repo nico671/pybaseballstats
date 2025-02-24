@@ -502,6 +502,19 @@ wheels = [
 ]
 
 [[package]]
+name = "hypothesis"
+version = "6.127.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "attrs" },
+    { name = "sortedcontainers" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/92/2b/c8559a4d75409976ef275f06c4c5d98470ada07af932ace0caf0068aaac9/hypothesis-6.127.1.tar.gz", hash = "sha256:9cf339b28e5c394f811eaa43023a118e7c4d384102b7b06bab91b6d06cc0437f", size = 421269 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/1a/aa/af754d9e1a7334d9919b486880601684819b9900250755ad95e1eb878598/hypothesis-6.127.1-py3-none-any.whl", hash = "sha256:6600a03dfe5406bee9a74eb0b92f0aa40b5b7f3df84ae6bc2a564edc3bb6168b", size = 484140 },
+]
+
+[[package]]
 name = "idna"
 version = "3.10"
 source = { registry = "https://pypi.org/simple" }
@@ -1162,6 +1175,7 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "coverage" },
+    { name = "hypothesis" },
     { name = "ipykernel" },
     { name = "pytest" },
     { name = "ruff" },
@@ -1183,6 +1197,7 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "coverage", specifier = ">=7.6.12" },
+    { name = "hypothesis", specifier = ">=6.127.1" },
     { name = "ipykernel", specifier = ">=6.29.5" },
     { name = "pytest", specifier = ">=8.3.4" },
     { name = "ruff", specifier = ">=0.9.7" },
@@ -1370,6 +1385,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/94/e7/b2c673351809dca68a0e064b6af791aa332cf192da575fd474ed7d6f16a2/six-1.17.0.tar.gz", hash = "sha256:ff70335d468e7eb6ec65b95b99d3a2836546063f63acc5171de367e834932a81", size = 34031 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b7/ce/149a00dd41f10bc29e5921b496af8b574d8413afcd5e30dfa0ed46c2cc5e/six-1.17.0-py2.py3-none-any.whl", hash = "sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274", size = 11050 },
+]
+
+[[package]]
+name = "sortedcontainers"
+version = "2.4.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/e8/c4/ba2f8066cceb6f23394729afe52f3bf7adec04bf9ed2c820b39e19299111/sortedcontainers-2.4.0.tar.gz", hash = "sha256:25caa5a06cc30b6b83d11423433f65d1f9d76c4c6a0c90e3379eaa43b9bfdb88", size = 30594 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/32/46/9cb0e58b2deb7f82b84065f37f3bffeb12413f947f9388e4cac22c4621ce/sortedcontainers-2.4.0-py2.py3-none-any.whl", hash = "sha256:a163dcaede0f1c021485e957a39245190e74249897e2ae4b2aa38595db237ee0", size = 29575 },
 ]
 
 [[package]]

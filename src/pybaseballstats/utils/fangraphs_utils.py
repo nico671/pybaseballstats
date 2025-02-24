@@ -319,6 +319,15 @@ async def get_table_data_async(
     except aiohttp.ClientOSError as e:
         print(f"ClientOSError: {e}")
         return pl.DataFrame()
+    except aiohttp.ClientPayloadError as e:
+        print(f"ClientPayloadError: {e}")
+        return pl.DataFrame()
+    except aiohttp.ClientResponseError as e:
+        print(f"ClientResponseError: {e}")
+        return pl.DataFrame()
+    except Exception as e:
+        print(f"Exception: {e}")
+        return pl.DataFrame()
 
     soup = BeautifulSoup(cont, "html.parser")
     main_table = soup.select_one(

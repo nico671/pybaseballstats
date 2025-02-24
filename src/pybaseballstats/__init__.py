@@ -18,6 +18,8 @@ from .statcast import (  # noqa: F401
 from .statcast_leaderboards import (  # noqa: F401
     statcast_bat_tracking,
     statcast_exit_velo_barrels,
+    statcast_expected_stats,
+    statcast_pitch_arsenal,
 )
 from .umpire_scorecard import (  # noqa: F401
     UmpireScorecardTeams,

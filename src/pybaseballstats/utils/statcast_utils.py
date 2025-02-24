@@ -284,6 +284,9 @@ def _create_date_ranges(
     If verbose is enabled, it will print a message if it skips offseason dates.
     This version is Statcast specific, relying on skipping predefined dates from STATCAST_VALID_DATES.
     """
+    if start == stop:
+        yield start, stop
+        return
     low = start
 
     while low <= stop:
