@@ -263,7 +263,7 @@ def test_statcast_catcher_stats_single_season():
     data1 = pyb.statcast_catcher_stats(2018, 2018)
     assert type(data1) is pl.DataFrame
     assert data1.shape[0] == 60
-    assert data1.shape[1] == 55
+    assert data1.shape[1] == 54
     data2 = pyb.statcast_catcher_stats(2018, 2018)
     assert_frame_equal(data1, data2)
 
@@ -272,7 +272,7 @@ def test_statcast_catcher_stats_multiple_seasons():
     data1 = pyb.statcast_catcher_stats(2018, 2020)
     assert type(data1) is pl.DataFrame
     assert data1.shape[0] == 85
-    assert data1.shape[1] == 55
+    assert data1.shape[1] == 54
     data2 = pyb.statcast_catcher_stats(2018, 2020)
     assert_frame_equal(data1, data2)
 
@@ -281,6 +281,6 @@ def test_statcast_catcher_stats_to_pandas():
     data = pyb.statcast_catcher_stats(2018, 2018, True)
     assert type(data) is pd.DataFrame
     assert data.shape[0] == 60
-    assert data.shape[1] == 55
+    assert data.shape[1] == 54
     data2 = pyb.statcast_catcher_stats(2018, 2018, False)
     assert_frame_equal(pl.DataFrame(data, schema=data2.schema), data2)
