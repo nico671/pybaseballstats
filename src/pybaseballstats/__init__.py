@@ -16,10 +16,14 @@ from .statcast import (  # noqa: F401
     statcast_single_pitcher_range,
 )
 from .statcast_leaderboards import (  # noqa: F401
+    # statcast_arm_strength,
     statcast_bat_tracking,
+    statcast_catcher_stats,
     statcast_exit_velo_barrels,
     statcast_expected_stats,
     statcast_pitch_arsenal,
+    statcast_pitching_active_spin,
+    statcast_pitching_arm_angle,
 )
 from .umpire_scorecard import (  # noqa: F401
     UmpireScorecardTeams,

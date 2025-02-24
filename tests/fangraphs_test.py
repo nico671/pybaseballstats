@@ -82,7 +82,7 @@ def test_invalid_batting_range_inputs(kwargs):
 def test_qual_vs_non_qual():
     data_qual = pyb.fangraphs_batting_range(
         start_date="2024-04-01",
-        end_date="2024-05-01",
+        end_date="2024-04-10",
         stat_types=None,
         return_pandas=False,
         pos=FangraphsBattingPosTypes.ALL,
@@ -93,7 +93,7 @@ def test_qual_vs_non_qual():
     )
     data_non_qual = pyb.fangraphs_batting_range(
         start_date="2024-04-01",
-        end_date="2024-05-01",
+        end_date="2024-04-10",
         stat_types=None,
         return_pandas=False,
         pos=FangraphsBattingPosTypes.ALL,
@@ -113,7 +113,7 @@ def test_qual_vs_non_qual():
 def test_fangraphs_pitching_range_dates():
     data = pyb.fangraphs_pitching_range(
         start_date="2024-04-01",
-        end_date="2024-05-01",
+        end_date="2024-04-10",
         stat_types=None,
         return_pandas=False,
         league=pyb.FangraphsLeagueTypes.ALL,
@@ -147,7 +147,7 @@ def test_fangraphs_pitching_range_seasons():
 def test_fangraphs_pitching_range_one_stat_type():
     data = pyb.fangraphs_pitching_range(
         start_date="2024-04-01",
-        end_date="2024-05-01",
+        end_date="2024-04-10",
         stat_types=[pyb.FangraphsPitchingStatType.STANDARD],
         return_pandas=False,
         league=pyb.FangraphsLeagueTypes.ALL,
@@ -164,7 +164,7 @@ def test_fangraphs_pitching_range_one_stat_type():
 def test_fangraphs_pitching_range_multiple_stat_type():
     data = pyb.fangraphs_pitching_range(
         start_date="2024-04-01",
-        end_date="2024-05-01",
+        end_date="2024-04-10",
         stat_types=[
             pyb.FangraphsPitchingStatType.STANDARD,
             pyb.FangraphsPitchingStatType.STATCAST,
@@ -185,7 +185,7 @@ def test_fangraphs_pitching_range_starter_reliever():
     with pytest.raises(ValueError):
         pyb.fangraphs_pitching_range(
             start_date="2024-04-01",
-            end_date="2024-05-01",
+            end_date="2024-04-10",
             stat_types=None,
             return_pandas=False,
             starter_reliever="invalid",
@@ -232,7 +232,7 @@ def test_fangraphs_pitching_range_starter_reliever():
 def test_fangraphs_fielding_range():
     data = pyb.fangraphs_fielding_range(
         start_date="2024-04-01",
-        end_date="2024-05-01",
+        end_date="2024-04-10",
         stat_types=None,
         return_pandas=False,
         league=pyb.FangraphsLeagueTypes.ALL,
@@ -249,7 +249,7 @@ def test_fangraphs_fielding_range_invalid_pos():
     with pytest.raises(AttributeError):
         pyb.fangraphs_fielding_range(
             start_date="2024-04-01",
-            end_date="2024-05-01",
+            end_date="2024-04-10",
             stat_types=None,
             return_pandas=False,
             league=pyb.FangraphsLeagueTypes.ALL,
@@ -263,7 +263,7 @@ def test_fangraphs_fielding_range_invalid_stat_types():
     with pytest.raises(AttributeError):
         pyb.fangraphs_fielding_range(
             start_date="2024-04-01",
-            end_date="2024-05-01",
+            end_date="2024-04-10",
             stat_types=["invalid"],
             return_pandas=False,
             league=pyb.FangraphsLeagueTypes.ALL,
