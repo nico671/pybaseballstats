@@ -49,7 +49,10 @@ def plot_stadium(team: str, title: str = None):
         path = matplotlib.path.Path(verts)
         patch = patches.PathPatch(path, facecolor="none", edgecolor="black", lw=2)
         axis.add_patch(patch)
-    plt.title(team)
+    if title:
+        plt.title(title)
+    else:
+        plt.title(team)
     return axis
 
 

@@ -7,15 +7,12 @@ requires-python = ">=3.11"
 dependencies = [
     "aiohttp>=3.11.11",
     "bs4>=0.0.2",
-    "coverage>=7.6.12",
     "matplotlib>=3.10.0",
     "nest-asyncio>=1.6.0",
     "pandas>=2.2.3",
     "polars>=1.20.0",
     "pyarrow>=19.0.0",
-    "pytest>=8.3.4",
     "requests>=2.32.3",
-    "ruff>=0.9.5",
     "tqdm>=4.67.1",
 ]
 authors = [{ name = "Nicolas Carbone", email = "carbone.nicolas0@gmail.com" }]
@@ -42,11 +39,6 @@ classifiers = [
 [project.urls]
 Repository = "https://github.com/nico671/pybaseballstats"
 
-[tool.poetry.dev-dependencies]
-ipykernel = ">=6.29.5"
-pytest = ">=8.3.4"
-ruff = ">=0.9.3"
-
 [tool.uv.workspace]
 members = ["pybaseballstats"]
 [build-system]
@@ -54,7 +46,12 @@ requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [dependency-groups]
-dev = ["ipykernel>=6.29.5"]
+dev = [
+    "coverage>=7.6.12",
+    "ipykernel>=6.29.5",
+    "pytest>=8.3.4",
+    "ruff>=0.9.7",
+]
 
 [tool.setuptools]
 packages = { find = { where = ["src/"] } }
