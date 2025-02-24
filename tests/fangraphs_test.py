@@ -228,8 +228,60 @@ def test_fangraphs_pitching_range_starter_reliever():
     assert data2.shape[1] == 375
 
 
-#     league: FangraphsLeagueTypes = FangraphsLeagueTypes.ALL,
-#     team: FangraphsTeams = FangraphsTeams.ALL,
-#     rost: int = 0,
-#     handedness: str = "",
-#     stat_split: FangraphsStatSplitTypes = FangraphsStatSplitTypes.PLAYER,
+# fangraphs_fielding_range
+def test_fangraphs_fielding_range():
+    data = pyb.fangraphs_fielding_range(
+        start_date="2024-04-01",
+        end_date="2024-05-01",
+        stat_types=None,
+        return_pandas=False,
+        league=pyb.FangraphsLeagueTypes.ALL,
+        team=pyb.FangraphsTeams.ALL,
+        rost=0,
+        pos=FangraphsBattingPosTypes.ALL,
+    )
+    assert data is not None
+    assert data.shape[0] == 112
+    assert data.shape[1] == 46
+
+
+def test_fangraphs_fielding_range_invalid_pos():
+    with pytest.raises(AttributeError):
+        pyb.fangraphs_fielding_range(
+            start_date="2024-04-01",
+            end_date="2024-05-01",
+            stat_types=None,
+            return_pandas=False,
+            league=pyb.FangraphsLeagueTypes.ALL,
+            team=pyb.FangraphsTeams.ALL,
+            rost=0,
+            pos="invalid",
+        )
+
+
+def test_fangraphs_fielding_range_invalid_stat_types():
+    with pytest.raises(AttributeError):
+        pyb.fangraphs_fielding_range(
+            start_date="2024-04-01",
+            end_date="2024-05-01",
+            stat_types=["invalid"],
+            return_pandas=False,
+            league=pyb.FangraphsLeagueTypes.ALL,
+            team=pyb.FangraphsTeams.ALL,
+            rost=0,
+            pos=FangraphsBattingPosTypes.ALL,
+        )
+
+
+def test_fangreaphs_fielding_range_bad_inputs():
+    with pytest.raises(ValueError):
+        pyb.fangraphs_fielding_range(
+            start_date="2024-05-01",
+            end_date="2024-04-01",
+            stat_types=None,
+            return_pandas=False,
+            league=pyb.FangraphsLeagueTypes.ALL,
+            team=pyb.FangraphsTeams.ALL,
+            rost=0,
+            pos=FangraphsBattingPosTypes.ALL,
+        )

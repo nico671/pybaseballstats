@@ -13,6 +13,43 @@ END_DT = "2024-04-10"
 
 
 # STATCAST_SINGLE_GAME_TESTS
+# def test_statcast_single_game_request_exception():
+#     # Test with requests exception
+#     with patch("requests.get") as mock_get:
+#         # Configure the mock to raise an exception
+#         mock_get.side_effect = requests.exceptions.RequestException("Test error")
+
+#         # Test with LazyFrame return
+#         result = pyb.statcast_single_game(game_pk=634, return_pandas=False)
+#         assert isinstance(result, pl.LazyFrame)
+#         assert result.collect().shape == (0, 0)  # Empty LazyFrame
+
+#         # Test with Pandas return
+#         result = pyb.statcast_single_game(game_pk=634, return_pandas=True)
+#         assert isinstance(result, pd.DataFrame)
+#         assert result.empty  # Empty DataFrame
+
+
+# def test_statcast_single_game_timeout_exception():
+#     # Test with timeout exception
+#     with patch("requests.get") as mock_get:
+#         mock_get.side_effect = requests.exceptions.Timeout("Connection timed out")
+
+#         result = pyb.statcast_single_game(game_pk=634)
+#         assert isinstance(result, pl.LazyFrame)
+#         assert result.collect().shape == (0, 0)
+
+
+# def test_statcast_single_game_connection_error():
+#     # Test with connection error
+#     with patch("requests.get") as mock_get:
+#         mock_get.side_effect = requests.exceptions.ConnectionError("Connection failed")
+
+#         result = pyb.statcast_single_game(game_pk=634)
+#         assert isinstance(result, pl.LazyFrame)
+#         assert result.collect().shape == (0, 0)
+
+
 def test_statcast_single_game_game_pk_not_correct():
     data = pyb.statcast_single_game(
         game_pk=100000000000, return_pandas=False, extra_stats=False

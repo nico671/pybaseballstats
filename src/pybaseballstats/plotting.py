@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt
 
 STADIUM_SCALE = 2.495 / 2.33
 
-
+# TODO: finish tests for this module
 # heavy inspiration from pybaseball package
 # https://github.com/jldbc/pybaseball/blob/master/pybaseball/plotting.py
 

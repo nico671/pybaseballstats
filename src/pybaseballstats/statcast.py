@@ -1,6 +1,5 @@
 import asyncio
 import io
-import logging as logger
 
 import nest_asyncio
 import pandas as pd
@@ -35,13 +34,22 @@ def statcast_single_game(
     Returns:
         pl.LazyFrame | pd.DataFrame: DataFrame of statcast data for the game
     """
-    try:
-        statcast_content = requests.get(
-            ROOT_URL + SINGLE_GAME.format(game_pk=game_pk), timeout=None
-        ).content
-    except Exception as e:
-        logger.error(f"Failed to pull data for game_pk: {game_pk}. {str(e)}")
-        return pl.LazyFrame() if not return_pandas else pd.DataFrame()
+    # try:
+    response = requests.get(
+        ROOT_URL + SINGLE_GAME.format(game_pk=game_pk),
+        timeout=30,  # Add explicit timeout
+    )
+    response.raise_for_status()  # Raise exception for bad status codes
+    statcast_content = response.content
+    # except requests.exceptions.Timeout as e:
+    #     logger.error(f"Timeout while pulling data for game_pk {game_pk}: {str(e)}")
+    #     return pl.LazyFrame() if not return_pandas else pd.DataFrame()
+    # except requests.exceptions.RequestException as e:
+    #     logger.error(f"Failed to pull data for game_pk {game_pk}: {str(e)}")
+    #     return pl.LazyFrame() if not return_pandas else pd.DataFrame()
+    # except Exception as e:
+    #     logger.error(f"Unexpected error for game_pk {game_pk}: {str(e)}")
+    #     return pl.LazyFrame() if not return_pandas else pd.DataFrame()
     if not extra_stats:
         return (
             pl.scan_csv(io.StringIO(statcast_content.decode("utf-8")))

@@ -1,5 +1,6 @@
 from .fangraphs import (  # noqa: F401
     fangraphs_batting_range,
+    fangraphs_fielding_range,
     fangraphs_pitching_range,
 )
 from .plotting import (  # noqa: F401
@@ -55,4 +56,5 @@ __all__ = [
     "FangraphsPitchingStatType",
     "FangraphsStatSplitTypes",
     "FangraphsTeams",
+    "fangraphs_fielding_range",
 ]
