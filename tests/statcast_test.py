@@ -12,44 +12,6 @@ START_DT = "2024-04-01"
 END_DT = "2024-04-10"
 
 
-# STATCAST_SINGLE_GAME_TESTS
-# def test_statcast_single_game_request_exception():
-#     # Test with requests exception
-#     with patch("requests.get") as mock_get:
-#         # Configure the mock to raise an exception
-#         mock_get.side_effect = requests.exceptions.RequestException("Test error")
-
-#         # Test with LazyFrame return
-#         result = pyb.statcast_single_game(game_pk=634, return_pandas=False)
-#         assert isinstance(result, pl.LazyFrame)
-#         assert result.collect().shape == (0, 0)  # Empty LazyFrame
-
-#         # Test with Pandas return
-#         result = pyb.statcast_single_game(game_pk=634, return_pandas=True)
-#         assert isinstance(result, pd.DataFrame)
-#         assert result.empty  # Empty DataFrame
-
-
-# def test_statcast_single_game_timeout_exception():
-#     # Test with timeout exception
-#     with patch("requests.get") as mock_get:
-#         mock_get.side_effect = requests.exceptions.Timeout("Connection timed out")
-
-#         result = pyb.statcast_single_game(game_pk=634)
-#         assert isinstance(result, pl.LazyFrame)
-#         assert result.collect().shape == (0, 0)
-
-
-# def test_statcast_single_game_connection_error():
-#     # Test with connection error
-#     with patch("requests.get") as mock_get:
-#         mock_get.side_effect = requests.exceptions.ConnectionError("Connection failed")
-
-#         result = pyb.statcast_single_game(game_pk=634)
-#         assert isinstance(result, pl.LazyFrame)
-#         assert result.collect().shape == (0, 0)
-
-
 def test_statcast_single_game_game_pk_not_correct():
     data = pyb.statcast_single_game(
         game_pk=100000000000, return_pandas=False, extra_stats=False
@@ -132,6 +94,16 @@ def test_statcast_date_range_flipped_dates():
         )
 
 
+def test_statcast_date_range_null_dates():
+    with pytest.raises(ValueError):
+        pyb.statcast_date_range(
+            start_dt=None,
+            end_dt=None,
+            return_pandas=False,
+            extra_stats=False,
+        )
+
+
 def test_statcast_date_range_with_team():
     data = pyb.statcast_date_range(
         start_dt=START_DT,
@@ -165,6 +137,14 @@ def test_statcast_batter_bad_inputs():
             extra_stats=False,
             return_pandas=False,
         )
+    with pytest.raises(ValueError):
+        pyb.statcast_single_batter_range(
+            start_dt=None,
+            end_dt=END_DT,
+            player_id=677772,
+            extra_stats=False,
+            return_pandas=False,
+        )
 
 
 def test_statcast_batter():
@@ -179,6 +159,19 @@ def test_statcast_batter():
     data = data.collect()
     assert isinstance(data, pl.DataFrame)
     assert data.shape[1] == 181
+    assert data.shape[0] == 872
+    assert len(data.select("batter").unique()) == 1
+    data = pyb.statcast_single_batter_range(
+        start_dt="2024-04-01",
+        end_dt="2024-06-01",
+        player_id="547180",
+        extra_stats=False,
+        return_pandas=False,
+    )
+    assert isinstance(data, pl.LazyFrame)
+    data = data.collect()
+    assert isinstance(data, pl.DataFrame)
+    assert data.shape[1] == 113
     assert data.shape[0] == 872
     assert len(data.select("batter").unique()) == 1
 
