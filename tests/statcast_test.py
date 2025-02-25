@@ -4,6 +4,7 @@ import sys
 import pandas as pd
 import polars as pl
 import pytest
+from polars.testing import assert_frame_equal
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import pybaseballstats as pyb
@@ -149,8 +150,8 @@ def test_statcast_batter_bad_inputs():
 
 def test_statcast_batter():
     data = pyb.statcast_single_batter_range(
-        start_dt="2024-04-01",
-        end_dt="2024-06-01",
+        start_dt=START_DT,
+        end_dt=END_DT,
         player_id="547180",
         extra_stats=True,
         return_pandas=False,
@@ -159,11 +160,11 @@ def test_statcast_batter():
     data = data.collect()
     assert isinstance(data, pl.DataFrame)
     assert data.shape[1] == 181
-    assert data.shape[0] == 872
+    assert data.shape[0] == 144
     assert len(data.select("batter").unique()) == 1
     data = pyb.statcast_single_batter_range(
-        start_dt="2024-04-01",
-        end_dt="2024-06-01",
+        start_dt=START_DT,
+        end_dt=END_DT,
         player_id="547180",
         extra_stats=False,
         return_pandas=False,
@@ -172,14 +173,33 @@ def test_statcast_batter():
     data = data.collect()
     assert isinstance(data, pl.DataFrame)
     assert data.shape[1] == 113
-    assert data.shape[0] == 872
+    assert data.shape[0] == 144
     assert len(data.select("batter").unique()) == 1
+
+
+def test_statcast_pitcher_bad_inputs():
+    with pytest.raises(ValueError):
+        pyb.statcast_single_pitcher_range(
+            start_dt=END_DT,
+            end_dt=START_DT,
+            player_id=0,
+            extra_stats=False,
+            return_pandas=False,
+        )
+    with pytest.raises(ValueError):
+        pyb.statcast_single_pitcher_range(
+            start_dt=None,
+            end_dt=END_DT,
+            player_id=671096,
+            extra_stats=False,
+            return_pandas=False,
+        )
 
 
 def test_statcast_pitcher():
     data = pyb.statcast_single_pitcher_range(
-        start_dt="2024-04-01",
-        end_dt="2024-06-01",
+        start_dt=START_DT,
+        end_dt=END_DT,
         player_id="671096",
         extra_stats=True,
         return_pandas=False,
@@ -188,5 +208,32 @@ def test_statcast_pitcher():
     data = data.collect()
     assert isinstance(data, pl.DataFrame)
     assert data.shape[1] == 181
-    assert data.shape[0] == 1009
+    assert data.shape[0] == 185
     assert len(data.select("pitcher").unique()) == 1
+
+
+def test_statcast_pitcher_to_pandas():
+    data1 = pyb.statcast_single_pitcher_range(
+        start_dt=START_DT,
+        end_dt=END_DT,
+        player_id="671096",
+        extra_stats=True,
+        return_pandas=True,
+    )
+    assert isinstance(data1, pd.DataFrame)
+    assert data1.shape[1] == 181
+    assert data1.shape[0] == 185
+    assert len(data1["pitcher"].unique()) == 1
+    data2 = pyb.statcast_single_pitcher_range(
+        start_dt=START_DT,
+        end_dt=END_DT,
+        player_id="671096",
+        extra_stats=True,
+        return_pandas=False,
+    )
+    data2 = data2.collect()
+    assert isinstance(data2, pl.DataFrame)
+    assert data2.shape[1] == 181
+    assert data2.shape[0] == 185
+    assert len(data2["pitcher"].unique()) == 1
+    assert_frame_equal(pl.DataFrame(data1, schema=data2.schema), data2)

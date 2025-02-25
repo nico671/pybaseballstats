@@ -278,9 +278,9 @@ def test_statcast_catcher_stats_multiple_seasons():
 
 
 def test_statcast_catcher_stats_to_pandas():
-    data = pyb.statcast_catcher_stats(2018, 2018, True)
+    data = pyb.statcast_catcher_stats(2018, 2024, True)
     assert type(data) is pd.DataFrame
-    assert data.shape[0] == 60
+    assert data.shape[0] == 138
     assert data.shape[1] == 54
-    data2 = pyb.statcast_catcher_stats(2018, 2018, False)
+    data2 = pyb.statcast_catcher_stats(2018, 2024, False)
     assert_frame_equal(pl.DataFrame(data, schema=data2.schema), data2)

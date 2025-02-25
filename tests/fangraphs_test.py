@@ -85,7 +85,7 @@ def test_qual_vs_non_qual():
         end_date="2024-04-10",
         stat_types=None,
         return_pandas=False,
-        pos=FangraphsBattingPosTypes.ALL,
+        pos=FangraphsBattingPosTypes.CATCHER,
         league="",
         qual="y",
         start_season=None,
@@ -96,7 +96,7 @@ def test_qual_vs_non_qual():
         end_date="2024-04-10",
         stat_types=None,
         return_pandas=False,
-        pos=FangraphsBattingPosTypes.ALL,
+        pos=FangraphsBattingPosTypes.CATCHER,
         league="",
         qual="100",
         start_season=None,
@@ -185,7 +185,7 @@ def test_fangraphs_pitching_range_starter_reliever():
     with pytest.raises(ValueError):
         pyb.fangraphs_pitching_range(
             start_date="2024-04-01",
-            end_date="2024-04-10",
+            end_date="2024-06-10",
             stat_types=None,
             return_pandas=False,
             starter_reliever="invalid",
@@ -203,13 +203,13 @@ def test_fangraphs_pitching_range_starter_reliever():
         return_pandas=False,
         starter_reliever="sta",
         league=pyb.FangraphsLeagueTypes.ALL,
-        team=pyb.FangraphsTeams.ALL,
+        team=pyb.FangraphsTeams.NATIONALS,
         rost=0,
         handedness="",
         stat_split=pyb.FangraphsStatSplitTypes.PLAYER,
     )
     assert data is not None
-    assert data.shape[0] == 57
+    assert data.shape[0] == 3
     assert data.shape[1] == 375
     data2 = pyb.fangraphs_pitching_range(
         start_season="2024",
@@ -218,13 +218,13 @@ def test_fangraphs_pitching_range_starter_reliever():
         return_pandas=False,
         starter_reliever="rel",
         league=pyb.FangraphsLeagueTypes.ALL,
-        team=pyb.FangraphsTeams.ALL,
+        team=pyb.FangraphsTeams.NATIONALS,
         rost=0,
         handedness="",
         stat_split=pyb.FangraphsStatSplitTypes.PLAYER,
     )
     assert data2 is not None
-    assert data2.shape[0] == 169
+    assert data2.shape[0] == 6
     assert data2.shape[1] == 375
 
 
