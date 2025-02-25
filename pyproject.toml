@@ -14,6 +14,7 @@ dependencies = [
     "pyarrow>=19.0.0",
     "requests>=2.32.3",
     "tqdm>=4.67.1",
+    "unidecode>=1.3.8",
 ]
 authors = [{ name = "Nicolas Carbone", email = "carbone.nicolas0@gmail.com" }]
 license = { text = "MIT" }

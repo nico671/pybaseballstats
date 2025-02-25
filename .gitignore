@@ -1,4 +1,4 @@
-# /notebooks
+/notebooks
 .hypothesis/
 /__pycache__
 pybaseballstats/__pycache__
