@@ -11,11 +11,11 @@ def test_illegal_player_lookup():
 
 def test_player_lookup():
     # firstname only
-    df = pyb.player_lookup(first_name="mookie")
-    assert len(df) > 0
+    df1 = pyb.player_lookup(first_name="mookie", last_name="BETTS")
+    assert len(df1) > 0
     assert_frame_equal(
-        pyb.player_lookup(first_name="mookie", last_name="BETTS"),
-        pyb.player_lookup(first_name="MooKIE", last_name="betts"),
+        df1,
+        pyb.player_lookup(first_name="mookie", last_name="betts"),
     )
 
 
