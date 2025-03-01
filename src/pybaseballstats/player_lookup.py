@@ -18,15 +18,15 @@ def get_people_data() -> pl.DataFrame:
     for i in range(0, 10):
         data = requests.get(PEOPLES_URL.format(num=i)).content
         df = pl.read_csv(data, truncate_ragged_lines=True)
-
         df = df.select(pl.col(keep_cols))
         df_list.append(df)
+
     for letter in ["a", "b", "c", "d", "f"]:
         data = requests.get(PEOPLES_URL.format(num=letter)).content
         df = pl.read_csv(data, truncate_ragged_lines=True)
-
         df = df.select(pl.col(keep_cols))
         df_list.append(df)
+
     df = df_list[0]
     for i in range(1, len(df_list)):
         df = df.vstack(df_list[i])
