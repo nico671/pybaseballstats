@@ -18,6 +18,7 @@ from .statcast import (  # noqa: F401
 )
 from .statcast_leaderboards import (  # noqa: F401
     statcast_bat_tracking_leaderboard,
+    statcast_exit_velo_barrels_leaderboard,
 )
 
 # from .statcast_leaderboards import (  # noqa: F401

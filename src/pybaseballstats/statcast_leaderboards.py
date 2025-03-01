@@ -48,23 +48,41 @@ def statcast_bat_tracking_leaderboard(
     return df if not return_pandas else df.to_pandas()
 
 
-# def statcast_exit_velo_barrels(
-#     year: int, pitcher_batter: str = "batter", return_pandas: bool = False
-# ) -> pl.DataFrame | pd.DataFrame:
-#     if year is None:
-#         raise ValueError("year must be provided")
-#     if year < 2015:
-#         raise ValueError(
-#             "Dates must be after 2015 as exit velo/ barrels data is only available from 2015 onwards"
-#         )
-#     if pitcher_batter not in ["pitcher", "batter"]:
-#         raise ValueError("pitcher_batter must be either 'pitcher' or 'batter'")
-#     df = pl.read_csv(
-#         requests.get(
-#             EXIT_VELO_BARRELS_URL.format(year=year, pitcher_batter=pitcher_batter)
-#         ).content
-#     )
-#     return df if not return_pandas else df.to_pandas()
+EXIT_VELO_BARRELS_URL = "https://baseballsavant.mlb.com/leaderboard/statcast?type={perspective}&year={year}&position=&team=&min={min_swings}&sort=barrels_per_pa&sortDir=desc&csv=true"
+
+
+def statcast_exit_velo_barrels_leaderboard(
+    year: int,
+    perspective: str = "batter",
+    min_swings: Union[str, int] = "q",
+    return_pandas: bool = False,
+) -> pl.DataFrame | pd.DataFrame:
+    if year is None:
+        raise ValueError("year must be provided")
+    if year < 2015:
+        raise ValueError(
+            "Dates must be after 2015 as exit velo barrels data is only available from 2015 onwards"
+        )
+    if type(min_swings) is int:
+        if min_swings < 1:
+            raise ValueError("min_swings must be at least 1")
+    elif type(min_swings) is str:
+        if min_swings != "q":
+            raise ValueError("if min_swings is a string, it must be 'q' for qualified")
+    if perspective not in ["batter", "pitcher", "batter-team", "pitcher-team"]:
+        raise ValueError(
+            "perspective must be either 'batter', 'pitcher', 'batter-team', or 'pitcher-team'"
+        )
+    df = pl.read_csv(
+        requests.get(
+            EXIT_VELO_BARRELS_URL.format(
+                year=year,
+                min_swings=min_swings,
+                perspective=perspective,
+            )
+        ).content
+    )
+    return df if not return_pandas else df.to_pandas()
 
 
 # EXPECTED_STATS_URL = "https://baseballsavant.mlb.com/leaderboard/expected_statistics?type={pitcher_batter}&year={year}&position=&team=&filterType=bip&min=q&csv=true"
