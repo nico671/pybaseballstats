@@ -216,3 +216,53 @@ def test_statcast_expected_stats_leaderboard_diffperspectives():
     assert df4.shape[1] == 18
     assert df4.shape[0] == 30
     assert df4["team_id"].n_unique() == 30
+
+
+def test_statcast_arsenal_stats_leaderboard_badinputs():
+    with pytest.raises(ValueError):
+        pyb.statcast_pitch_arsenal_stats_leaderboard(year=None)
+    with pytest.raises(ValueError):
+        pyb.statcast_pitch_arsenal_stats_leaderboard(year=2014)
+    with pytest.raises(ValueError):
+        pyb.statcast_pitch_arsenal_stats_leaderboard(year=2024, min_pa=0)
+    with pytest.raises(ValueError):
+        pyb.statcast_pitch_arsenal_stats_leaderboard(
+            year=2024, perspective="individual"
+        )
+
+
+def test_statcast_arsenal_stats_leaderboard_regular():
+    df = pyb.statcast_pitch_arsenal_stats_leaderboard(year=2024)
+    assert df.shape[0] == 144
+    assert df.shape[1] == 20
+    assert df["player_id"].n_unique() == 144
+    assert type(df) is pl.DataFrame
+    df2 = pyb.statcast_pitch_arsenal_stats_leaderboard(year=2024, return_pandas=True)
+    assert df2.shape[0] == 144
+    assert df2.shape[1] == 20
+    assert df2["player_id"].nunique() == 144
+    assert type(df2) is pd.DataFrame
+    assert_frame_equal(df, pl.DataFrame(df2, schema=df.schema))
+
+
+def test_statcast_arsenal_stats_leaderboard_diffperspectives():
+    df1 = pyb.statcast_pitch_arsenal_stats_leaderboard(year=2024, perspective="pitcher")
+    assert df1.shape[0] == 171
+    assert df1.shape[1] == 20
+    assert df1["player_id"].n_unique() == 171
+    assert type(df1) is pl.DataFrame
+    df2 = pyb.statcast_pitch_arsenal_stats_leaderboard(year=2024, perspective="batter")
+    assert_series_not_equal(df1["player_id"], df2["player_id"])
+
+
+def test_statcast_arsenal_stats_leaderboard_diffminpa():
+    df = pyb.statcast_pitch_arsenal_stats_leaderboard(year=2024, min_pa=200)
+    assert df.shape[0] == 39
+    assert df.shape[1] == 20
+    assert df["player_id"].n_unique() == 39
+    assert type(df) is pl.DataFrame
+    df2 = pyb.statcast_pitch_arsenal_stats_leaderboard(year=2024, min_pa=100)
+    assert df2.shape[0] > df.shape[0]
+    assert df2.shape[1] == 20
+    assert df2["player_id"].n_unique() > df["player_id"].n_unique()
+    assert type(df2) is pl.DataFrame

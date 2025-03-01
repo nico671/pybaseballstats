@@ -182,47 +182,36 @@ def statcast_expected_stats_leaderboard(
     return df if not return_pandas else df.to_pandas()
 
 
-# def statcast_expected_stats(
-#     year: int, pitcher_batter: str = "batter", return_pandas: bool = False
-# ) -> pl.DataFrame | pd.DataFrame:
-#     if year is None:
-#         raise ValueError("year must be provided")
-#     if year < 2015:
-#         raise ValueError(
-#             "Dates must be after 2015 as expected stats data is only available from 2015 onwards"
-#         )
-#     if pitcher_batter not in ["pitcher", "batter"]:
-#         raise ValueError("pitcher_batter must be either 'pitcher' or 'batter'")
-#     df = pl.read_csv(
-#         requests.get(
-#             EXPECTED_STATS_URL.format(pitcher_batter=pitcher_batter, year=year)
-#         ).content,
-#         truncate_ragged_lines=True,
-#     )
-#     return df if not return_pandas else df.to_pandas()
+PITCH_ARSENAL_STATS_URL = "https://baseballsavant.mlb.com/leaderboard/pitch-arsenal-stats?type={perspective}&pitchType=&year={year}&team=&min={min_pa}&csv=true"
 
 
-# PITCH_ARSENAL_URL = "https://baseballsavant.mlb.com/leaderboard/pitch-arsenal-stats?type={pitcher_batter}&pitchType=&year={year}&team=&min=150&csv=true"
-
-
-# def statcast_pitch_arsenal(
-#     year: int, pitcher_batter: str = "pitcher", return_pandas: bool = False
-# ) -> pl.DataFrame | pd.DataFrame:
-#     if year is None:
-#         raise ValueError("year must be provided")
-#     if year < 2019:
-#         raise ValueError(
-#             "Dates must be after 2019 as pitch arsenal data is only available from 2019 onwards"
-#         )
-#     if pitcher_batter not in ["pitcher", "batter"]:
-#         raise ValueError("pitcher_batter must be either 'pitcher' or 'batter'")
-#     df = pl.read_csv(
-#         requests.get(
-#             PITCH_ARSENAL_URL.format(pitcher_batter=pitcher_batter, year=year)
-#         ).content,
-#         truncate_ragged_lines=True,
-#     )
-#     return df if not return_pandas else df.to_pandas()
+def statcast_pitch_arsenal_stats_leaderboard(
+    year: int,
+    perspective: str = "batter",
+    min_pa: int = 150,
+    return_pandas: bool = False,
+) -> pl.DataFrame | pd.DataFrame:
+    if year is None:
+        raise ValueError("year must be provided")
+    if year < 2019:
+        raise ValueError(
+            "Dates must be after 2019 as pitch arsenal data is only available from 2019 onwards"
+        )
+    if min_pa < 1:
+        raise ValueError("min_pa must be at least 1")
+    if perspective not in ["batter", "pitcher"]:
+        raise ValueError("perspective must be either 'batter' or 'pitcher'")
+    df = pl.read_csv(
+        requests.get(
+            PITCH_ARSENAL_STATS_URL.format(
+                year=year,
+                min_pa=min_pa,
+                perspective=perspective,
+            )
+        ).content
+    )
+    df = df.unique("player_id", keep="first", maintain_order=True)
+    return df if not return_pandas else df.to_pandas()
 
 
 # PITCHING_ACTIVE_SPIN_URL = "https://baseballsavant.mlb.com/leaderboard/active-spin?year={year}_spin-based&min=50&hand=&csv=true"
