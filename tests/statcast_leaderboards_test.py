@@ -158,3 +158,61 @@ def test_statcast_exit_velo_barrels_leaderboard_diffperspectives():
     assert df4.shape[1] == 18
     assert df4.shape[0] == 30
     assert df4["team_id"].n_unique() == 30
+
+
+def test_statcast_expected_stats_leaderboard_badinputs():
+    with pytest.raises(ValueError):
+        pyb.statcast_expected_stats_leaderboard(year=None)
+    with pytest.raises(ValueError):
+        pyb.statcast_expected_stats_leaderboard(year=2014)
+    with pytest.raises(ValueError):
+        pyb.statcast_expected_stats_leaderboard(year=2024, min_balls_in_play="nq")
+    with pytest.raises(ValueError):
+        pyb.statcast_expected_stats_leaderboard(year=2024, min_balls_in_play=0)
+    with pytest.raises(ValueError):
+        pyb.statcast_expected_stats_leaderboard(year=2024, perspective="individual")
+
+
+def test_statcast_expected_stats_leaderboard_regular():
+    df = pyb.statcast_expected_stats_leaderboard(year=2024)
+    assert df.shape[0] == 252
+    assert df.shape[1] == 18
+    assert df["player_id"].n_unique() == 252
+    assert type(df) is pl.DataFrame
+    df2 = pyb.statcast_expected_stats_leaderboard(year=2024, return_pandas=True)
+    assert df2.shape[0] == 252
+    assert df2.shape[1] == 18
+    assert df2["player_id"].nunique() == 252
+    assert type(df2) is pd.DataFrame
+    assert_frame_equal(df, pl.DataFrame(df2, schema=df.schema))
+
+
+def test_statcast_expected_stats_leaderboard_diffminballs():
+    df = pyb.statcast_expected_stats_leaderboard(year=2024, min_balls_in_play=200)
+    assert df.shape[0] == 284
+    assert df.shape[1] == 18
+    assert df["player_id"].n_unique() == 284
+    assert type(df) is pl.DataFrame
+    df2 = pyb.statcast_expected_stats_leaderboard(year=2024, min_balls_in_play=100)
+    assert df2.shape[0] > df.shape[0]
+    assert df2.shape[1] == 18
+    assert df2["player_id"].n_unique() > df["player_id"].n_unique()
+    assert type(df2) is pl.DataFrame
+
+
+def test_statcast_expected_stats_leaderboard_diffperspectives():
+    df1 = pyb.statcast_expected_stats_leaderboard(year=2024, perspective="pitcher")
+    assert df1.shape[0] == 366
+    assert df1.shape[1] == 18
+    assert df1["player_id"].n_unique() == 366
+    assert type(df1) is pl.DataFrame
+    df2 = pyb.statcast_expected_stats_leaderboard(year=2024, perspective="batter")
+    assert_series_not_equal(df1["player_id"], df2["player_id"])
+    df3 = pyb.statcast_expected_stats_leaderboard(year=2024, perspective="batter-team")
+    assert df3.shape[1] == 18
+    assert df3.shape[0] == 30
+    assert df3["team_id"].n_unique() == 30
+    df4 = pyb.statcast_expected_stats_leaderboard(year=2024, perspective="pitcher-team")
+    assert df4.shape[1] == 18
+    assert df4.shape[0] == 30
+    assert df4["team_id"].n_unique() == 30

@@ -16,9 +16,33 @@ def statcast_bat_tracking_leaderboard(
     perspective: str = "batter",
     return_pandas: bool = False,
 ) -> pl.DataFrame | pd.DataFrame:
+    """Retrieves bat tracking leaderboard data from Baseball Savant
+
+    Args:
+        start_dt (str): start date in format 'YYYY-MM-DD'
+        end_dt (str): end date in format 'YYYY-MM-DD'
+        min_swings (Union[int, str], optional): Minimum swing count to be included in the data ("q" stands for qualified). Defaults to "q".
+        perspective (str, optional): What perspective to return data from. Options are: 'batter', 'batting-team', 'pitcher', 'pitching-team', 'league'. Defaults to "batter".
+        return_pandas (bool, optional): Whether or not to return the data as a Pandas DataFrame or not. Defaults to False (Polars DataFrame will be returned).
+
+    Raises:
+        ValueError: If start_dt or end_dt are None
+        ValueError: If start_dt or end_dt have a year before 2023
+        ValueError: If start_dt is after end_dt
+        ValueError: If min_swings is an int and less than 1
+        ValueError: If min_swings is a string and not 'q'
+        ValueError: If perspective is not one of 'batter', 'batting-team', 'pitcher', 'pitching-team', 'league'
+
+    Returns:
+        pl.DataFrame | pd.DataFrame: DataFrame containing the bat tracking leaderboard data
+    """
+    if start_dt is None or end_dt is None:
+        raise ValueError("Both start_dt and end_dt must be provided")
     start_dt, end_dt = _handle_dates(start_dt, end_dt)
     if start_dt.year < 2023 or end_dt.year < 2023:
         raise ValueError("Bat tracking data is only available from 2023 onwards")
+    if start_dt > end_dt:
+        raise ValueError("Start date must be before end date")
     if type(min_swings) is int:
         if min_swings < 1:
             raise ValueError("min_swings must be at least 1")
@@ -57,6 +81,24 @@ def statcast_exit_velo_barrels_leaderboard(
     min_swings: Union[str, int] = "q",
     return_pandas: bool = False,
 ) -> pl.DataFrame | pd.DataFrame:
+    """Retrieves exit velocity barrels leaderboard data from Baseball Savant
+
+    Args:
+        year (int): What year to retrieve data from
+        perspective (str, optional): What perspective to return data from. Options are: 'batter', 'pitcher', 'batter-team', or 'pitcher-team'. Defaults to "batter".
+        min_swings (Union[str, int], optional): minimum number of swings to be included in the data ("q" returns all qualified players). Defaults to "q".
+        return_pandas (bool, optional): Whether or not to return the data as a Pandas DataFrame or not. Defaults to False (Polars DataFrame will be returned).
+
+    Raises:
+        ValueError: if year is None
+        ValueError: if year is before 2015
+        ValueError: if min_swings is an int and less than 1
+        ValueError: if min_swings is a string and not 'q'
+        ValueError: if perspective is not one of 'batter', 'pitcher', 'batter-team', 'pitcher-team'
+
+    Returns:
+        pl.DataFrame | pd.DataFrame: DataFrame containing the exit velocity barrels leaderboard data
+    """
     if year is None:
         raise ValueError("year must be provided")
     if year < 2015:
@@ -85,7 +127,59 @@ def statcast_exit_velo_barrels_leaderboard(
     return df if not return_pandas else df.to_pandas()
 
 
-# EXPECTED_STATS_URL = "https://baseballsavant.mlb.com/leaderboard/expected_statistics?type={pitcher_batter}&year={year}&position=&team=&filterType=bip&min=q&csv=true"
+EXPECTED_STATS_URL = "https://baseballsavant.mlb.com/leaderboard/expected_statistics?type={perspective}&year={year}&position=&team=&filterType=bip&min={min_balls_in_play}&csv=true"
+
+
+def statcast_expected_stats_leaderboard(
+    year: int,
+    perspective: str = "batter",
+    min_balls_in_play: Union[str, int] = "q",
+    return_pandas: bool = False,
+) -> pl.DataFrame | pd.DataFrame:
+    """Retrieves expected statistics leaderboard data from Baseball Savant
+
+    Args:
+        year (int): Year to retrieve data from
+        perspective (str, optional): What perspective to return data from. Options are: 'batter', 'pitcher', 'batter-team', or 'pitcher-team'. Defaults to "batter".
+        min_balls_in_play (Union[str, int], optional): Minimum number of balls in play to be included in the data ("q" returns all qualified players). Defaults to "q".
+        return_pandas (bool, optional): Whether or not to return the data as a Pandas DataFrame or not. Defaults to False (Polars DataFrame will be returned).
+
+    Raises:
+        ValueError: if year is None
+        ValueError: if year is before 2015
+        ValueError: if min_swings is an int and less than 1
+        ValueError: if min_swings is a string and not 'q'
+        ValueError: if perspective is not one of 'batter', 'pitcher', 'batter-team', 'pitcher-team'
+
+    Returns:
+        pl.DataFrame | pd.DataFrame: DataFrame containing the expected stats leaderboard data
+    """
+    if year is None:
+        raise ValueError("year must be provided")
+    if year < 2015:
+        raise ValueError(
+            "Dates must be after 2015 as exit velo barrels data is only available from 2015 onwards"
+        )
+    if type(min_balls_in_play) is int:
+        if min_balls_in_play < 1:
+            raise ValueError("min_swings must be at least 1")
+    elif type(min_balls_in_play) is str:
+        if min_balls_in_play != "q":
+            raise ValueError("if min_swings is a string, it must be 'q' for qualified")
+    if perspective not in ["batter", "pitcher", "batter-team", "pitcher-team"]:
+        raise ValueError(
+            "perspective must be either 'batter', 'pitcher', 'batter-team', or 'pitcher-team'"
+        )
+    df = pl.read_csv(
+        requests.get(
+            EXIT_VELO_BARRELS_URL.format(
+                year=year,
+                min_swings=min_balls_in_play,
+                perspective=perspective,
+            )
+        ).content
+    )
+    return df if not return_pandas else df.to_pandas()
 
 
 # def statcast_expected_stats(
