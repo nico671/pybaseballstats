@@ -182,15 +182,35 @@ def statcast_expected_stats_leaderboard(
     return df if not return_pandas else df.to_pandas()
 
 
-PITCH_ARSENAL_STATS_URL = "https://baseballsavant.mlb.com/leaderboard/pitch-arsenal-stats?type={perspective}&pitchType=&year={year}&team=&min={min_pa}&csv=true"
+PITCH_ARSENAL_STATS_URL = "https://baseballsavant.mlb.com/leaderboard/pitch-arsenal-stats?type={perspective}&pitchType={pitch_type}&year={year}&team=&min={min_pa}&csv=true"
 
 
 def statcast_pitch_arsenal_stats_leaderboard(
     year: int,
     perspective: str = "batter",
-    min_pa: int = 150,
+    min_pa: int = 100,
+    pitch_type: str = "",
     return_pandas: bool = False,
 ) -> pl.DataFrame | pd.DataFrame:
+    """Retrieves pitch arsenal statistics leaderboard data from Baseball Savant
+
+    Args:
+        year (int): Year to retrieve data from
+        perspective (str, optional): What perspective to return data from. Options are: 'batter', 'pitcher'. Defaults to "batter".
+        min_pa (int, optional): Minimum plate appearances to be included in the data. Defaults to 150.
+        pitch_type (str, optional): Type of pitch to filter by. Options are: 'ST' (sweeper), 'FS' (split-finger), 'SV' (slurve), 'SL' (slider), 'SI' (sinker), 'SC' (screwball), 'KN' (knuckleball), 'FC' (cutter), 'CU' (curveball), 'CH' (changeup), 'FF' (4-Seam Fastball), or '' (all). Defaults to "".
+        return_pandas (bool, optional): Whether or not to return the data as a Pandas DataFrame or not. Defaults to False (Polars DataFrame will be returned).
+
+    Raises:
+        ValueError: If year is None
+        ValueError: If year is before 2019
+        ValueError: If min_pa is less than 1
+        ValueError: If perspective is not one of 'batter', 'pitcher'
+        ValueError: If pitch_type is not one of 'ST', 'FS', 'SV', 'SL', 'SI', 'SC', 'KN', 'FC', 'CU', 'CH', 'FF', or ''
+
+    Returns:
+        pl.DataFrame | pd.DataFrame: _description_
+    """
     if year is None:
         raise ValueError("year must be provided")
     if year < 2019:
@@ -201,12 +221,31 @@ def statcast_pitch_arsenal_stats_leaderboard(
         raise ValueError("min_pa must be at least 1")
     if perspective not in ["batter", "pitcher"]:
         raise ValueError("perspective must be either 'batter' or 'pitcher'")
+    # pitchType (ST (sweeper), FS (split finger), SV (slurve), SL (slider), SI (sinker), SC (screwball), KN (knuckleball), FC (cutter), CU (curveball), CH (changeup), FF (four seam fastball), "" (all))
+    if pitch_type not in [
+        "ST",
+        "FS",
+        "SV",
+        "SL",
+        "SI",
+        "SC",
+        "KN",
+        "FC",
+        "CU",
+        "CH",
+        "FF",
+        "",
+    ]:
+        raise ValueError(
+            "pitch_type must be one of 'ST', 'FS', 'SV', 'SL', 'SI', 'SC', 'KN', 'FC', 'CU', 'CH', 'FF', or ''"
+        )
     df = pl.read_csv(
         requests.get(
             PITCH_ARSENAL_STATS_URL.format(
                 year=year,
                 min_pa=min_pa,
                 perspective=perspective,
+                pitch_type=pitch_type,
             )
         ).content
     )
@@ -214,86 +253,123 @@ def statcast_pitch_arsenal_stats_leaderboard(
     return df if not return_pandas else df.to_pandas()
 
 
-# PITCHING_ACTIVE_SPIN_URL = "https://baseballsavant.mlb.com/leaderboard/active-spin?year={year}_spin-based&min=50&hand=&csv=true"
+PITCH_ARSENALS_URL = "https://baseballsavant.mlb.com/leaderboard/pitch-arsenals?year={year}&min={min_pitches}&type={type}&hand={hand}&csv=true"
 
 
-# def statcast_pitching_active_spin(
-#     year: int, return_pandas: bool = False
-# ) -> pl.DataFrame | pd.DataFrame:
-#     if year is None:
-#         raise ValueError("year must be provided")
-#     if year < 2020:
-#         raise ValueError(
-#             "Dates must be after 2020 as spin tracking data is only available from 2020 onwards"
-#         )
-#     df = pl.read_csv(
-#         requests.get(PITCHING_ACTIVE_SPIN_URL.format(year=year)).content,
-#         truncate_ragged_lines=True,
-#     )
-#     return df if not return_pandas else df.to_pandas()
+def statcast_pitch_arsenals_leaderboard(
+    year: int,
+    min_pitches: int = 100,
+    pitch_type: str = "",
+    hand: str = "",
+    return_pandas: bool = False,
+) -> pl.DataFrame | pd.DataFrame:
+    if year is None:
+        raise ValueError("year must be provided")
+    if year < 2017:
+        raise ValueError(
+            "Dates must be after 2017 as pitch arsenal data is only available from 2017 onwards"
+        )
+    if min_pitches < 1:
+        raise ValueError("min_pitches must be at least 1")
+    if pitch_type not in [
+        "ST",
+        "FS",
+        "SV",
+        "SL",
+        "SI",
+        "SC",
+        "KN",
+        "FC",
+        "CU",
+        "CH",
+        "FF",
+        "",
+    ]:
+        raise ValueError(
+            "pitch_type must be one of 'ST', 'FS', 'SV', 'SL', 'SI', 'SC', 'KN', 'FC', 'CU', 'CH', 'FF', or ''"
+        )
+    if hand not in ["R", "L", ""]:
+        raise ValueError("hand must be one of 'R', 'L', or ''")
+    types = ["avg_speed", "n_", "avg_spin"]
+    df_list = []
+
+    for t in types:
+        df = pl.read_csv(
+            requests.get(
+                PITCH_ARSENALS_URL.format(year=2024, min_pitches=100, type=t, hand="R")
+            ).content
+        )
+
+        if t != "avg_speed":
+            df = df.drop(
+                "last_name, first_name",
+            )
+        df_list.append(df)
+    df = df_list[0]
+
+    for d in df_list[1:]:
+        df = df.join(d, on="pitcher", how="inner")
+    df = df.rename(
+        {
+            "n_ff": "ff_usage_rate",
+            "n_sl": "sl_usage_rate",
+            "n_si": "si_usage_rate",
+            "n_fc": "fc_usage_rate",
+            "n_ch": "ch_usage_rate",
+            "n_cu": "cu_usage_rate",
+            "n_fs": "fs_usage_rate",
+            "n_sv": "sv_usage_rate",
+            "n_kn": "kn_usage_rate",
+            "n_st": "st_usage_rate",
+        }
+    )
+    df = df.with_columns(
+        pl.col(pl.String).str.replace("", "0"),
+    )
+    df = df.with_columns(
+        [
+            pl.col("ff_usage_rate").cast(pl.Float32),
+            pl.col("sl_usage_rate").cast(pl.Float32),
+            pl.col("si_usage_rate").cast(pl.Float32),
+            pl.col("fc_usage_rate").cast(pl.Float32),
+            pl.col("ch_usage_rate").cast(pl.Float32),
+            pl.col("cu_usage_rate").cast(pl.Float32),
+            pl.col("fs_usage_rate").cast(pl.Float32),
+            pl.col("sv_usage_rate").cast(pl.Float32),
+            pl.col("kn_usage_rate").cast(pl.Float32),
+            pl.col("st_usage_rate").cast(pl.Float32),
+        ]
+    )
+    return df if not return_pandas else df.to_pandas()
 
 
-# PITCHING_ARM_ANGLE_URL = "https://baseballsavant.mlb.com/leaderboard/pitcher-arm-angles?batSide=&dateStart={start_dt}&dateEnd={end_dt}&gameType=R%7CF%7CD%7CL%7CW&groupBy=&min=q&minGroupPitches=1&perspective=back&pitchHand=&pitchType=&season={season}&size=small&sort=ascending&team=&csv=true"
+ARM_STRENGTH_URL = "https://baseballsavant.mlb.com/leaderboard/arm-strength?type={perspective}&year={year}&minThrows={min_throws}&pos=&team=&csv=true"
 
 
-# def statcast_pitching_arm_angle(
-#     start_dt: str,
-#     end_dt: str,
-#     season: int = None,
-#     return_pandas: bool = False,
-# ) -> pl.DataFrame | pd.DataFrame:
-#     if season is not None:
-#         print("WARNING: start_dt and end_dt will be ignored as season is provided")
-#         start_dt = None
-#         end_dt = None
-#         if season < 2023:
-#             raise ValueError(
-#                 "Dates must be after 2023 as arm angle data is only available from 2023 onwards"
-#             )
-#     else:
-#         if start_dt is not None and end_dt is not None:
-#             start_dt, end_dt = _handle_dates(start_dt, end_dt)
-#             if start_dt.year < 2023 or end_dt.year < 2023:
-#                 raise ValueError(
-#                     "Dates must be after 2023 as arm angle data is only available from 2023 onwards"
-#                 )
-#             if start_dt > end_dt:
-#                 raise ValueError("Start date must be before end date")
-#         else:
-#             raise ValueError(
-#                 "Both start_dt and end_dt must be provided if season is not"
-#             )
-
-#     df = pl.read_csv(
-#         requests.get(
-#             PITCHING_ARM_ANGLE_URL.format(
-#                 start_dt=start_dt if start_dt is not None else "",
-#                 end_dt=end_dt if end_dt is not None else "",
-#                 season=season,
-#             )
-#         ).content
-#     )
-#     return df if not return_pandas else df.to_pandas()
-
-
-# # TODO: just combine these tbh
-# # ARM_STRENGTH_URL = "https://baseballsavant.mlb.com/leaderboard/arm-strength?type=player&year={year}&minThrows=50&pos=&team=&csv=true"
-
-
-# # def statcast_arm_strength(
-# #     year: int, return_pandas: bool = False
-# # ) -> pl.DataFrame | pd.DataFrame:
-# #     if year is None:
-# #         raise ValueError("year must be provided")
-# #     if year < 2020:
-# #         raise ValueError(
-# #             "Dates must be after 2020 as arm strength data is only available from 2020 onwards"
-# #         )
-# #     df = pl.read_csv(
-# #         requests.get(ARM_STRENGTH_URL.format(year=year)).content,
-# #         truncate_ragged_lines=True,
-# #     )
-# #     return df if not return_pandas else df.to_pandas()
+def statcast_arm_strength_leaderboard(
+    year: int,
+    perspective: str = "player",
+    min_throws: int = 50,
+    return_pandas: bool = False,
+) -> pl.DataFrame | pd.DataFrame:
+    if year is None:
+        raise ValueError("year must be provided")
+    if year < 2020:
+        raise ValueError(
+            "Dates must be after 2020 as arm strength data is only available from 2020 onwards"
+        )
+    if min_throws < 1:
+        raise ValueError("min_throws must be at least 1")
+    if perspective not in ["player", "team"]:
+        raise ValueError("perspective must be either 'player' or 'team'")
+    df = pl.read_csv(
+        requests.get(
+            ARM_STRENGTH_URL.format(
+                year=year, min_throws=min_throws, perspective=perspective
+            )
+        ).content
+    )
+    return df if not return_pandas else df.to_pandas()
 
 
 # # ARM_VALUE_URL = "https://baseballsavant.mlb.com/leaderboard/baserunning?game_type=All&n=top&key_base_out=All&season_end={end_year}&season_start={start_year}&split=no&team=&type=Fld&with_team_only=1&csv=true"
