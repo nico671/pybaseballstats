@@ -51,6 +51,7 @@ def amateur_draft_order(
                     "W",
                     "L",
                     "SV",
+                    "year_ID",
                 ]
             ).cast(pl.Int32),
             pl.col(

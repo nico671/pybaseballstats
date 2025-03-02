@@ -30,6 +30,8 @@ def test_statcast_single_game_game_pk_correct():
     assert data is not None
     assert data.shape[0] == 303
     assert data.shape[1] == 113
+    assert data["game_pk"].unique().shape[0] == 1
+    assert data.select("game_pk").unique().item() == 634
     assert type(data) is pl.DataFrame
 
 
@@ -40,6 +42,8 @@ def test_statcast_single_game_game_pk_correct_extra_stats():
     assert data is not None
     assert data.shape[0] == 303
     assert data.shape[1] == 249
+    assert data["game_pk"].unique().shape[0] == 1
+    assert data.select("game_pk").unique().item() == 634
     assert type(data) is pl.DataFrame
 
 
@@ -56,6 +60,8 @@ def test_statcast_date_range():
     assert data is not None
     assert data.shape[0] == 38213
     assert data.shape[1] == 113
+    assert data.select(pl.col("game_date").min()).to_series().to_list()[0] == START_DT
+    assert data.select(pl.col("game_date").max()).to_series().to_list()[0] == END_DT
     assert type(data) is pl.DataFrame
 
 
@@ -69,6 +75,8 @@ def test_statcast_date_range_extra_stats():
     assert data is not None
     assert data.shape[0] == 38213
     assert data.shape[1] == 249
+    assert data.select(pl.col("game_date").min()).to_series().to_list()[0] == START_DT
+    assert data.select(pl.col("game_date").max()).to_series().to_list()[0] == END_DT
     assert type(data) is pl.DataFrame
 
 
@@ -162,6 +170,9 @@ def test_statcast_batter():
     assert data.shape[1] == 181
     assert data.shape[0] == 144
     assert len(data.select("batter").unique()) == 1
+    assert data["batter"].unique().item() == 547180
+    assert data.select(pl.col("game_date").min()).to_series().to_list()[0] == START_DT
+    assert data.select(pl.col("game_date").max()).to_series().to_list()[0] == END_DT
     data = pyb.statcast_single_batter_range(
         start_dt=START_DT,
         end_dt=END_DT,
