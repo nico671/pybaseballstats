@@ -209,7 +209,7 @@ def statcast_pitch_arsenal_stats_leaderboard(
         ValueError: If pitch_type is not one of 'ST', 'FS', 'SV', 'SL', 'SI', 'SC', 'KN', 'FC', 'CU', 'CH', 'FF', or ''
 
     Returns:
-        pl.DataFrame | pd.DataFrame: _description_
+        pl.DataFrame | pd.DataFrame: DataFrame containing the pitch arsenal statistics leaderboard data
     """
     if year is None:
         raise ValueError("year must be provided")
@@ -221,7 +221,6 @@ def statcast_pitch_arsenal_stats_leaderboard(
         raise ValueError("min_pa must be at least 1")
     if perspective not in ["batter", "pitcher"]:
         raise ValueError("perspective must be either 'batter' or 'pitcher'")
-    # pitchType (ST (sweeper), FS (split finger), SV (slurve), SL (slider), SI (sinker), SC (screwball), KN (knuckleball), FC (cutter), CU (curveball), CH (changeup), FF (four seam fastball), "" (all))
     if pitch_type not in [
         "ST",
         "FS",
@@ -249,7 +248,6 @@ def statcast_pitch_arsenal_stats_leaderboard(
             )
         ).content
     )
-    df = df.unique("player_id", keep="first", maintain_order=True)
     return df if not return_pandas else df.to_pandas()
 
 
