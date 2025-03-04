@@ -265,3 +265,53 @@ def test_statcast_arsenal_stats_leaderboard_diffminpa():
     assert df2.shape[1] == 20
     assert df2["player_id"].n_unique() > df["player_id"].n_unique()
     assert type(df2) is pl.DataFrame
+
+
+def test_statcast_pitch_arsenals_leaderboard_badinputs():
+    with pytest.raises(ValueError):
+        pyb.statcast_pitch_arsenals_leaderboard(year=None)
+    with pytest.raises(ValueError):
+        pyb.statcast_pitch_arsenals_leaderboard(year=2014)
+    with pytest.raises(ValueError):
+        pyb.statcast_pitch_arsenals_leaderboard(year=2024, min_pitches=0)
+    with pytest.raises(ValueError):
+        pyb.statcast_pitch_arsenals_leaderboard(year=2024, hand="Righty")
+
+
+def test_statcast_pitch_arsenals_leaderboard_regular():
+    df = pyb.statcast_pitch_arsenals_leaderboard(year=2024)
+    print(df.columns)
+    assert df.shape[0] == 712
+    assert df.shape[1] == 32
+    assert df["pitcher"].n_unique() == 712
+
+    assert type(df) is pl.DataFrame
+    df2 = pyb.statcast_pitch_arsenals_leaderboard(year=2024, return_pandas=True)
+    assert df2.shape[0] == 712
+    assert df2.shape[1] == 32
+    assert df2["pitcher"].nunique() == 712
+    assert type(df2) is pd.DataFrame
+    assert_frame_equal(df, pl.DataFrame(df2, schema=df.schema))
+
+
+def test_statcast_pitch_arsenals_leaderboard_diffminpitches():
+    df = pyb.statcast_pitch_arsenals_leaderboard(year=2024, min_pitches=1000)
+    assert df.shape[0] == 271
+    assert df.shape[1] == 32
+    assert df["pitcher"].n_unique() == 271
+    assert type(df) is pl.DataFrame
+    df2 = pyb.statcast_pitch_arsenals_leaderboard(year=2024, min_pitches=500)
+    assert df2.shape[0] > df.shape[0]
+    assert df2.shape[1] == 32
+    assert df2["pitcher"].n_unique() > df["pitcher"].n_unique()
+    assert type(df2) is pl.DataFrame
+
+
+def test_statcast_pitch_arsenals_leaderboard_diffhandedness():
+    df1 = pyb.statcast_pitch_arsenals_leaderboard(year=2024, hand="L")
+    assert df1.shape[0] == 193
+    assert df1.shape[1] == 32
+    assert df1["pitcher"].n_unique() == 193
+    assert type(df1) is pl.DataFrame
+    df2 = pyb.statcast_pitch_arsenals_leaderboard(year=2024, hand="R")
+    assert_series_not_equal(df1["pitcher"], df2["pitcher"])

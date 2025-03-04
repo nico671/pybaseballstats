@@ -18,10 +18,12 @@ from .statcast import (  # noqa: F401
     statcast_single_pitcher_range,
 )
 from .statcast_leaderboards import (  # noqa: F401
+    statcast_arm_strength_leaderboard,
     statcast_bat_tracking_leaderboard,
     statcast_exit_velo_barrels_leaderboard,
     statcast_expected_stats_leaderboard,
     statcast_pitch_arsenal_stats_leaderboard,
+    statcast_pitch_arsenals_leaderboard,
 )
 
 # from .statcast_leaderboards import (  # noqa: F401
