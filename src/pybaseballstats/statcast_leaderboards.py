@@ -1,5 +1,3 @@
-from typing import Union
-
 import pandas as pd
 import polars as pl
 import requests
@@ -12,7 +10,7 @@ BAT_TRACKING_URL = "https://baseballsavant.mlb.com/leaderboard/bat-tracking?atta
 def statcast_bat_tracking_leaderboard(
     start_dt: str,
     end_dt: str,
-    min_swings: Union[int, str] = "q",
+    min_swings: int | str = "q",
     perspective: str = "batter",
     return_pandas: bool = False,
 ) -> pl.DataFrame | pd.DataFrame:
@@ -21,7 +19,7 @@ def statcast_bat_tracking_leaderboard(
     Args:
         start_dt (str): start date in format 'YYYY-MM-DD'
         end_dt (str): end date in format 'YYYY-MM-DD'
-        min_swings (Union[int, str], optional): Minimum swing count to be included in the data ("q" stands for qualified). Defaults to "q".
+        min_swings (int | str, optional): Minimum swing count to be included in the data ("q" stands for qualified). Defaults to "q".
         perspective (str, optional): What perspective to return data from. Options are: 'batter', 'batting-team', 'pitcher', 'pitching-team', 'league'. Defaults to "batter".
         return_pandas (bool, optional): Whether or not to return the data as a Pandas DataFrame or not. Defaults to False (Polars DataFrame will be returned).
 
@@ -78,7 +76,7 @@ EXIT_VELO_BARRELS_URL = "https://baseballsavant.mlb.com/leaderboard/statcast?typ
 def statcast_exit_velo_barrels_leaderboard(
     year: int,
     perspective: str = "batter",
-    min_swings: Union[str, int] = "q",
+    min_swings: int | str = "q",
     return_pandas: bool = False,
 ) -> pl.DataFrame | pd.DataFrame:
     """Retrieves exit velocity barrels leaderboard data from Baseball Savant
@@ -86,7 +84,7 @@ def statcast_exit_velo_barrels_leaderboard(
     Args:
         year (int): What year to retrieve data from
         perspective (str, optional): What perspective to return data from. Options are: 'batter', 'pitcher', 'batter-team', or 'pitcher-team'. Defaults to "batter".
-        min_swings (Union[str, int], optional): minimum number of swings to be included in the data ("q" returns all qualified players). Defaults to "q".
+        min_swings (int | str, optional): minimum number of swings to be included in the data ("q" returns all qualified players). Defaults to "q".
         return_pandas (bool, optional): Whether or not to return the data as a Pandas DataFrame or not. Defaults to False (Polars DataFrame will be returned).
 
     Raises:
@@ -133,7 +131,7 @@ EXPECTED_STATS_URL = "https://baseballsavant.mlb.com/leaderboard/expected_statis
 def statcast_expected_stats_leaderboard(
     year: int,
     perspective: str = "batter",
-    min_balls_in_play: Union[str, int] = "q",
+    min_balls_in_play: int | str = "q",
     return_pandas: bool = False,
 ) -> pl.DataFrame | pd.DataFrame:
     """Retrieves expected statistics leaderboard data from Baseball Savant
@@ -141,7 +139,7 @@ def statcast_expected_stats_leaderboard(
     Args:
         year (int): Year to retrieve data from
         perspective (str, optional): What perspective to return data from. Options are: 'batter', 'pitcher', 'batter-team', or 'pitcher-team'. Defaults to "batter".
-        min_balls_in_play (Union[str, int], optional): Minimum number of balls in play to be included in the data ("q" returns all qualified players). Defaults to "q".
+        min_balls_in_play (int | str, optional): Minimum number of balls in play to be included in the data ("q" returns all qualified players). Defaults to "q".
         return_pandas (bool, optional): Whether or not to return the data as a Pandas DataFrame or not. Defaults to False (Polars DataFrame will be returned).
 
     Raises:
@@ -362,7 +360,7 @@ def statcast_arm_value_leaderboard(
     end_year: int,
     split_years: bool = False,
     perspective: str = "Fld",
-    min_oppurtunities: Union[str, int] = "top",
+    min_oppurtunities: int | str = "top",
     return_pandas: bool = False,
 ) -> pl.DataFrame | pd.DataFrame:
     """Retrieves arm value leaderboard data from Baseball Savant
@@ -372,7 +370,7 @@ def statcast_arm_value_leaderboard(
         end_year (int): Last year to retrieve data from
         split_years (bool, optional): Whether or not to split the data by year. Defaults to False.
         perspective (str, optional): What perspective to return data from. Options are: 'Fld' (data for fielders), 'Pit' (data for defenders while pitchers are pitching) or 'Pitching+Team' (team arm values on defense). Defaults to "Fld".
-        min_oppurtunities (Union[str, int], optional): Minimum number of oppurtunities to be included in the data ("top" returns all qualified players). Defaults to "top".
+        min_oppurtunities (int | str, optional): Minimum number of oppurtunities to be included in the data ("top" returns all qualified players). Defaults to "top".
         return_pandas (bool, optional): Whether or not to return the data as a Pandas DataFrame or not. Defaults to False (Polars DataFrame will be returned).
 
     Raises:
@@ -416,6 +414,70 @@ def statcast_arm_value_leaderboard(
                 split_years="yes" if split_years else "no",
                 perspective=perspective,
                 min_oppurtunities=min_oppurtunities,
+            )
+        ).content
+    )
+    return df if not return_pandas else df.to_pandas()
+
+
+CATCHER_BLOCKING_URL = "https://baseballsavant.mlb.com/leaderboard/catcher-blocking?game_type=All&n={min_pitches}&season_end={end_season}&season_start={start_season}&split={split_years}&team=&type={perspective}&with_team_only=1&sortColumn=diff_runner_pbwp&sortDirection=desc&players=&selected_idx=0&csv=true"
+
+
+def statcast_catcher_blocking_leaderboard(
+    start_year: int,
+    end_year: int,
+    min_pitches: str | int = "q",
+    split_years: bool = False,
+    perspective: str = "Cat",
+    return_pandas: bool = False,
+) -> pl.DataFrame | pd.DataFrame:
+    """Retrieves catcher blocking leaderboard data from Baseball Savant
+
+    Args:
+        start_year (int): First year to retrieve data from
+        end_year (int): Last year to retrieve data from
+        min_pitches (str | int, optional): Minimum number of pitches to be included in the data ("q" returns all qualified players). Defaults to "q".
+        split_years (bool, optional): Whether or not to split the data by year. Defaults to False.
+        perspective (str, optional): What perspective to return data from. Options are: 'Cat' (data for catchers), 'League' (league-wide data), 'Pit' (data for defenders while pitchers are pitching) or 'Pitching+Team' (team arm values on defense). Defaults to "Cat".
+        return_pandas (bool, optional): Whether or not to return the data as a Pandas DataFrame or not. Defaults to False (Polars DataFrame will be returned).
+
+    Raises:
+        ValueError: If start_year or end_year are None
+        ValueError: If start_year or end_year are before 2018
+        ValueError: If start_year is after end_year
+        ValueError: If perspective is not one of 'Cat', 'League', 'Pit', 'Pitching+Team'
+        ValueError: If min_pitches is an int and less than 1
+        ValueError: If min_pitches is a string and not 'q'
+
+    Returns:
+        pl.DataFrame | pd.DataFrame: DataFrame containing the catcher blocking leaderboard data
+    """
+    if start_year is None or end_year is None:
+        raise ValueError("start_year and end_year must be provided")
+    if start_year < 2018 or end_year < 2018:
+        raise ValueError(
+            "Dates must be after 2018 as catcher blocking data is only available from 2018 onwards"
+        )
+    if start_year > end_year:
+        raise ValueError("start_year must be before end_year")
+    if type(min_pitches) is int:
+        if min_pitches < 1:
+            raise ValueError("min_pitches must be at least 1")
+    elif type(min_pitches) is str:
+        if min_pitches != "q":
+            raise ValueError("if min_pitches is a string, it must be 'q' for qualified")
+    if perspective not in ["Cat", "League", "Pit", "Pitching+Team"]:
+        raise ValueError(
+            "perspective must be one of 'Cat', 'League', 'Pit', or 'Pitching+Team'"
+        )
+    df = pl.read_csv(
+        requests.get(
+            CATCHER_BLOCKING_URL.format(
+                min_pitches=min_pitches,
+                end_season=end_year,
+                start_season=start_year,
+                split_years="yes" if split_years else "no",
+                perspective=perspective,
             )
         ).content
     )

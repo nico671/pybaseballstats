@@ -19,7 +19,9 @@ from .statcast import (  # noqa: F401
 )
 from .statcast_leaderboards import (  # noqa: F401
     statcast_arm_strength_leaderboard,
+    statcast_arm_value_leaderboard,
     statcast_bat_tracking_leaderboard,
+    statcast_catcher_blocking_leaderboard,
     statcast_exit_velo_barrels_leaderboard,
     statcast_expected_stats_leaderboard,
     statcast_pitch_arsenal_stats_leaderboard,
