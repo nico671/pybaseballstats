@@ -482,3 +482,95 @@ def statcast_catcher_blocking_leaderboard(
         ).content
     )
     return df if not return_pandas else df.to_pandas()
+
+
+CATCHER_FRAMING_URL = "https://baseballsavant.mlb.com/catcher_framing?year={year}&team=&min={min_pitches_called}&type={perspective}&sort=4%2C1&csv=true"
+
+
+def statcast_catcher_framing_leaderboard(
+    year: int,
+    min_pitches_called: int | str = "q",
+    perspective: str = "catcher",
+    return_pandas: bool = False,
+) -> pl.DataFrame | pd.DataFrame:
+    """Retrieves catcher framing leaderboard data from Baseball Savant
+
+    Args:
+        year (int): Year to retrieve data from (2015-2025) or 0 for all years
+        min_pitches (int | str, optional): Minimum number of pitches to be included in the data ("q" returns all qualified players). Defaults to "q".
+        perspective (str, optional): What perspective to return data from. Options are: 'catcher', 'pitcher', 'batter', 'fielding_team', 'batting_team'. Defaults to "catcher".
+        return_pandas (bool, optional): Whether or not to return the data as a Pandas DataFrame or not. Defaults to False (Polars DataFrame will be returned).
+
+    Raises:
+        ValueError: if year is None
+        ValueError: if year is before 2015 or after 2025 or not equal to 0
+        ValueError: if min_pitches is an int and less than 1
+        ValueError: if min_pitches is a string and not 'q'
+        ValueError: if perspective is not one of 'catcher', 'pitcher', 'batter', 'fielding_team', 'batting_team'
+
+    Returns:
+        pl.DataFrame | pd.DataFrame: DataFrame containing the catcher framing leaderboard data
+    """
+    if year is None:
+        raise ValueError("year must be provided")
+    if (year < 2015 and year != 0) or (year > 2025):
+        raise ValueError(
+            "Dates must be between 2015 and 2025 as catcher framing data is only available from 2015 onwards"
+        )
+    if type(min_pitches_called) is int:
+        if min_pitches_called < 1:
+            raise ValueError("min_pitches must be at least 1")
+    elif type(min_pitches_called) is str:
+        if min_pitches_called != "q":
+            raise ValueError("if min_pitches is a string, it must be 'q' for qualified")
+    if perspective not in [
+        "catcher",
+        "pitcher",
+        "batter",
+        "fielding_team",
+        "batting_team",
+    ]:
+        raise ValueError(
+            "perspective must be one of 'catcher', 'pitcher', 'batter', 'fielding_team', or 'batting_team'"
+        )
+    df = pl.read_csv(
+        requests.get(
+            CATCHER_FRAMING_URL.format(
+                year=year,
+                min_pitches_called=min_pitches_called,
+                perspective=perspective,
+            )
+        ).content
+    )
+    return df if not return_pandas else df.to_pandas()
+
+
+CATCHER_POPTIME_URL = "https://baseballsavant.mlb.com/leaderboard/poptime?year={year}&team=&min2b={min_2b_attempts}&min3b={min_3b_attempts}&csv=true"
+
+
+def statcast_catcher_poptime_leaderboard(
+    year: int,
+    min_2b_attempts: int = 5,
+    min_3b_attempts: int = 0,
+    return_pandas: bool = False,
+) -> pl.DataFrame | pd.DataFrame:
+    if year is None:
+        raise ValueError("year must be provided")
+    if year < 2015:
+        raise ValueError(
+            "Dates must be after 2015 as catcher pop time data is only available from 2015 onwards"
+        )
+    if min_2b_attempts < 0:
+        raise ValueError("min_2b_attempts must be at least 0")
+    if min_3b_attempts < 0:
+        raise ValueError("min_3b_attempts must be at least 0")
+    df = pl.read_csv(
+        requests.get(
+            CATCHER_POPTIME_URL.format(
+                year=year,
+                min_2b_attempts=min_2b_attempts,
+                min_3b_attempts=min_3b_attempts,
+            )
+        ).content
+    )
+    return df if not return_pandas else df.to_pandas()

@@ -315,3 +315,330 @@ def test_statcast_pitch_arsenals_leaderboard_diffhandedness():
     assert type(df1) is pl.DataFrame
     df2 = pyb.statcast_pitch_arsenals_leaderboard(year=2024, hand="R")
     assert_series_not_equal(df1["pitcher"], df2["pitcher"])
+
+
+def test_statcast_arm_strength_leaderboard_badinputs():
+    with pytest.raises(ValueError):
+        pyb.statcast_arm_strength_leaderboard(year=None)
+    with pytest.raises(ValueError):
+        pyb.statcast_arm_strength_leaderboard(year=2014)
+    with pytest.raises(ValueError):
+        pyb.statcast_arm_strength_leaderboard(year=2024, min_throws=0)
+    with pytest.raises(ValueError):
+        pyb.statcast_arm_strength_leaderboard(year=2024, perspective="individual")
+
+
+def test_statcast_arm_strength_leaderboard_regular():
+    df = pyb.statcast_arm_strength_leaderboard(year=2024)
+    assert df.shape[0] == 388
+    assert df.shape[1] == 26
+    assert df["player_id"].n_unique() == 388
+    assert type(df) is pl.DataFrame
+    df2 = pyb.statcast_arm_strength_leaderboard(year=2024, return_pandas=True)
+    assert df2.shape[0] == 388
+    assert df2.shape[1] == 26
+    assert df2["player_id"].nunique() == 388
+    assert type(df2) is pd.DataFrame
+    assert_frame_equal(df, pl.DataFrame(df2, schema=df.schema))
+
+
+def test_statcast_arm_strength_leaderboard_diffminthrows():
+    df = pyb.statcast_arm_strength_leaderboard(year=2024, min_throws=200)
+    assert df.shape[0] == 264
+    assert df.shape[1] == 26
+    assert df["player_id"].n_unique() == 264
+    assert df["total_throws"].min() >= 200
+    assert type(df) is pl.DataFrame
+    df2 = pyb.statcast_arm_strength_leaderboard(year=2024, min_throws=100)
+    assert df2.shape[0] > df.shape[0]
+    assert df2.shape[1] == 26
+    assert df2["player_id"].n_unique() > df["player_id"].n_unique()
+    assert df2["total_throws"].min() >= 100
+    assert type(df2) is pl.DataFrame
+
+
+def test_statcast_arm_strength_leaderboard_perspectives():
+    df = pyb.statcast_arm_strength_leaderboard(year=2024, perspective="team")
+    assert df.shape[0] == 30
+    assert df.shape[1] == 26
+    assert df["player_id"].unique().item() == 999999
+    assert df["fielder_name"].unique().item() == "NA"
+    assert type(df) is pl.DataFrame
+
+
+def test_statcast_arm_value_leaderboard_badinputs():
+    with pytest.raises(ValueError):
+        pyb.statcast_arm_value_leaderboard(start_year=None, end_year=2024)
+    with pytest.raises(ValueError):
+        pyb.statcast_arm_value_leaderboard(start_year=2024, end_year=None)
+    with pytest.raises(ValueError):
+        pyb.statcast_arm_value_leaderboard(start_year=2015, end_year=2024)
+    with pytest.raises(ValueError):
+        pyb.statcast_arm_value_leaderboard(start_year=2024, end_year=2020)
+    with pytest.raises(ValueError):
+        pyb.statcast_arm_value_leaderboard(
+            start_year=2022, end_year=2024, perspective="individual"
+        )
+    with pytest.raises(ValueError):
+        pyb.statcast_arm_value_leaderboard(
+            start_year=2022, end_year=2024, min_oppurtunities=0
+        )
+    with pytest.raises(ValueError):
+        pyb.statcast_arm_value_leaderboard(
+            start_year=2022, end_year=2024, min_oppurtunities="qualified"
+        )
+
+
+def test_statcast_arm_value_leaderboard_regular():
+    df = pyb.statcast_arm_value_leaderboard(start_year=2022, end_year=2023)
+    assert df.shape[0] == 146
+    assert df.shape[1] == 20
+    assert type(df) is pl.DataFrame
+    df2 = pyb.statcast_arm_value_leaderboard(
+        start_year=2022, end_year=2023, return_pandas=True
+    )
+    assert df2.shape == df.shape
+    assert type(df2) is pd.DataFrame
+    assert_frame_equal(df, pl.DataFrame(df2, schema=df.schema))
+
+
+def test_statcast_arm_value_leaderboard_diffminopps():
+    df = pyb.statcast_arm_value_leaderboard(
+        start_year=2022, end_year=2023, min_oppurtunities=50
+    )
+    assert df.shape[0] == 263
+    assert df.shape[1] == 20
+    assert type(df) is pl.DataFrame
+    df2 = pyb.statcast_arm_value_leaderboard(
+        start_year=2022, end_year=2023, min_oppurtunities=10
+    )
+    assert df2.shape[0] > df.shape[0]
+    assert df2.shape[1] == df.shape[1]
+    assert type(df2) is pl.DataFrame
+
+
+def test_statcast_arm_value_leaderboard_diffperspectives():
+    df1 = pyb.statcast_arm_value_leaderboard(
+        start_year=2022, end_year=2023, perspective="Fld"
+    )
+    assert df1.shape[0] == 146
+    assert type(df1) is pl.DataFrame
+
+    df2 = pyb.statcast_arm_value_leaderboard(
+        start_year=2022, end_year=2023, perspective="Pit"
+    )
+    assert type(df2) is pl.DataFrame
+    # Different data between fielders and pitchers
+    if "fielder_id" in df1.columns and "fielder_id" in df2.columns:
+        assert_series_not_equal(df1["fielder_id"], df2["fielder_id"])
+
+    df3 = pyb.statcast_arm_value_leaderboard(
+        start_year=2022, end_year=2023, perspective="Pitching+Team"
+    )
+    assert df3.shape[0] <= 30  # Should have at most 30 teams
+    assert type(df3) is pl.DataFrame
+
+
+def test_statcast_arm_value_leaderboard_splityears():
+    df1 = pyb.statcast_arm_value_leaderboard(
+        start_year=2022, end_year=2023, split_years=False
+    )
+    assert type(df1) is pl.DataFrame
+
+    df2 = pyb.statcast_arm_value_leaderboard(
+        start_year=2022, end_year=2023, split_years=True
+    )
+    assert type(df2) is pl.DataFrame
+
+    # With split years enabled, we should have a column indicating the year
+    # and potentially more rows since players are tracked per year
+    assert "year" in df2.columns or "season" in df2.columns
+    # Should have more rows with split years than aggregated data
+    assert df2.shape[0] > df1.shape[0]
+
+
+def test_statcast_catcher_blocking_leaderboard_badinputs():
+    with pytest.raises(ValueError):
+        pyb.statcast_catcher_blocking_leaderboard(start_year=None, end_year=2024)
+    with pytest.raises(ValueError):
+        pyb.statcast_catcher_blocking_leaderboard(start_year=2024, end_year=None)
+    with pytest.raises(ValueError):
+        pyb.statcast_catcher_blocking_leaderboard(start_year=2017, end_year=2024)
+    with pytest.raises(ValueError):
+        pyb.statcast_catcher_blocking_leaderboard(start_year=2024, end_year=2020)
+    with pytest.raises(ValueError):
+        pyb.statcast_catcher_blocking_leaderboard(
+            start_year=2022, end_year=2024, perspective="individual"
+        )
+    with pytest.raises(ValueError):
+        pyb.statcast_catcher_blocking_leaderboard(
+            start_year=2022, end_year=2024, min_pitches=0
+        )
+    with pytest.raises(ValueError):
+        pyb.statcast_catcher_blocking_leaderboard(
+            start_year=2022, end_year=2024, min_pitches="qualified"
+        )
+
+
+def test_statcast_catcher_blocking_leaderboard_regular():
+    df = pyb.statcast_catcher_blocking_leaderboard(start_year=2022, end_year=2023)
+    assert df.shape[0] == 70
+    assert df.shape[1] == 17
+    assert type(df) is pl.DataFrame
+    df2 = pyb.statcast_catcher_blocking_leaderboard(
+        start_year=2022, end_year=2023, return_pandas=True
+    )
+    assert df2.shape == df.shape
+    assert type(df2) is pd.DataFrame
+    assert_frame_equal(df, pl.DataFrame(df2, schema=df.schema))
+
+
+def test_statcast_catcher_blocking_leaderboard_diffminpitches():
+    df = pyb.statcast_catcher_blocking_leaderboard(
+        start_year=2022, end_year=2023, min_pitches=500
+    )
+    assert df.shape[0] == 105
+    assert df.shape[1] == 17
+    assert type(df) is pl.DataFrame
+    df2 = pyb.statcast_catcher_blocking_leaderboard(
+        start_year=2022, end_year=2023, min_pitches=100
+    )
+    assert df2.shape[0] > df.shape[0]
+    assert type(df2) is pl.DataFrame
+
+
+def test_statcast_catcher_blocking_leaderboard_diffperspectives():
+    df1 = pyb.statcast_catcher_blocking_leaderboard(
+        start_year=2022, end_year=2023, perspective="Cat"
+    )
+    assert df1.shape[0] == 70
+    assert type(df1) is pl.DataFrame
+
+    df2 = pyb.statcast_catcher_blocking_leaderboard(
+        start_year=2022, end_year=2023, perspective="Pit"
+    )
+    assert type(df2) is pl.DataFrame
+
+    df3 = pyb.statcast_catcher_blocking_leaderboard(
+        start_year=2022, end_year=2023, perspective="Pitching+Team"
+    )
+    assert df3.shape[0] <= 30  # Should have at most 30 teams
+    assert type(df3) is pl.DataFrame
+
+    df4 = pyb.statcast_catcher_blocking_leaderboard(
+        start_year=2022, end_year=2023, perspective="League"
+    )
+    assert df4.shape[0] == 1
+    assert type(df4) is pl.DataFrame
+
+
+def test_statcast_catcher_framing_leaderboard_badinputs():
+    with pytest.raises(ValueError):
+        pyb.statcast_catcher_framing_leaderboard(year=None)
+    with pytest.raises(ValueError):
+        pyb.statcast_catcher_framing_leaderboard(year=2014)
+    with pytest.raises(ValueError):
+        pyb.statcast_catcher_framing_leaderboard(year=2026)
+    with pytest.raises(ValueError):
+        pyb.statcast_catcher_framing_leaderboard(year=2024, min_pitches="qualified")
+    with pytest.raises(ValueError):
+        pyb.statcast_catcher_framing_leaderboard(year=2024, min_pitches=0)
+    with pytest.raises(ValueError):
+        pyb.statcast_catcher_framing_leaderboard(year=2024, perspective="individual")
+
+
+def test_statcast_catcher_framing_leaderboard_regular():
+    df = pyb.statcast_catcher_framing_leaderboard(year=2023)
+    assert df.shape[0] == 65
+    assert df.shape[1] == 15
+    assert type(df) is pl.DataFrame
+
+    df2 = pyb.statcast_catcher_framing_leaderboard(year=2023, return_pandas=True)
+    assert df2.shape[0] == df.shape[0]
+    assert df2.shape[1] == df.shape[1]
+    assert type(df2) is pd.DataFrame
+    assert_frame_equal(df, pl.DataFrame(df2, schema=df.schema))
+
+
+def test_statcast_catcher_framing_leaderboard_diffminpitches():
+    df = pyb.statcast_catcher_framing_leaderboard(year=2023, min_pitches_called="q")
+    assert df.shape[0] == 65
+    assert type(df) is pl.DataFrame
+
+    df2 = pyb.statcast_catcher_framing_leaderboard(year=2023, min_pitches_called=1000)
+    assert df2.shape[0] == 62
+    assert type(df2) is pl.DataFrame
+
+    df3 = pyb.statcast_catcher_framing_leaderboard(year=2023, min_pitches_called=500)
+    assert df3.shape[0] > df2.shape[0]
+    assert type(df3) is pl.DataFrame
+
+
+def test_statcast_catcher_framing_leaderboard_diffperspectives():
+    df1 = pyb.statcast_catcher_framing_leaderboard(year=2023, perspective="catcher")
+    assert df1.shape[0] > 0
+    assert type(df1) is pl.DataFrame
+
+    df2 = pyb.statcast_catcher_framing_leaderboard(year=2023, perspective="pitcher")
+    assert type(df2) is pl.DataFrame
+
+    df3 = pyb.statcast_catcher_framing_leaderboard(year=2023, perspective="batter")
+    assert type(df3) is pl.DataFrame
+
+    df4 = pyb.statcast_catcher_framing_leaderboard(
+        year=2023, perspective="fielding_team"
+    )
+    assert type(df4) is pl.DataFrame
+    assert df4.shape[0] <= 30  # Should have at most 30 teams
+
+    df5 = pyb.statcast_catcher_framing_leaderboard(
+        year=2023, perspective="batting_team"
+    )
+    assert type(df5) is pl.DataFrame
+    assert df5.shape[0] <= 30  # Should have at most 30 teams
+
+
+def test_statcast_catcher_framing_leaderboard_all_years():
+    df = pyb.statcast_catcher_framing_leaderboard(year=0, min_pitches_called=200)
+    assert df.shape[0] == 232
+    assert type(df) is pl.DataFrame
+    # All years should have more data than a single year
+    df2 = pyb.statcast_catcher_framing_leaderboard(year=2023, min_pitches_called=200)
+    assert df.shape[0] > df2.shape[0]
+
+
+def test_statcast_catcher_pop_badinputs():
+    with pytest.raises(ValueError):
+        pyb.statcast_catcher_poptime_leaderboard(year=None)
+    with pytest.raises(ValueError):
+        pyb.statcast_catcher_poptime_leaderboard(year=2014)
+    with pytest.raises(ValueError):
+        pyb.statcast_catcher_poptime_leaderboard(year=2024, min_2b_attempts=-1)
+    with pytest.raises(ValueError):
+        pyb.statcast_catcher_poptime_leaderboard(year=2024, min_3b_attempts=-1)
+
+
+def test_statcast_catcher_pop_regular():
+    df = pyb.statcast_catcher_poptime_leaderboard(year=2024)
+    assert df.shape[0] == 83
+    assert df.shape[1] == 14
+    assert type(df) is pl.DataFrame
+
+    df2 = pyb.statcast_catcher_poptime_leaderboard(year=2024, return_pandas=True)
+    assert df2.shape[0] == df.shape[0]
+    assert df2.shape[1] == df.shape[1]
+    assert type(df2) is pd.DataFrame
+    assert_frame_equal(df, pl.DataFrame(df2, schema=df.schema))
+
+
+def test_statcast_catcher_pop_custom_attempts():
+    df1 = pyb.statcast_catcher_poptime_leaderboard(year=2024, min_2b_attempts=50)
+    assert df1.shape[0] == 15
+    assert df1.shape[1] == 14
+    assert df1.select(pl.col("pop_2b_sba_count")).min().item() >= 50
+    assert type(df1) is pl.DataFrame
+    df2 = pyb.statcast_catcher_poptime_leaderboard(year=2024, min_3b_attempts=6)
+    assert df2.shape[0] == 8
+    assert df2.shape[1] == 14
+    assert df2.select(pl.col("pop_3b_sba_count")).min().item() >= 6
+    assert type(df2) is pl.DataFrame
