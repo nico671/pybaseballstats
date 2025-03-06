@@ -5,11 +5,13 @@ A Python package for scraping baseball statistics from the web. Inspired by the 
 ## Available Sources
 
 1. [Baseball Savant](https://baseballsavant.mlb.com/)
-    - This source provides high quality pitch-by-pitch data for all MLB games since 2015.
+    - This source provides high quality pitch-by-pitch data for all MLB games since 2015 as well as interesting leaderboards for various categories.
 2. [Fangraphs](https://www.fangraphs.com/)
-    - This source provides pitching, batting and fielding statistics for all MLB players since 1871.
+    - This source provides leaderboards for pitching, batting and fielding statistics for all MLB players since 1871.
 3. [Umpire Scorecard](https://umpscorecards.com/home/)
     - This source provides umpire game logs and statistics for all MLB games since 2008.
+4. [Baseball Reference](https://www.baseball-reference.com/)
+    - This source is currently only used for draft order data but usage will expand to more interesting statistics they have available in the future.
 
 ## Installation
 
