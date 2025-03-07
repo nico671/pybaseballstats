@@ -554,6 +554,23 @@ def statcast_catcher_poptime_leaderboard(
     min_3b_attempts: int = 0,
     return_pandas: bool = False,
 ) -> pl.DataFrame | pd.DataFrame:
+    """Retrieves catcher pop time leaderboard data from Baseball Savant
+
+    Args:
+        year (int): Year to retrieve data from
+        min_2b_attempts (int, optional): Minimum number of 2B attempts to be included in the data. Defaults to 5.
+        min_3b_attempts (int, optional): Minimum number of 3B attempts to be included in the data. Defaults to 0.
+        return_pandas (bool, optional): Whether or not to return the data as a Pandas DataFrame or not. Defaults to False (Polars DataFrame will be returned).
+
+    Raises:
+        ValueError: If year is None
+        ValueError: If year is before 2015
+        ValueError: If min_2b_attempts is less than 0
+        ValueError: If min_3b_attempts is less than 0
+
+    Returns:
+        pl.DataFrame | pd.DataFrame: DataFrame containing the catcher pop time leaderboard data
+    """
     if year is None:
         raise ValueError("year must be provided")
     if year < 2015:
@@ -570,6 +587,113 @@ def statcast_catcher_poptime_leaderboard(
                 year=year,
                 min_2b_attempts=min_2b_attempts,
                 min_3b_attempts=min_3b_attempts,
+            )
+        ).content
+    )
+    return df if not return_pandas else df.to_pandas()
+
+
+OUTFIELD_CATCH_PROB_URL = "https://baseballsavant.mlb.com/leaderboard/catch_probability?type=player&min={min_oppurtunities}&year={year}&total=5&sort=2&sortDir=desc&csv=true"
+
+
+def statcast_outfield_catch_probability_leaderboard(
+    year: str | int = None,
+    min_oppurtunities: int | str = "q",
+    return_pandas: bool = False,
+) -> pl.DataFrame | pd.DataFrame:
+    if type(year) is int:
+        if year < 2016:
+            raise ValueError(
+                "Dates must be after 2016 as outfield catch probability data is only available from 2016 onwards"
+            )
+    elif type(year) is str:
+        if year != "ALL":
+            raise ValueError("if year is a string, it must be 'ALL'")
+    if type(min_oppurtunities) is int:
+        if min_oppurtunities < 1:
+            raise ValueError("min_oppurtunities must be at least 1")
+    elif type(min_oppurtunities) is str:
+        if min_oppurtunities != "q":
+            raise ValueError(
+                "if min_oppurtunities is a string, it must be 'q' for qualified"
+            )
+    df = pl.read_csv(
+        requests.get(
+            OUTFIELD_CATCH_PROB_URL.format(
+                year=year,
+                min_oppurtunities=min_oppurtunities,
+            )
+        ).content
+    )
+    return df if not return_pandas else df.to_pandas()
+
+
+OOA_URL = "https://baseballsavant.mlb.com/leaderboard/outs_above_average?type={perspective}&startYear={start_year}&endYear={end_year}&split={split_years}&team=&range=year&min={min_attempts}&pos=&roles=&viz=hide&csv=true"
+
+
+def statcast_outsaboveaverage_leaderboard(
+    start_year: int,
+    end_year: int,
+    perspective: str = "Fielder",
+    split_years: bool = False,
+    min_opportunities: int | str = "q",
+    return_pandas: bool = False,
+) -> pl.DataFrame | pd.DataFrame:
+    """Retrieves outs above average leaderboard data from Baseball Savant
+
+    Args:
+        start_year (int): First year to retrieve data from
+        end_year (int): Last year to retrieve data from
+        perspective (str, optional): What perspective to return data from. Options are: 'Fielder', 'Pitcher', 'Batter', 'Batting_Team', 'Fielding_Team'. Defaults to "Fielder".
+        split_years (bool, optional): Whether or not to split the data by year. Defaults to False.
+        min_opportunities (int | str, optional): Minimum number of oppurtunities to be included in the data ("q" returns all qualified players). Defaults to "q".
+        return_pandas (bool, optional): Whether or not to return the data as a Pandas DataFrame or not. Defaults to False (Polars DataFrame will be returned).
+
+    Raises:
+        ValueError: If start_year or end_year are None
+        ValueError: If start_year or end_year are before 2016
+        ValueError: If start_year is after end_year
+        ValueError: If perspective is not one of 'Fielder', 'Pitcher', 'Batter', 'Batting_Team', 'Fielding_Team'
+        ValueError: If min_opportunities is an int and less than 1
+        ValueError: If min_opportunities is a string and not 'q'
+
+    Returns:
+        pl.DataFrame | pd.DataFrame: DataFrame containing the outs above average leaderboard data
+    """
+    if start_year or end_year is None:
+        raise ValueError("start_year and end_year must be provided")
+    if start_year < 2016 or end_year < 2016:
+        raise ValueError(
+            "Dates must be after 2016 as outs above average data is only available from 2016 onwards"
+        )
+    if end_year > start_year:
+        raise ValueError("start_year must be before end_year")
+    if perspective not in [
+        "Fielder",
+        "Pitcher",
+        "Batter",
+        "Batting_Team",
+        "Fielding_Team",
+    ]:
+        raise ValueError(
+            "perspective must be one of 'Fielder', 'Pitcher', 'Batter', 'Batting_Team', or 'Fielding_Team'"
+        )
+    if type(min_opportunities) is int:
+        if min_opportunities < 1:
+            raise ValueError("min_opportunities must be at least 1")
+    elif type(min_opportunities) is str:
+        if min_opportunities != "q":
+            raise ValueError(
+                "if min_opportunities is a string, it must be 'q' for qualified"
+            )
+    df = pl.read_csv(
+        requests.get(
+            OOA_URL.format(
+                perspective=perspective,
+                start_year=start_year,
+                end_year=end_year,
+                split_years="yes" if split_years else "no",
+                min_attempts=min_opportunities,
             )
         ).content
     )
