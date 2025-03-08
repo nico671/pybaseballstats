@@ -20,12 +20,15 @@ from .statcast import (  # noqa: F401
 from .statcast_leaderboards import (  # noqa: F401
     statcast_arm_strength_leaderboard,
     statcast_arm_value_leaderboard,
+    statcast_baserunning_run_value_leaderboard,
     statcast_bat_tracking_leaderboard,
     statcast_catcher_blocking_leaderboard,
     statcast_catcher_framing_leaderboard,
     statcast_catcher_poptime_leaderboard,
     statcast_exit_velo_barrels_leaderboard,
     statcast_expected_stats_leaderboard,
+    statcast_outfield_catch_probability_leaderboard,
+    statcast_outsaboveaverage_leaderboard,
     statcast_pitch_arsenal_stats_leaderboard,
     statcast_pitch_arsenals_leaderboard,
 )

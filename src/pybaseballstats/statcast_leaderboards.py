@@ -698,3 +698,69 @@ def statcast_outsaboveaverage_leaderboard(
         ).content
     )
     return df if not return_pandas else df.to_pandas()
+
+
+BASERUNNING_RV_URL = "https://baseballsavant.mlb.com/leaderboard/baserunning-run-value?game_type=All&season_start={start_year}&season_end={end_year}&sortColumn=runner_runs_XB_swipe&sortDirection=desc&split={split_years}&n={min_oppurtunities}&team=&type={perspective}&with_team_only=1&csv=true"
+
+
+def statcast_baserunning_run_value_leaderboard(
+    start_year: int,
+    end_year: int,
+    perspective: str = "Run",
+    split_years: bool = False,
+    min_oppurtunities: int | str = "q",
+    return_pandas: bool = False,
+) -> pl.DataFrame | pd.DataFrame:
+    """Retrieves baserunning run value leaderboard data from Baseball Savant
+
+    Args:
+        start_year (int): First year to retrieve data from
+        end_year (int): Last year to retrieve data from
+        perspective (str, optional): What perspective to return data from. Options are: 'Run', 'League', 'Batting+Team', 'Pitching+Team'. Defaults to "Run".
+        split_years (bool, optional): Whether or not to split the data by year. Defaults to False.
+        min_oppurtunities (int | str, optional): Minimum number of oppurtunities to be included in the data ("q" returns all qualified players). Defaults to "q".
+        return_pandas (bool, optional): Whether or not to return the data as a Pandas DataFrame or not. Defaults to False (Polars DataFrame will be returned).
+
+    Raises:
+        ValueError: If start_year or end_year are None
+        ValueError: If start_year or end_year are before 2016
+        ValueError: If start_year is after end_year
+        ValueError: If perspective is not one of 'Run', 'League', 'Batting+Team', 'Pitching+Team'
+        ValueError: If min_oppurtunities is an int and less than 1
+        ValueError: If min_oppurtunities is a string and not 'q'
+
+    Returns:
+        pl.DataFrame | pd.DataFrame: DataFrame containing the baserunning run value leaderboard data
+    """
+    if start_year is None or end_year is None:
+        raise ValueError("start_year and end_year must be provided")
+    if start_year < 2016 or end_year < 2016:
+        raise ValueError(
+            "Dates must be after 2016 as baserunning run value data is only available from 2016 onwards"
+        )
+    if start_year > end_year:
+        raise ValueError("start_year must be before end_year")
+    if perspective not in ["Run", "League", "Batting+Team", "Pitching+Team"]:
+        raise ValueError(
+            "perspective must be one of 'Run', 'League', 'Batting+Team', or 'Pitching+Team'"
+        )
+    if type(min_oppurtunities) is int:
+        if min_oppurtunities < 1:
+            raise ValueError("min_oppurtunities must be at least 1")
+    elif type(min_oppurtunities) is str:
+        if min_oppurtunities != "q":
+            raise ValueError(
+                "if min_oppurtunities is a string, it must be 'q' for qualified"
+            )
+    df = pl.read_csv(
+        requests.get(
+            BASERUNNING_RV_URL.format(
+                start_year=start_year,
+                end_year=end_year,
+                perspective=perspective,
+                split_years="yes" if split_years else "no",
+                min_oppurtunities=min_oppurtunities,
+            )
+        ).content
+    )
+    return df if not return_pandas else df.to_pandas()
