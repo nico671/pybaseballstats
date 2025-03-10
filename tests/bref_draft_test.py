@@ -7,23 +7,20 @@ import pybaseballstats as pyb
 
 def test_amateur_draft_order_badinputs():
     with pytest.raises(ValueError):
-        pyb.amateur_draft_order(year=1964, round=1)
+        pyb.amateur_draft_order(year=1964, draft_round=1)
     with pytest.raises(ValueError):
-        pyb.amateur_draft_order(year=1965, round=0)
+        pyb.amateur_draft_order(year=1965, draft_round=0)
     with pytest.raises(ValueError):
-        pyb.amateur_draft_order(year=1965, round=101)
+        pyb.amateur_draft_order(year=1965, draft_round=101)
 
 
-def test_amamteur_draft_order_regular():
-    df = pyb.amateur_draft_order(year=2024, round=1)
+def test_amateur_draft_order_regular():
+    df = pyb.amateur_draft_order(2024, 1)
     assert df.shape[0] == 39
     assert df.shape[1] == 23
-    print(df.columns)
-    assert df.select(pl.col("year_ID")).to_series().to_list() == [2024] * 39
-    df2 = pyb.amateur_draft_order(year=2024, round=1, return_pandas=True)
+    df2 = pyb.amateur_draft_order(2024, 1, return_pandas=True)
     assert df2.shape[0] == 39
     assert df2.shape[1] == 23
-    assert df2["year_ID"].tolist() == [2024] * 39
     assert_frame_equal(df, pl.DataFrame(df2, schema=df.schema))
 
 

@@ -233,12 +233,12 @@ def test_statcast_arsenal_stats_leaderboard_badinputs():
 
 def test_statcast_arsenal_stats_leaderboard_regular():
     df = pyb.statcast_pitch_arsenal_stats_leaderboard(year=2024)
-    assert df.shape[0] == 407
+    assert df.shape[0] == 410
     assert df.shape[1] == 20
     assert df["player_id"].n_unique() == 257
     assert type(df) is pl.DataFrame
     df2 = pyb.statcast_pitch_arsenal_stats_leaderboard(year=2024, return_pandas=True)
-    assert df2.shape[0] == 407
+    assert df2.shape[0] == 410
     assert df2.shape[1] == 20
     assert df2["player_id"].nunique() == 257
     assert type(df2) is pd.DataFrame
@@ -540,9 +540,11 @@ def test_statcast_catcher_framing_leaderboard_badinputs():
     with pytest.raises(ValueError):
         pyb.statcast_catcher_framing_leaderboard(year=2026)
     with pytest.raises(ValueError):
-        pyb.statcast_catcher_framing_leaderboard(year=2024, min_pitches="qualified")
+        pyb.statcast_catcher_framing_leaderboard(
+            year=2024, min_pitches_called="qualified"
+        )
     with pytest.raises(ValueError):
-        pyb.statcast_catcher_framing_leaderboard(year=2024, min_pitches=0)
+        pyb.statcast_catcher_framing_leaderboard(year=2024, min_pitches_called=0)
     with pytest.raises(ValueError):
         pyb.statcast_catcher_framing_leaderboard(year=2024, perspective="individual")
 

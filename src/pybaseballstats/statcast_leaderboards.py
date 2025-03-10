@@ -764,3 +764,93 @@ def statcast_baserunning_run_value_leaderboard(
         ).content
     )
     return df if not return_pandas else df.to_pandas()
+
+
+BASESTEALING_RUN_VALUE_URL = "https://baseballsavant.mlb.com/leaderboard/basestealing-run-value?game_type=All&n={min_sb_oppurtunities}&pitch_hand={pitch_hand}&runner_moved={runner_movement}&target_base={target_base}&prior_pk=All&season_end={end_year}&season_start={start_year}&sortColumn=simple_stolen_on_running_act&sortDirection=desc&split={split_years}&team=&type={perspective}&with_team_only=1&expanded=0&csv=true"
+
+
+def statcast_basestealing_runvalue_leaderboard(
+    start_year: int,
+    end_year: int,
+    min_sb_oppurtunities: int | str = "q",
+    pitch_hand: str = "All",
+    runner_movement: str = "All",
+    target_base: str = "All",
+    split_years: bool = False,
+    perspective: str = "Run",
+    return_pandas: bool = False,
+) -> pl.DataFrame | pd.DataFrame:
+    """Retrieves basestealing run value leaderboard data from Baseball Savant
+
+    Args:
+        start_year (int): First year to retrieve data from
+        end_year (int): Last year to retrieve data from
+        min_sb_oppurtunities (int | str, optional): Minimum number of oppurtunities to be included in the data ("q" returns all qualified players). Defaults to "q".
+        pitch_hand (str, optional): Hand of the pitcher to filter by. Options are: 'All', 'R', 'L'. Defaults to "All".
+        runner_movement (str, optional): Movement of the runner to filter by. Options are: 'All', 'Advance', 'Out', 'Hold'. Defaults to "All".
+        target_base (str, optional): Target base to filter by. Options are: 'All', '2B', '3B'. Defaults to "All".
+        split_years (bool, optional): Whether or not to split the data by year. Defaults to False.
+        perspective (str, optional): What perspective to return data from. Options are: 'Run', 'League', 'Batting+Team'. Defaults to "Run".
+        return_pandas (bool, optional): Whether or not to return the data as a Pandas DataFrame or not. Defaults to False (Polars DataFrame will be returned).
+
+    Raises:
+        ValueError: If start_year or end_year are None
+        ValueError: If start_year or end_year are before 2016
+        ValueError: If start_year is after end_year
+        ValueError: If min_sb_oppurtunities is an int and less than 1
+        ValueError: If min_sb_oppurtunities is a string and not 'q'
+        ValueError: If pitch_hand is not one of 'All', 'R', 'L'
+        ValueError: If runner_movement is not one of 'All', 'Advance', 'Out', 'Hold'
+        ValueError: If target_base is not one of 'All', '2B', '3B'
+        ValueError: If perspective is not one of 'Run', 'League', 'Batting+Team'
+
+    Returns:
+        pl.DataFrame | pd.DataFrame: DataFrame containing the basestealing run value leaderboard data
+    """
+    if start_year is None or end_year is None:
+        raise ValueError("start_year and end_year must be provided")
+    if start_year < 2016 or end_year < 2016:
+        raise ValueError(
+            "Dates must be after 2016 as basestealing run value data is only available from 2016 onwards"
+        )
+    if start_year > end_year:
+        raise ValueError("start_year must be before end_year")
+    if type(min_sb_oppurtunities) is int:
+        if min_sb_oppurtunities < 1:
+            raise ValueError("min_sb_oppurtunities must be at least 1")
+    elif type(min_sb_oppurtunities) is str:
+        if min_sb_oppurtunities != "q":
+            raise ValueError(
+                "if min_sb_oppurtunities is a string, it must be 'q' for qualified"
+            )
+    if pitch_hand not in ["All", "R", "L"]:
+        raise ValueError("pitch_hand must be one of 'All', 'R', or 'L'")
+    if runner_movement not in ["All", "Advance", "Out", "Hold"]:
+        raise ValueError(
+            "runner_movement must be one of 'All', 'Advance', 'Out', or 'Hold'"
+        )
+    if target_base not in ["All", "2B", "3B"]:
+        raise ValueError("target_base must be one of 'All', '2B', or '3B'")
+    if perspective not in [
+        "Bat",
+        "Batting+Team",
+        "League",
+    ]:
+        raise ValueError(
+            "perspective must be one of 'Bat', 'Batting+Team', or 'League'"
+        )
+    df = pl.read_csv(
+        requests.get(
+            BASESTEALING_RUN_VALUE_URL.format(
+                min_sb_oppurtunities=min_sb_oppurtunities,
+                pitch_hand=pitch_hand,
+                end_year=end_year,
+                start_year=start_year,
+                split_years="yes" if split_years else "no",
+                perspective=perspective,
+                target_base=target_base,
+                runner_movement=runner_movement,
+            )
+        ).content
+    )
+    return df if not return_pandas else df.to_pandas()
