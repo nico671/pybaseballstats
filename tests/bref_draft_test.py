@@ -15,7 +15,7 @@ def test_amateur_draft_order_badinputs():
 
 
 def test_amateur_draft_order_regular():
-    df = pyb.amateur_draft_order(2024, 1)
+    df = pyb.amateur_draft_order(year=2024, draft_round=1)
     assert df.shape[0] == 39
     assert df.shape[1] == 23
     df2 = pyb.amateur_draft_order(2024, 1, return_pandas=True)

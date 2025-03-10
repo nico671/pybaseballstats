@@ -48,6 +48,10 @@ def amateur_draft_order(
             row_data[header] = cell.get_text(strip=True)
         rows.append(row_data)
     df = pl.DataFrame(rows)
+    df = df.drop("draft_abb", "franch_round")
+    df = df.with_columns(
+        pl.all().replace("", "0"),
+    )
     df = df.with_columns(
         [
             pl.col("player").str.replace(r"\(minors\)", ""),
@@ -115,7 +119,7 @@ def franchise_draft_order(
         "WSN",
     ]:
         raise ValueError("Invalid team abbreviation")
-    driver.get(BREF_DRAFT_URL.format(draft_year=year, team=team))
+    driver.get(TEAM_YEAR_DRAFT_URL.format(year=year, team=team))
 
     wait = WebDriverWait(driver, 10)
     draft_table = wait.until(
@@ -130,8 +134,17 @@ def franchise_draft_order(
 
     rows = []
 
+    # For franchise_draft_order, make the same changes in the parsing logic:
     for row in table.tbody.find_all("tr"):
+        # Skip header rows (they have the 'thead' class)
+        if "class" in row.attrs and "thead" in row.attrs["class"]:
+            continue
+
         cells = row.find_all(["th", "td"])
+        # Make sure we have enough cells to match headers
+        if len(cells) != len(headers):
+            continue
+
         row_data = {}
         for header, cell in zip(headers, cells):
             row_data[header] = cell.get_text(strip=True)
