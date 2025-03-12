@@ -644,3 +644,108 @@ def test_statcast_catcher_pop_custom_attempts():
     assert df2.shape[1] == 14
     assert df2.select(pl.col("pop_3b_sba_count")).min().item() >= 6
     assert type(df2) is pl.DataFrame
+
+
+def test_statcast_outfield_catch_prob_badinputs():
+    with pytest.raises(ValueError):
+        pyb.statcast_outfield_catch_probability_leaderboard(year=None)
+    with pytest.raises(ValueError):
+        pyb.statcast_outfield_catch_probability_leaderboard(year=2014)
+    with pytest.raises(ValueError):
+        pyb.statcast_outfield_catch_probability_leaderboard(year="NOT_ALL")
+    with pytest.raises(ValueError):
+        pyb.statcast_outfield_catch_probability_leaderboard(
+            year=2024, min_opportunities=-1
+        )
+    with pytest.raises(ValueError):
+        pyb.statcast_outfield_catch_probability_leaderboard(
+            year=2024, min_opportunities="Qualified"
+        )
+
+
+def test_statcast_outfield_catch_prob_regular():
+    df = pyb.statcast_outfield_catch_probability_leaderboard(
+        year=2024, min_opportunities="q"
+    )
+    assert df.shape[0] == 102
+    assert df.shape[1] == 18
+    assert type(df) is pl.DataFrame
+    assert df["player_id"].n_unique() == 102
+    df2 = pyb.statcast_outfield_catch_probability_leaderboard(
+        year=2024, min_opportunities="q", return_pandas=True
+    )
+    assert df2.shape[0] == df.shape[0]
+    assert df2.shape[1] == df.shape[1]
+    assert type(df2) is pd.DataFrame
+    assert_frame_equal(df, pl.DataFrame(df2, schema=df.schema))
+    df3 = pyb.statcast_outfield_catch_probability_leaderboard(
+        year=2024, min_opportunities=25
+    )
+    assert df3.shape[0] == 214
+    assert df3.shape[1] == df.shape[1]
+
+
+def test_statcast_oaa_leaderboard_badinputs():
+    with pytest.raises(ValueError):
+        pyb.statcast_outsaboveaverage_leaderboard(start_year=None, end_year=2020)
+    with pytest.raises(ValueError):
+        pyb.statcast_outsaboveaverage_leaderboard(start_year=2020, end_year=None)
+    with pytest.raises(ValueError):
+        pyb.statcast_outsaboveaverage_leaderboard(start_year=2015, end_year=2020)
+    with pytest.raises(ValueError):
+        pyb.statcast_outsaboveaverage_leaderboard(start_year=2020, end_year=2015)
+    with pytest.raises(ValueError):
+        pyb.statcast_outsaboveaverage_leaderboard(
+            start_year=2020, end_year=2020, perspective="individual"
+        )
+    with pytest.raises(ValueError):
+        pyb.statcast_outsaboveaverage_leaderboard(
+            start_year=2020, end_year=2020, min_opportunities=0
+        )
+    with pytest.raises(ValueError):
+        pyb.statcast_outsaboveaverage_leaderboard(
+            start_year=2020, end_year=2020, min_opportunities="qualified"
+        )
+
+
+def test_statcast_oaa_leaderboard_regular():
+    df = pyb.statcast_outsaboveaverage_leaderboard(start_year=2024, end_year=2024)
+    assert df.shape[0] == 274
+    assert df.shape[1] == 16
+    assert type(df) is pl.DataFrame
+    assert df["player_id"].n_unique() == 274
+    assert df["year"].n_unique() == 1
+    df2 = pyb.statcast_outsaboveaverage_leaderboard(
+        start_year=2024, end_year=2024, return_pandas=True
+    )
+    assert df2.shape[0] == df.shape[0]
+    assert df2.shape[1] == df.shape[1]
+    assert type(df2) is pd.DataFrame
+    assert_frame_equal(df, pl.DataFrame(df2, schema=df.schema))
+    df3 = pyb.statcast_outsaboveaverage_leaderboard(
+        start_year=2024, end_year=2024, min_opportunities=25
+    )
+    assert df3.shape[0] > df.shape[0]
+    assert df3.shape[1] == df.shape[1]
+    assert type(df3) is pl.DataFrame
+
+
+def test_statcast_oaa_leaderboard_perspectives():
+    df = pyb.statcast_outsaboveaverage_leaderboard(
+        start_year=2024, end_year=2024, perspective="Fielding_Team"
+    )
+    assert df.shape[0] == 30
+    assert df.shape[1] == 14
+    assert type(df) is pl.DataFrame
+    assert df["team_id"].n_unique() == 30
+
+
+def test_statcast_oaa_leaderboard_splityears():
+    df = pyb.statcast_outsaboveaverage_leaderboard(
+        start_year=2023, end_year=2024, split_years=True
+    )
+    assert df.shape[0] == 529
+    assert df.shape[1] == 16
+    assert type(df) is pl.DataFrame
+    assert "year" in df.columns
+    assert df["year"].n_unique() == 2

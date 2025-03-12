@@ -598,9 +598,11 @@ OUTFIELD_CATCH_PROB_URL = "https://baseballsavant.mlb.com/leaderboard/catch_prob
 
 def statcast_outfield_catch_probability_leaderboard(
     year: str | int = None,
-    min_oppurtunities: int | str = "q",
+    min_opportunities: int | str = "q",
     return_pandas: bool = False,
 ) -> pl.DataFrame | pd.DataFrame:
+    if year is None:
+        raise ValueError("year must be provided")
     if type(year) is int:
         if year < 2016:
             raise ValueError(
@@ -609,11 +611,11 @@ def statcast_outfield_catch_probability_leaderboard(
     elif type(year) is str:
         if year != "ALL":
             raise ValueError("if year is a string, it must be 'ALL'")
-    if type(min_oppurtunities) is int:
-        if min_oppurtunities < 1:
+    if type(min_opportunities) is int:
+        if min_opportunities < 1:
             raise ValueError("min_oppurtunities must be at least 1")
-    elif type(min_oppurtunities) is str:
-        if min_oppurtunities != "q":
+    elif type(min_opportunities) is str:
+        if min_opportunities != "q":
             raise ValueError(
                 "if min_oppurtunities is a string, it must be 'q' for qualified"
             )
@@ -621,7 +623,7 @@ def statcast_outfield_catch_probability_leaderboard(
         requests.get(
             OUTFIELD_CATCH_PROB_URL.format(
                 year=year,
-                min_oppurtunities=min_oppurtunities,
+                min_oppurtunities=min_opportunities,
             )
         ).content
     )
@@ -660,13 +662,13 @@ def statcast_outsaboveaverage_leaderboard(
     Returns:
         pl.DataFrame | pd.DataFrame: DataFrame containing the outs above average leaderboard data
     """
-    if start_year or end_year is None:
+    if start_year is None or end_year is None:
         raise ValueError("start_year and end_year must be provided")
     if start_year < 2016 or end_year < 2016:
         raise ValueError(
             "Dates must be after 2016 as outs above average data is only available from 2016 onwards"
         )
-    if end_year > start_year:
+    if end_year < start_year:
         raise ValueError("start_year must be before end_year")
     if perspective not in [
         "Fielder",

@@ -21,6 +21,7 @@ from .statcast_leaderboards import (  # noqa: F401
     statcast_arm_strength_leaderboard,
     statcast_arm_value_leaderboard,
     statcast_baserunning_run_value_leaderboard,
+    statcast_basestealing_runvalue_leaderboard,
     statcast_bat_tracking_leaderboard,
     statcast_catcher_blocking_leaderboard,
     statcast_catcher_framing_leaderboard,
