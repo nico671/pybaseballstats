@@ -18,8 +18,6 @@ from .utils.statcast_utils import (
 # Apply nest_asyncio to allow nested event loops
 nest_asyncio.apply()
 
-# TODO: add more data to be pulled (leaderboard) https://baseballsavant.mlb.com/leaderboard/top
-
 
 def statcast_single_game(
     game_pk: int, extra_stats: bool = False, return_pandas: bool = False
