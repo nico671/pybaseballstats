@@ -16,7 +16,7 @@ options.add_argument("--headless")
 driver = webdriver.Chrome(options=options)
 
 
-STATCAST_SINGLE_GAME_EV_AND_PV_URL = "https://baseballsavant.mlb.com/gamefeed?date={game_date}&gamePk={game_pk}&chartType=pitch&legendType=pitchName&playerType=pitcher&inning=&count=&pitchHand=&batSide=&descFilter=&ptFilter=&resultFilter=&hf={stat_type}&sportId=1&liveAb=#{game_pk}"
+STATCAST_SINGLE_GAME_EV_PV_WP_URL = "https://baseballsavant.mlb.com/gamefeed?date={game_date}&gamePk={game_pk}&chartType=pitch&legendType=pitchName&playerType=pitcher&inning=&count=&pitchHand=&batSide=&descFilter=&ptFilter=&resultFilter=&hf={stat_type}&sportId=1&liveAb=#{game_pk}"
 
 
 def get_available_game_pks_for_date(
@@ -53,7 +53,7 @@ def get_statcast_single_game_exit_velocity(
     try:
         # Use the URL from the previous cell
         driver.get(
-            STATCAST_SINGLE_GAME_EV_AND_PV_URL.format(
+            STATCAST_SINGLE_GAME_EV_PV_WP_URL.format(
                 game_date=game_date_str, game_pk=game_pk, stat_type="exitVelocity"
             )
         )
@@ -164,10 +164,11 @@ def get_statcast_single_game_pitch_velocity(
     game_date: str,
     return_pandas: bool = False,
 ) -> pl.DataFrame | pd.DataFrame:
+    game_date_str = _handle_single_game_date(game_date)
     try:
         driver.get(
-            STATCAST_SINGLE_GAME_EV_AND_PV_URL.format(
-                game_date=game_date, game_pk=game_pk, stat_type="pitchVelocity"
+            STATCAST_SINGLE_GAME_EV_PV_WP_URL.format(
+                game_date=game_date_str, game_pk=game_pk, stat_type="pitchVelocity"
             )
         )
 
@@ -264,6 +265,103 @@ def get_statcast_single_game_pitch_velocity(
             pl.col("induced_vertical_break").cast(pl.Float32),
             pl.col("drop_vertical_break").cast(pl.Float32),
             pl.col("horizontal_break").cast(pl.Float32),
+        ]
+    )
+    return df if not return_pandas else df.to_pandas()
+
+
+def get_statcast_single_game_wp_table(
+    game_pk: int,
+    game_date: str,
+    return_pandas: bool = False,
+) -> pl.DataFrame | pd.DataFrame:
+    game_date_str = _handle_single_game_date(game_date)
+
+    try:
+        # Use the URL from the previous cell
+        driver.get(
+            STATCAST_SINGLE_GAME_EV_PV_WP_URL.format(
+                game_date=game_date_str, game_pk=game_pk, stat_type="winProbability"
+            )
+        )
+
+        # Wait for the chart to load
+        wait = WebDriverWait(driver, 10)
+        wp_table = wait.until(
+            EC.presence_of_element_located(
+                (By.ID, "tableWinProbability_{game_pk}".format(game_pk=game_pk))
+            )
+        )
+        wp_table_html = wp_table.get_attribute("outerHTML")
+    finally:
+        driver.quit()
+
+    soup = BeautifulSoup(wp_table_html, "html.parser")
+    table = soup.find("table")
+
+    thead = table.thead
+    headers_tr = thead.find("tr", {"class": "tr-component-row"})
+    headers = [th.text for th in headers_tr.find_all("th") if th.text != ""]
+
+    tbody = table.tbody
+    row_data = {header: [] for header in headers}
+
+    for tr in tbody.find_all("tr"):
+        cells = tr.find_all("td")
+
+        # Create a mapping of filtered cells to their corresponding headers
+        cell_data = {}
+        header_index = 0
+
+        for cell in cells:
+            if cell.find("img", {"class": "table-team-logo"}):
+                # # Skip team logo cells but increment header index
+                # header_index += 1
+                continue
+            else:
+                # Only process if we have a valid header
+                if header_index < len(headers):
+                    # Special handling for player name cells
+                    if "player-mug-wrapper" in str(cell):
+                        # Find the div that contains the player name
+                        name_div = cell.find("div", {"style": "margin-left: 2px;"})
+                        if name_div:
+                            cell_text = name_div.get_text(strip=True)
+                        else:
+                            cell_text = cell.get_text(strip=True)
+                    else:
+                        cell_text = cell.get_text(strip=True)
+                        if cell.find("a"):
+                            cell_text = cell.find("a").get_text(strip=True)
+
+                    header = headers[header_index]
+                    cell_data[header] = cell_text
+
+                header_index += 1
+
+        # Now add all the data from this row to row_data
+        for header, value in cell_data.items():
+            row_data[header].append(value)
+
+    df = pl.DataFrame(row_data)
+    df = df.rename(
+        {
+            "#": "game_pa_number",
+            "Batter": "batter_name",
+            "Pitcher": "pitcher_name",
+            "Diff": "win_probability_diff",
+        }
+    )
+    df = df.with_columns(
+        pl.all().replace("", None),
+    )
+
+    df = df.with_columns(
+        [
+            pl.col("game_pa_number").cast(pl.Int16),
+            pl.col("win_probability_diff").cast(pl.Float32),
+            pl.col("Home WP%").cast(pl.Float32),
+            pl.col("Away WP%").cast(pl.Float32),
         ]
     )
     return df if not return_pandas else df.to_pandas()
