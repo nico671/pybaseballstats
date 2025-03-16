@@ -45,7 +45,7 @@ FG_SINGLE_GAME_URL = (
 )
 
 
-def fangraphs_single_game_playbyplay(
+def fangraphs_single_game_play_by_play(
     date: str,  # date in 'YYYY-MM-DD' format
     team: FangraphsSingleGameTeams,  # team name
     return_pandas: bool = False,
@@ -56,6 +56,9 @@ def fangraphs_single_game_playbyplay(
         raise ValueError("Date cannot be in the future")
     if date_object < datetime(1977, 4, 6):
         raise ValueError("Date cannot be before 1977-04-06")
+
+    if type(team) is not FangraphsSingleGameTeams:
+        raise ValueError("team must be of type FangraphsSingleGameTeams")
     content = requests.get(
         FG_SINGLE_GAME_URL.format(date=date, team=team.value)
     ).content

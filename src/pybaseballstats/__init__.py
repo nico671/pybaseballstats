@@ -4,6 +4,10 @@ from .fangraphs import (  # noqa: F401
     fangraphs_fielding_range,
     fangraphs_pitching_range,
 )
+from .fangraphs_single_game import (  # noqa: F401
+    FangraphsSingleGameTeams,
+    fangraphs_single_game_play_by_play,
+)
 from .player_lookup import player_lookup  # noqa: F401
 from .plotting import (  # noqa: F401
     plot_scatter_on_sz,
