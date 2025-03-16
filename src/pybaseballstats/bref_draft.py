@@ -145,12 +145,7 @@ def franchise_draft_order(
     rows = []
 
     for row in table.tbody.find_all("tr"):
-        if "class" in row.attrs and "thead" in row.attrs["class"]:
-            continue
-
         cells = row.find_all(["th", "td"])
-        if len(cells) != len(headers):
-            continue
 
         row_data = {}
         for header, cell in zip(headers, cells):
