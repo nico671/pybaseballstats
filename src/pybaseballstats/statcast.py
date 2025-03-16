@@ -1,15 +1,10 @@
 import asyncio
-import io
 
 import nest_asyncio
 import pandas as pd
 import polars as pl
-import requests
 
 from .utils.statcast_utils import (
-    ROOT_URL,
-    SINGLE_GAME,
-    _add_extra_stats,
     _statcast_date_range_helper,
     _statcast_single_batter_range_helper,
     _statcast_single_pitcher_range_helper,
@@ -19,49 +14,7 @@ from .utils.statcast_utils import (
 nest_asyncio.apply()
 
 
-def statcast_single_game(
-    game_pk: int, extra_stats: bool = False, return_pandas: bool = False
-) -> pl.LazyFrame | pd.DataFrame:
-    """Pulls statcast data for a single game.
-
-    Args:
-        game_pk (int): game_pk of the game you want to pull data for
-        extra_stats (bool): whether or not to include extra stats
-        return_pandas (bool, optional): whether or not to return as a Pandas DataFrame. Defaults to False (returns Polars LazyFrame).
-
-    Returns:
-        pl.LazyFrame | pd.DataFrame: DataFrame of statcast data for the game
-    """
-    # try:
-    response = requests.get(
-        ROOT_URL + SINGLE_GAME.format(game_pk=game_pk),
-        timeout=30,  # Add explicit timeout
-    )
-    response.raise_for_status()  # Raise exception for bad status codes
-    statcast_content = response.content
-    # except requests.exceptions.Timeout as e:
-    #     logger.error(f"Timeout while pulling data for game_pk {game_pk}: {str(e)}")
-    #     return pl.LazyFrame() if not return_pandas else pd.DataFrame()
-    # except requests.exceptions.RequestException as e:
-    #     logger.error(f"Failed to pull data for game_pk {game_pk}: {str(e)}")
-    #     return pl.LazyFrame() if not return_pandas else pd.DataFrame()
-    # except Exception as e:
-    #     logger.error(f"Unexpected error for game_pk {game_pk}: {str(e)}")
-    #     return pl.LazyFrame() if not return_pandas else pd.DataFrame()
-    if not extra_stats:
-        return (
-            pl.scan_csv(io.StringIO(statcast_content.decode("utf-8")))
-            if not return_pandas
-            else pd.read_csv(io.StringIO(statcast_content.decode("utf-8")))
-        )
-    else:
-        df = pl.scan_csv(io.StringIO(statcast_content.decode("utf-8")))
-        start_dt = df.select(pl.col("game_date").min())
-        end_dt = df.select(pl.col("game_date").max())
-        return asyncio.run(_add_extra_stats(df, start_dt, end_dt, return_pandas))
-
-
-def statcast_date_range(
+def statcast_date_range_pitch_by_pitch(
     start_dt: str,
     end_dt: str,
     team: str = None,
@@ -69,7 +22,7 @@ def statcast_date_range(
     return_pandas: bool = False,
 ) -> pl.LazyFrame | pd.DataFrame:
     """
-    Pulls statcast data for a date range.
+    Pulls pitch by pitch statcast data over a date range.
 
     Args:
     start_dt: the start date in 'YYYY-MM-DD' format
@@ -90,7 +43,7 @@ def statcast_date_range(
     return asyncio.run(async_statcast())
 
 
-def statcast_single_batter_range(
+def statcast_single_batter_range_pitch_by_pitch(
     start_dt: str,
     end_dt: str,
     player_id: int,
@@ -98,7 +51,7 @@ def statcast_single_batter_range(
     return_pandas: bool = False,
 ) -> pl.DataFrame | pd.DataFrame:
     """
-    Pulls statcast data for a batter for a date range.
+    Pulls statcast data for single batter over a date range.
 
     Args:
     start_dt: the start date in 'YYYY-MM-DD' format
@@ -119,7 +72,7 @@ def statcast_single_batter_range(
     return asyncio.run(async_statcast_single_batter())
 
 
-def statcast_single_pitcher_range(
+def statcast_single_pitcher_range_pitch_by_pitch(
     start_dt: str,
     end_dt: str,
     player_id: int,
@@ -127,7 +80,7 @@ def statcast_single_pitcher_range(
     return_pandas: bool = False,
 ) -> pl.DataFrame | pd.DataFrame:
     """
-    Pulls statcast data for a pitcher for a date range.
+    Pulls pitch by pitch statcast data for a single pitcher over a date range.
 
     Args:
     start_dt: the start date in 'YYYY-MM-DD' format

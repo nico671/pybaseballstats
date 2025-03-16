@@ -1,7 +1,10 @@
+import asyncio
 import datetime
+import io
 
 import pandas as pd
 import polars as pl
+import requests
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -9,7 +12,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
-from pybaseballstats.statcast import statcast_date_range
+from pybaseballstats.statcast import statcast_date_range_pitch_by_pitch
+from pybaseballstats.utils.statcast_utils import ROOT_URL, SINGLE_GAME, _add_extra_stats
 
 options = Options()
 options.add_argument("--headless")
@@ -19,11 +23,41 @@ driver = webdriver.Chrome(options=options)
 STATCAST_SINGLE_GAME_EV_PV_WP_URL = "https://baseballsavant.mlb.com/gamefeed?date={game_date}&gamePk={game_pk}&chartType=pitch&legendType=pitchName&playerType=pitcher&inning=&count=&pitchHand=&batSide=&descFilter=&ptFilter=&resultFilter=&hf={stat_type}&sportId=1&liveAb=#{game_pk}"
 
 
+def statcast_single_game_pitch_by_pitch(
+    game_pk: int, extra_stats: bool = False, return_pandas: bool = False
+) -> pl.LazyFrame | pd.DataFrame:
+    """Pulls statcast data for a single game.
+
+    Args:
+        game_pk (int): game_pk of the game you want to pull data for
+        extra_stats (bool): whether or not to include extra stats
+        return_pandas (bool, optional): whether or not to return as a Pandas DataFrame. Defaults to False (returns Polars LazyFrame).
+
+    Returns:
+        pl.LazyFrame | pd.DataFrame: DataFrame of statcast data for the game
+    """
+    response = requests.get(
+        ROOT_URL + SINGLE_GAME.format(game_pk=game_pk),
+    )
+    statcast_content = response.content
+    if not extra_stats:
+        return (
+            pl.scan_csv(io.StringIO(statcast_content.decode("utf-8")))
+            if not return_pandas
+            else pd.read_csv(io.StringIO(statcast_content.decode("utf-8")))
+        )
+    else:
+        df = pl.scan_csv(io.StringIO(statcast_content.decode("utf-8")))
+        start_dt = df.select(pl.col("game_date").min())
+        end_dt = df.select(pl.col("game_date").max())
+        return asyncio.run(_add_extra_stats(df, start_dt, end_dt, return_pandas))
+
+
 def get_available_game_pks_for_date(
     game_date: str,
 ):
     available_games = {}
-    df = statcast_date_range(game_date, game_date).collect()
+    df = statcast_date_range_pitch_by_pitch(game_date, game_date).collect()
     for i, group in df.group_by("game_pk"):
         game_pk = group.select(pl.col("game_pk").first()).item()
         available_games[game_pk] = {}

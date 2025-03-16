@@ -1,4 +1,4 @@
-from .bref_draft import amateur_draft_order, franchise_draft_order  # noqa: F401
+from .bref_draft import draft_order_by_round, franchise_draft_order  # noqa: F401
 from .fangraphs import (  # noqa: F401
     fangraphs_batting_range,
     fangraphs_fielding_range,
@@ -12,10 +12,9 @@ from .plotting import (  # noqa: F401
     scatter_plot_over_stadium,
 )
 from .statcast import (  # noqa: F401
-    statcast_date_range,
-    statcast_single_batter_range,
-    statcast_single_game,
-    statcast_single_pitcher_range,
+    statcast_date_range_pitch_by_pitch,
+    statcast_single_batter_range_pitch_by_pitch,
+    statcast_single_pitcher_range_pitch_by_pitch,
 )
 from .statcast_leaderboards import (  # noqa: F401
     statcast_arm_strength_leaderboard,
@@ -32,6 +31,13 @@ from .statcast_leaderboards import (  # noqa: F401
     statcast_outsaboveaverage_leaderboard,
     statcast_pitch_arsenal_stats_leaderboard,
     statcast_pitch_arsenals_leaderboard,
+)
+from .statcast_single_game import (  # noqa: F401
+    get_available_game_pks_for_date,
+    get_statcast_single_game_exit_velocity,
+    get_statcast_single_game_pitch_velocity,
+    get_statcast_single_game_wp_table,
+    statcast_single_game_pitch_by_pitch,
 )
 from .umpire_scorecard import (  # noqa: F401
     UmpireScorecardTeams,

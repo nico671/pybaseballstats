@@ -13,20 +13,34 @@ driver = webdriver.Chrome(options=options)
 BREF_DRAFT_URL = "https://www.baseball-reference.com/draft/index.fcgi?year_ID={draft_year}&draft_round={draft_round}&draft_type=junreg&query_type=year_round&from_type_hs=0&from_type_jc=0&from_type_4y=0&from_type_unk=0"
 
 
-def amateur_draft_order(
+def draft_order_by_round(
     year: int, draft_round: int, return_pandas: bool = False
 ) -> pl.DataFrame | pd.DataFrame:
+    """Returns the draft order for a given round in a given year. NOTE: This function uses Selenium to scrape the data, so it may be slow.
+
+    Args:
+        year (int): Which year to pull draft data from
+        draft_round (int): Which round to pull draft data from
+        return_pandas (bool, optional): Whether or not to return the data as a pandas DataFrame. Defaults to False (returning a polars DataFrame).
+
+    Raises:
+        ValueError: If the year is before 1965
+        ValueError: If the draft round is not between 1 and 60
+
+    Returns:
+        pl.DataFrame | pd.DataFrame: A DataFrame of draft data for the given year and round
+    """
     if year < 1965:
         raise ValueError("Draft data is only available from 1965 onwards")
-    if draft_round < 1 or draft_round > 100:
-        raise ValueError("Draft round must be between 1 and 100")
-    # Use the URL from the previous cell
-    driver.get(BREF_DRAFT_URL.format(draft_year=year, draft_round=draft_round))
+    if draft_round < 1 or draft_round > 60:
+        raise ValueError("Draft round must be between 1 and 60")
 
+    driver.get(BREF_DRAFT_URL.format(draft_year=year, draft_round=draft_round))
     wait = WebDriverWait(driver, 10)
     draft_table = wait.until(
         EC.presence_of_element_located((By.CSS_SELECTOR, "#div_draft_stats"))
     )
+
     soup = BeautifulSoup(draft_table.get_attribute("outerHTML"), "html.parser")
     table = soup.find("table", id="draft_stats")
 
@@ -34,19 +48,15 @@ def amateur_draft_order(
 
     rows = []
     for row in table.tbody.find_all("tr"):
-        # Skip header rows (they have the 'thead' class)
         if "class" in row.attrs and "thead" in row.attrs["class"]:
             continue
-
         cells = row.find_all(["th", "td"])
-        # Make sure we have enough cells to match headers
-        if len(cells) != len(headers):
-            continue
 
         row_data = {}
         for header, cell in zip(headers, cells):
             row_data[header] = cell.get_text(strip=True)
         rows.append(row_data)
+
     df = pl.DataFrame(rows)
     df = df.drop("draft_abb", "franch_round")
     df = df.with_columns(
@@ -134,14 +144,11 @@ def franchise_draft_order(
 
     rows = []
 
-    # For franchise_draft_order, make the same changes in the parsing logic:
     for row in table.tbody.find_all("tr"):
-        # Skip header rows (they have the 'thead' class)
         if "class" in row.attrs and "thead" in row.attrs["class"]:
             continue
 
         cells = row.find_all(["th", "td"])
-        # Make sure we have enough cells to match headers
         if len(cells) != len(headers):
             continue
 
@@ -149,8 +156,8 @@ def franchise_draft_order(
         for header, cell in zip(headers, cells):
             row_data[header] = cell.get_text(strip=True)
         rows.append(row_data)
-    df = pl.DataFrame(rows)
 
+    df = pl.DataFrame(rows)
     df = df.drop("draft_abb")
     df = df.with_columns(
         pl.all().replace("", "0"),
