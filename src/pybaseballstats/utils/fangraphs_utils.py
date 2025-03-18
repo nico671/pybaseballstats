@@ -1,5 +1,6 @@
 import asyncio
-from typing import List
+from datetime import datetime
+from typing import List, Literal, Optional, Tuple, Union
 
 import aiohttp
 import pandas as pd
@@ -21,6 +22,171 @@ from pybaseballstats.utils.consts import (
     FangraphsTeams,
 )
 from pybaseballstats.utils.statcast_utils import _handle_dates
+
+FANGRAPHS_BATTING_API_URL = "https://www.fangraphs.com/api/leaders/major-league/data?age={age_range}&pos={pos}&stats=bat&lg={league}&qual={min_pa}&season={end_season}&season1={start_season}&startdate={start_date}&enddate={end_date}&month=0&hand={batting_hand}&team={team}&pageitems=2000000000&pagenum=1&ind=0&rost={active_roster_only}&players=0&postseason=&sort=21,d"
+
+
+def fangraphs_validate_dates(
+    start_date: str, end_date: str
+) -> Tuple[datetime.date, datetime.date]:
+    """Validate and convert date strings (YYYY-MM-DD) to datetime.date objects."""
+    date_format = "%Y-%m-%d"
+
+    try:
+        start_dt = datetime.strptime(start_date, date_format).date()
+        end_dt = datetime.strptime(end_date, date_format).date()
+    except ValueError:
+        raise ValueError(
+            f"Dates must be in YYYY-MM-DD format. Got start_date='{start_date}', end_date='{end_date}'"
+        )
+
+    if start_dt > end_dt:
+        raise ValueError(
+            f"start_date ({start_dt}) cannot be after end_date ({end_dt})."
+        )
+
+    return start_dt, end_dt
+
+
+def fangraphs_batting_input_val(
+    start_date: Union[str, None] = None,
+    end_date: Union[str, None] = None,
+    start_season: Union[int, None] = None,
+    end_season: Union[int, None] = None,
+    min_pa: Union[str, int] = "q",
+    stat_types: List[FangraphsBattingStatType] = None,
+    fielding_position: FangraphsBattingPosTypes = FangraphsBattingPosTypes.ALL,
+    active_roster_only: bool = False,
+    team: FangraphsTeams = FangraphsTeams.ALL,
+    league: Literal["nl", "al", ""] = "",
+    min_age: Optional[int] = None,
+    max_age: Optional[int] = None,
+    batting_hand: Literal["R", "L", "S", ""] = "",
+    stat_split: Literal["", "ts", "ss"] = "",
+):
+    # start_date, end_date, start_season, end_season validation
+    # Ensure that either (start_date & end_date) OR (start_season & end_season) are provided
+    if (start_date and end_date) and (start_season and end_season):
+        raise ValueError(
+            "Specify either (start_date, end_date) OR (start_season, end_season), but not both."
+        )
+
+    if not (start_date and end_date) and not (start_season and end_season):
+        raise ValueError(
+            "You must provide either (start_date, end_date) OR (start_season, end_season)."
+        )
+
+    # Validate and convert dates if provided
+    if start_date and end_date:
+        start_date, end_date = fangraphs_validate_dates(start_date, end_date)
+        start_season = None
+        end_season = None
+        print(f"Using date range: {start_date} to {end_date}")
+
+    # Validate seasons if provided
+    if start_season and end_season:
+        if start_season > end_season:
+            raise ValueError(
+                f"start_season ({start_season}) cannot be after end_season ({end_season})."
+            )
+        print(f"Using season range: {start_season} to {end_season}")
+        start_date = None
+        end_date = None
+
+    # min_pa validation
+    if isinstance(min_pa, str):
+        if min_pa not in ["q"]:
+            raise ValueError("If min_pa is a string, it must be 'q' (qualified).")
+    elif isinstance(min_pa, int):
+        if min_pa < 0:
+            raise ValueError("min_pa must be a positive integer.")
+    else:
+        raise ValueError("min_pa must be a string or integer.")
+
+    # fielding_position validation
+    if not isinstance(fielding_position, FangraphsBattingPosTypes):
+        raise ValueError(
+            "fielding_position must be a valid FangraphsBattingPosTypes value"
+        )
+
+    # active_roster_only validation
+    if not isinstance(active_roster_only, bool):
+        raise ValueError("active_roster_only must be a boolean value.")
+    if active_roster_only:
+        print("Only active roster players will be included.")
+        active_roster_only = 1
+    else:
+        print("All players will be included.")
+        active_roster_only = 0
+
+    # team validation
+    if not isinstance(team, FangraphsTeams):
+        raise ValueError("team must be a valid FangraphsTeams value")
+    print(f"Filtering by team: {team}")
+
+    # league validation
+    if league not in ["nl", "al", ""]:
+        raise ValueError("league must be 'nl', 'al', or an empty string.")
+    if league:
+        print(f"Filtering by league: {league}")
+
+    if (min_age is not None and max_age is None) or (
+        min_age is None and max_age is not None
+    ):
+        raise ValueError("Both min_age and max_age must be provided or neither")
+
+    if min_age is not None and max_age is not None:
+        if min_age > max_age:
+            raise ValueError(
+                f"min_age ({min_age}) cannot be greater than max_age ({max_age})"
+            )
+
+        age_range_str = f"{min_age}%2C{max_age}"
+        print(f"Filtering by age range: {min_age} to {max_age}")
+    else:
+        age_range_str = ""
+
+    # batting_hand validation
+    if batting_hand not in ["R", "L", "S", ""]:
+        raise ValueError("batting_hand must be 'R', 'L', 'S', or an empty string.")
+
+    # stat_split validation
+    if stat_split not in ["", "ts", "ss"]:
+        raise ValueError("stat_split must be '', 'ts', or 'ss'.")
+    if stat_split:
+        print(f"Using stat split: {stat_split}")
+        if stat_split == "ts" or stat_split == "ss":
+            if team != FangraphsTeams.ALL:
+                print(
+                    "Stat splits are only available for all teams. Ignoring stat_split."
+                )
+            else:
+                team = f"{team.value}%2C{stat_split}"
+    stat_cols = set()
+    # stat_types validation
+    if stat_types is None:
+        for stat_type in FangraphsBattingStatType:
+            for stat in stat_type.value:
+                stat_cols.add(stat)
+    else:
+        for stat_type in stat_types:
+            for stat in stat_type.value:
+                stat_cols.add(stat)
+    stat_types = list(stat_cols)
+    return (
+        start_date,
+        end_date,
+        start_season,
+        end_season,
+        min_pa,
+        fielding_position,
+        active_roster_only,
+        team,
+        league,
+        age_range_str,
+        batting_hand,
+        stat_types,
+    )
 
 
 def gen_input_val(

@@ -1,88 +1,105 @@
 import asyncio
-from typing import List
+from typing import List, Literal, Optional, Union
 
+import nest_asyncio
 import pandas as pd
 import polars as pl
+import requests
 
 from pybaseballstats.utils.fangraphs_utils import (
+    FANGRAPHS_BATTING_API_URL,
     FangraphsBattingPosTypes,
     FangraphsBattingStatType,
     FangraphsLeagueTypes,
     FangraphsPitchingStatType,
     FangraphsStatSplitTypes,
     FangraphsTeams,
-    fangraphs_batting_range_async,
+    fangraphs_batting_input_val,
     fangraphs_fielding_range_async,
     fangraphs_pitching_range_async,
     gen_input_val,
 )
 
+nest_asyncio.apply()
 
-# TODO: fix age range and game_type
+
 def fangraphs_batting_range(
-    start_date: str = None,
-    end_date: str = None,
-    start_season: str = None,
-    end_season: str = None,
+    start_date: str,
+    end_date: str,
+    start_year: Optional[int] = None,
+    end_year: Optional[int] = None,
+    fielding_position: FangraphsBattingPosTypes = FangraphsBattingPosTypes.ALL,
+    active_roster_only: bool = False,
+    team: FangraphsTeams = FangraphsTeams.ALL,
+    league: Literal["nl", "al", ""] = "",
+    min_age: Optional[int] = None,
+    max_age: Optional[int] = None,
+    batting_hand: Literal["R", "L", "S", ""] = "",
+    min_pa: Union[str, int] = "q",
     stat_types: List[FangraphsBattingStatType] = None,
     return_pandas: bool = False,
-    pos: FangraphsBattingPosTypes = FangraphsBattingPosTypes.ALL,
-    league: FangraphsLeagueTypes = FangraphsLeagueTypes.ALL,
-    qual: str = "y",
-    handedness: str = "",
-    rost: int = 0,
-    team: FangraphsTeams = FangraphsTeams.ALL,
-    stat_split: FangraphsStatSplitTypes = FangraphsStatSplitTypes.PLAYER,
 ) -> pl.DataFrame | pd.DataFrame:
-    """Fetches batting statistics from Fangraphs within a specified date or season range.
-    Args:
-        start_date (str, optional): The start date for the range in 'YYYY-MM-DD' format. Defaults to None.
-        end_date (str, optional): The end date for the range in 'YYYY-MM-DD' format. Defaults to None.
-        start_season (str, optional): The start season for the range. Defaults to None.
-        end_season (str, optional): The end season for the range. Defaults to None.
-        stat_types (List[FangraphsBattingStatType], optional): List of stat types to fetch. Defaults to None.
-        return_pandas (bool, optional): Whether to return the result as a pandas DataFrame. Defaults to False.
-        pos (FangraphsBattingPosTypes, optional): The position type to filter by. Defaults to FangraphsBattingPosTypes.ALL.
-        league (FangraphsLeagueTypes, optional): The league type to filter by. Defaults to FangraphsLeagueTypes.ALL.
-        qual (str, optional): Minimum at-bats qualifier. Defaults to "y".
-        handedness (str, optional): The handedness of the batter ('', 'R', 'L', 'S'). Defaults to "".
-        rost (int, optional): Roster status (0 for all players, 1 for active roster). Defaults to 0.
-        team (FangraphsTeams, optional): The team to filter by. Defaults to FangraphsTeams.ALL.
-        stat_split (FangraphsStatSplitTypes, optional): The stat split type. Defaults to FangraphsStatSplitTypes.PLAYER.
-    Raises:
-        ValueError: If both start_date and end_date are not provided or both start_season and end_season are not provided.
-        ValueError: If only one of start_date or end_date is provided.
-        ValueError: If only one of start_season or end_season is provided.
-        ValueError: If handedness is not one of '', 'R', 'L', 'S'.
-        ValueError: If rost is not 0 or 1.
-    Returns:
-        pl.DataFrame | pd.DataFrame: The fetched batting statistics as a Polars or pandas DataFrame."""
-    start_date, end_date, start_season, end_season, team = gen_input_val(
+    (
+        start_date,
+        end_date,
+        start_year,
+        end_year,
+        min_pa,
+        fielding_position,
+        active_roster_only,
+        team,
+        league,
+        age_range_str,
+        batting_hand,
+        stat_types,
+    ) = fangraphs_batting_input_val(
         start_date=start_date,
         end_date=end_date,
-        start_season=start_season,
-        end_season=end_season,
-        rost=rost,
+        start_season=start_year,
+        end_season=end_year,
+        min_pa=min_pa,
+        stat_types=stat_types,
+        fielding_position=fielding_position,
+        active_roster_only=active_roster_only,
         team=team,
-        stat_split=stat_split,
+        league=league,
+        min_age=min_age,
+        max_age=max_age,
+        batting_hand=batting_hand,
     )
-    # run the async function and return the result
-    return asyncio.run(
-        fangraphs_batting_range_async(
-            start_date=start_date,
-            end_date=end_date,
-            start_season=start_season,
-            end_season=end_season,
-            stat_types=stat_types,
-            return_pandas=return_pandas,
-            pos=pos,
-            league=league,
-            qual=qual,
-            rost=rost,
-            team=team,
-            handedness=handedness,
-        )
+    start_date = start_date.strftime("%Y-%m-%d") if start_date else ""
+    end_date = end_date.strftime("%Y-%m-%d") if end_date else ""
+    url = FANGRAPHS_BATTING_API_URL.format(
+        age_range=age_range_str,
+        pos=fielding_position,
+        league=league,
+        min_pa=min_pa,
+        start_date=start_date if start_date else "",
+        end_date=end_date if end_date else "",
+        start_season=start_year if start_year else start_date.split("-")[0],
+        end_season=end_year if end_year else end_date.split("-")[0],
+        batting_hand=batting_hand,
+        team=team.value,
+        active_roster_only=active_roster_only,
     )
+    data = requests.get(url).json()
+    df = pl.DataFrame(data["data"], infer_schema_length=None)
+    df = df.drop(["Name", "Team", "PlayerNameRoute"])
+    stat_types.extend(
+        [
+            "Bats",
+            "xMLBAMID",
+            "Name",
+            "Team",
+            "Season",
+            "Age",
+            "AgeR",
+            "SeasonMin",
+            "SeasonMax",
+        ]
+    )
+    df = df.select([col for col in df.columns if col in stat_types])
+    return df if not return_pandas else df.to_pandas()
 
 
 def fangraphs_pitching_range(
