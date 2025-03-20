@@ -24,10 +24,12 @@ nest_asyncio.apply()
 
 
 def fangraphs_batting_range(
-    start_date: str,
-    end_date: str,
-    start_year: Optional[int] = None,
-    end_year: Optional[int] = None,
+    start_date: Union[str, None] = None,
+    end_date: Union[str, None] = None,
+    start_year: Union[int, None] = None,
+    end_year: Union[int, None] = None,
+    min_pa: Union[str, int] = "y",
+    stat_types: List[FangraphsBattingStatType] = None,
     fielding_position: FangraphsBattingPosTypes = FangraphsBattingPosTypes.ALL,
     active_roster_only: bool = False,
     team: FangraphsTeams = FangraphsTeams.ALL,
@@ -35,8 +37,6 @@ def fangraphs_batting_range(
     min_age: Optional[int] = None,
     max_age: Optional[int] = None,
     batting_hand: Literal["R", "L", "S", ""] = "",
-    min_pa: Union[str, int] = "q",
-    stat_types: List[FangraphsBattingStatType] = None,
     return_pandas: bool = False,
 ) -> pl.DataFrame | pd.DataFrame:
     (
@@ -49,7 +49,8 @@ def fangraphs_batting_range(
         active_roster_only,
         team,
         league,
-        age_range_str,
+        min_age,
+        max_age,
         batting_hand,
         stat_types,
     ) = fangraphs_batting_input_val(
@@ -69,22 +70,26 @@ def fangraphs_batting_range(
     )
     start_date = start_date.strftime("%Y-%m-%d") if start_date else ""
     end_date = end_date.strftime("%Y-%m-%d") if end_date else ""
+    if start_year and end_year:
+        month = 0
+    else:
+        month = 1000
     url = FANGRAPHS_BATTING_API_URL.format(
-        age_range=age_range_str,
         pos=fielding_position,
         league=league,
         min_pa=min_pa,
         start_date=start_date if start_date else "",
         end_date=end_date if end_date else "",
-        start_season=start_year if start_year else start_date.split("-")[0],
-        end_season=end_year if end_year else end_date.split("-")[0],
+        start_season=start_year if start_year else "",
+        end_season=end_year if end_year else "",
         batting_hand=batting_hand,
-        team=team.value,
+        team=team.value if isinstance(team, FangraphsTeams) else team,
         active_roster_only=active_roster_only,
+        month=month,
     )
     data = requests.get(url).json()
     df = pl.DataFrame(data["data"], infer_schema_length=None)
-    df = df.drop(["Name", "Team", "PlayerNameRoute"])
+    df = df.drop(["PlayerNameRoute"])
     stat_types.extend(
         [
             "Bats",
@@ -99,6 +104,19 @@ def fangraphs_batting_range(
         ]
     )
     df = df.select([col for col in df.columns if col in stat_types])
+    df = df.with_columns(
+        [
+            pl.col("Name").str.extract(r">(.*?)<\/a>").alias("Name"),
+            pl.col("Name").str.extract(r"position=([A-Z]+)").alias("Pos"),
+            pl.col("Name")
+            .str.extract(r"playerid=(\d+)")
+            .cast(pl.Int32)
+            .alias("fg_player_id"),
+            pl.col("Team").str.extract(r">(.*?)<\/a>").alias("Team"),
+        ]
+    )
+    df = df.filter(pl.col("Age") >= min_age) if min_age else df
+    df = df.filter(pl.col("Age") <= max_age) if max_age else df
     return df if not return_pandas else df.to_pandas()
 
 

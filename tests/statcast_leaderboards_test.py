@@ -233,12 +233,12 @@ def test_statcast_arsenal_stats_leaderboard_badinputs():
 
 def test_statcast_arsenal_stats_leaderboard_regular():
     df = pyb.statcast_pitch_arsenal_stats_leaderboard(year=2024)
-    assert df.shape[0] == 409
+    assert df.shape[0] == 410
     assert df.shape[1] == 20
     assert df["player_id"].n_unique() == 257
     assert type(df) is pl.DataFrame
     df2 = pyb.statcast_pitch_arsenal_stats_leaderboard(year=2024, return_pandas=True)
-    assert df2.shape[0] == 409
+    assert df2.shape[0] == 410
     assert df2.shape[1] == 20
     assert df2["player_id"].nunique() == 257
     assert type(df2) is pd.DataFrame
