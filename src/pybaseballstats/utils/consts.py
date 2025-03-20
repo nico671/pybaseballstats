@@ -8,38 +8,570 @@ class FangraphsFieldingStatType(Enum):
 
 
 class FangraphsPitchingStatType(Enum):
-    DASHBOARD = 8
-    STANDARD = 0
-    ADVANCED = 1
-    BATTED_BALL = 2
-    WIN_PROBABILITY = 3
-    VALUE = 6
-    PLUS_STATS = 23
-    STATCAST = 24
-    VIOLATIONS = 48
-    SPORTS_INFO_PITCH_TYPE = 4
-    SPORTS_INFO_PITCH_VALUE = 7
-    SPORTS_INFO_PLATE_DISCIPLINE = 5
-    STATCAST_PITCH_TYPE = 9
-    STATCAST_VELO = 10
-    STATCAST_H_MOVEMENT = 11
-    STATCAST_V_MOVEMENT = 12
-    STATCAST_PITCH_TYPE_VALUE = 13
-    STATCAST_PITCH_TYPE_VALUE_PER_100 = 14
-    STATCAST_PLATE_DISCIPLINE = 15
-    PITCH_INFO_PITCH_TYPE = 16
-    PITCH_INFO_PITCH_VELOCITY = 17
-    PITCH_INFO_H_MOVEMENT = 18
-    PITCH_INFO_V_MOVEMENT = 19
-    PITCH_INFO_PITCH_TYPE_VALUE = 20
-    PITCH_INFO_PITCH_TYPE_VALUE_PER_100 = 21
-    PITCH_INFO_PLATE_DISCIPLINE = 22
-    PITCHING_BOT_STUFF = 26
-    PITCHING_BOT_COMMAND = 27
-    PITCHING_BOT_OVR = 25
-    STUFF_PLUS = 36
-    LOCATION_PLUS = 37
-    PITCHING_PLUS = 38
+    DASHBOARD = [
+        "Name",
+        "Team",
+        "W",
+        "L",
+        "SV",
+        "G",
+        "GS",
+        "IP",
+        "K/9",
+        "BB/9",
+        "HR/9",
+        "BABIP",
+        "LOB%",
+        "GB%",
+        "HR/FB",
+        "pivFA",
+        "ERA",
+        "xERA",
+        "FIP",
+        "xFIP",
+        "WAR",
+    ]
+    STANDARD = [
+        "Name",
+        "Team",
+        "W",
+        "L",
+        "ERA",
+        "G",
+        "GS",
+        "QS",
+        "CG",
+        "ShO",
+        "SV",
+        "HLD",
+        "BS",
+        "IP",
+        "TBF",
+        "H",
+        "R",
+        "ER",
+        "HR",
+        "BB",
+        "IBB",
+        "HBP",
+        "WP",
+        "BK",
+        "SO",
+    ]
+    ADVANCED = [
+        "Name",
+        "Team",
+        "K/9",
+        "BB/9",
+        "K/BB",
+        "HR/9",
+        "K%",
+        "BB%",
+        "K-BB%",
+        "AVG",
+        "WHIP",
+        "BABIP",
+        "LOB%",
+        "ERA-",
+        "FIP-",
+        "xFIP-",
+        "ERA",
+        "FIP",
+        "E-F",
+        "xFIP",
+        "SIERA",
+    ]
+    BATTED_BALL = [
+        "Name",
+        "Team",
+        "BABIP",
+        "GB/FB",
+        "LD%",
+        "GB%",
+        "FB%",
+        "IFFB%",
+        "HR/FB",
+        "RS",
+        "RS/9",
+        "Balls",
+        "Strikes",
+        "Pitches",
+        "Pull%",
+        "Cent%",
+        "Oppo%",
+        "Soft%",
+        "Med%",
+        "Hard%",
+    ]
+    WIN_PROBABILITY = [
+        "Name",
+        "Team",
+        "WPA",
+        "-WPA",
+        "+WPA",
+        "RE24",
+        "REW",
+        "pLI",
+        "inLI",
+        "gmLI",
+        "exLI",
+        "Pulls",
+        "WPA/LI",
+        "Clutch",
+        "SD",
+        "MD",
+    ]
+    VALUE = [
+        "Name",
+        "Team",
+        "RA9-Wins",
+        "BIP-Wins",
+        "LOB-Wins",
+        "BS-Wins",
+        "RAR",
+        "WAR",
+        "Dollars",
+    ]
+    PLUS_STATS = [
+        "Name",
+        "Team",
+        "IP",
+        "K/9+",
+        "BB/9+",
+        "K/BB+",
+        "HR/9+",
+        "K%+",
+        "BB%+",
+        "AVG+",
+        "WHIP+",
+        "BABIP+",
+        "LOB%+",
+        "ERA-",
+        "FIP-",
+        "xFIP-",
+        "LD%+",
+        "GB%+",
+        "FB%+",
+    ]
+    STATCAST = [
+        "Name",
+        "Team",
+        "IP",
+        "Events",
+        "EV",
+        "maxEV",
+        "LA",
+        "Barrels",
+        "Barrel%",
+        "HardHit",
+        "HardHit%",
+        "ERA",
+        "xERA",
+    ]
+    VIOLATIONS = [
+        "Name",
+        "Team",
+        "PPTV",
+        "CPTV",
+        "DGV",
+        "DSV",
+        "BPTV",
+        "BTV",
+        "rPPTV",
+        "rCPTV",
+        "rDGV",
+        "rDSV",
+        "rBPTV",
+        "rBTV",
+        "EBV",
+        "ESV",
+        "rFTeamV",
+        "rBTeamV",
+        "rTV",
+    ]
+    SPORTS_INFO_PITCH_TYPE = [
+        "Name",
+        "Team",
+        "FB%1",
+        "FBv",
+        "SL%",
+        "SLv",
+        "CT%",
+        "CTv",
+        "CB%",
+        "CBv",
+        "CH%",
+        "CHv",
+        "SF%",
+        "SFv",
+        "KN%",
+        "KNv",
+        "XX%",
+    ]
+    SPORTS_INFO_PITCH_VALUE = [
+        "Name",
+        "Team",
+        "wFB",
+        "wSL",
+        "wCT",
+        "wCB",
+        "wCH",
+        "wSF",
+        "wKN",
+        "wFB/C",
+        "wSL/C",
+        "wCT/C",
+        "wCB/C",
+        "wCH/C",
+        "wSF/C",
+        "wKN/C",
+    ]
+    SPORTS_INFO_PLATE_DISCIPLINE = [
+        "Name",
+        "Team",
+        "O-Swing%",
+        "Z-Swing%",
+        "Swing%",
+        "O-Contact%",
+        "Z-Contact%",
+        "Contact%",
+        "Zone%",
+        "F-Strike%",
+        "SwStr%",
+        "CStr%",
+        "C+SwStr%",
+    ]
+    STATCAST_PITCH_TYPE = [
+        "Name",
+        "Team",
+        "IP",
+        "pfxFA%",
+        "pfxFT%",
+        "pfxFC%",
+        "pfxFS%",
+        "pfxFO%",
+        "pfxSI%",
+        "pfxSL%",
+        "pfxCU%",
+        "pfxKC%",
+        "pfxEP%",
+        "pfxCH%",
+        "pfxSC%",
+        "pfxKN%",
+        "pfxUN%",
+    ]
+    STATCAST_VELO = [
+        "Name",
+        "Team",
+        "IP",
+        "pfxvFA",
+        "pfxvFT",
+        "pfxvFC",
+        "pfxvFS",
+        "pfxvFO",
+        "pfxvSI",
+        "pfxvSL",
+        "pfxvCU",
+        "pfxvKC",
+        "pfxvEP",
+        "pfxvCH",
+        "pfxvSC",
+        "pfxvKN",
+    ]
+    STATCAST_H_MOVEMENT = [
+        "Name",
+        "Team",
+        "IP",
+        "pfxFA-X",
+        "pfxFT-X",
+        "pfxFC-X",
+        "pfxFS-X",
+        "pfxFO-X",
+        "pfxSI-X",
+        "pfxSL-X",
+        "pfxCU-X",
+        "pfxKC-X",
+        "pfxEP-X",
+        "pfxCH-X",
+        "pfxSC-X",
+        "pfxKN-X",
+    ]
+    STATCAST_V_MOVEMENT = [
+        "Name",
+        "Team",
+        "IP",
+        "pfxFA-Z",
+        "pfxFT-Z",
+        "pfxFC-Z",
+        "pfxFS-Z",
+        "pfxFO-Z",
+        "pfxSI-Z",
+        "pfxSL-Z",
+        "pfxCU-Z",
+        "pfxKC-Z",
+        "pfxEP-Z",
+        "pfxCH-Z",
+        "pfxSC-Z",
+        "pfxKN-Z",
+    ]
+    STATCAST_PITCH_TYPE_VALUE = [
+        "Name",
+        "Team",
+        "IP",
+        "pfxwFA",
+        "pfxwFT",
+        "pfxwFC",
+        "pfxwFS",
+        "pfxwFO",
+        "pfxwSI",
+        "pfxwSL",
+        "pfxwCU",
+        "pfxwKC",
+        "pfxwEP",
+        "pfxwCH",
+        "pfxwSC",
+        "pfxwKN",
+    ]
+    STATCAST_PITCH_TYPE_VALUE_PER_100 = [
+        "Name",
+        "Team",
+        "IP",
+        "pfxwFA/C",
+        "pfxwFT/C",
+        "pfxwFC/C",
+        "pfxwFS/C",
+        "pfxwFO/C",
+        "pfxwSI/C",
+        "pfxwSL/C",
+        "pfxwCU/C",
+        "pfxwKC/C",
+        "pfxwEP/C",
+        "pfxwCH/C",
+        "pfxwSC/C",
+        "pfxwKN/C",
+    ]
+    STATCAST_PLATE_DISCIPLINE = [
+        "Name",
+        "Team",
+        "IP",
+        "pfxO-Swing%",
+        "pfxZ-Swing%",
+        "pfxSwing%",
+        "pfxO-Contact%",
+        "pfxZ-Contact%",
+        "pfxContact%",
+        "pfxZone%",
+        "pfxPace",
+    ]
+    PITCH_INFO_PITCH_TYPE = [
+        "Name",
+        "Team",
+        "IP",
+        "piFA%",
+        "piFC%",
+        "piFS%",
+        "piSI%",
+        "piCH%",
+        "piSL%",
+        "piCU%",
+        "piCS%",
+        "piKN%",
+        "piSB%",
+        "piXX%",
+    ]
+    PITCH_INFO_PITCH_VELOCITY = [
+        "Name",
+        "Team",
+        "IP",
+        "pivFA",
+        "pivFC",
+        "pivFS",
+        "pivSI",
+        "pivCH",
+        "pivSL",
+        "pivCU",
+        "pivCS",
+        "pivKN",
+        "pivSB",
+    ]
+    PITCH_INFO_H_MOVEMENT = [
+        "Name",
+        "Team",
+        "IP",
+        "piFA-X",
+        "piFC-X",
+        "piFS-X",
+        "piSI-X",
+        "piCH-X",
+        "piSL-X",
+        "piCU-X",
+        "piCS-X",
+        "piKN-X",
+        "piSB-X",
+    ]
+    PITCH_INFO_V_MOVEMENT = [
+        "Name",
+        "Team",
+        "IP",
+        "piFA-Z",
+        "piFC-Z",
+        "piFS-Z",
+        "piSI-Z",
+        "piCH-Z",
+        "piSL-Z",
+        "piCU-Z",
+        "piCS-Z",
+        "piKN-Z",
+        "piSB-Z",
+    ]
+    PITCH_INFO_PITCH_TYPE_VALUE = [
+        "Name",
+        "Team",
+        "IP",
+        "piwFA",
+        "piwFC",
+        "piwFS",
+        "piwSI",
+        "piwCH",
+        "piwSL",
+        "piwCU",
+        "piwCS",
+        "piwKN",
+        "piwSB",
+    ]
+    PITCH_INFO_PITCH_TYPE_VALUE_PER_100 = [
+        "Name",
+        "Team",
+        "IP",
+        "piwFA/C",
+        "piwFC/C",
+        "piwFS/C",
+        "piwSI/C",
+        "piwCH/C",
+        "piwSL/C",
+        "piwCU/C",
+        "piwCS/C",
+        "piwKN/C",
+        "piwSB/C",
+    ]
+    PITCH_INFO_PLATE_DISCIPLINE = [
+        "Name",
+        "Team",
+        "IP",
+        "piO-Swing%",
+        "piZ-Swing%",
+        "piSwing%",
+        "piO-Contact%",
+        "piZ-Contact%",
+        "piContact%",
+        "piZone%",
+        "piPace",
+    ]
+    PITCHING_BOT_STUFF = [
+        "Name",
+        "Team",
+        "IP",
+        "pb_s_FF",
+        "pb_s_SI",
+        "pb_s_FC",
+        "pb_s_FS",
+        "pb_s_SL",
+        "pb_s_CU",
+        "pb_s_CH",
+        "pb_s_KC",
+        "pb_overall",
+        "pb_stuff",
+        "pb_command",
+        "pb_xRV100",
+        "pb_ERA",
+    ]
+    PITCHING_BOT_COMMAND = [
+        "Name",
+        "Team",
+        "IP",
+        "pb_c_FF",
+        "pb_c_SI",
+        "pb_c_FC",
+        "pb_c_FS",
+        "pb_c_SL",
+        "pb_c_CU",
+        "pb_c_CH",
+        "pb_c_KC",
+        "pb_overall",
+        "pb_stuff",
+        "pb_command",
+        "pb_xRV100",
+        "pb_ERA",
+    ]
+    PITCHING_BOT_OVR = [
+        "Name",
+        "Team",
+        "IP",
+        "pb_o_FF",
+        "pb_o_SI",
+        "pb_o_FC",
+        "pb_o_FS",
+        "pb_o_SL",
+        "pb_o_CU",
+        "pb_o_CH",
+        "pb_o_KC",
+        "pb_overall",
+        "pb_stuff",
+        "pb_command",
+        "pb_xRV100",
+        "pb_ERA",
+    ]
+    STUFF_PLUS = [
+        "Name",
+        "Team",
+        "IP",
+        "sp_s_FF",
+        "sp_s_SI",
+        "sp_s_FC",
+        "sp_s_FS",
+        "sp_s_SL",
+        "sp_s_CU",
+        "sp_s_CH",
+        "sp_s_KC",
+        "sp_s_FO",
+        "sp_stuff",
+        "sp_location",
+        "sp_pitching",
+    ]
+    LOCATION_PLUS = [
+        "Name",
+        "Team",
+        "IP",
+        "sp_l_FF",
+        "sp_l_SI",
+        "sp_l_FC",
+        "sp_l_FS",
+        "sp_l_SL",
+        "sp_l_CU",
+        "sp_l_CH",
+        "sp_l_KC",
+        "sp_l_FO",
+        "sp_stuff",
+        "sp_location",
+        "sp_pitching",
+    ]
+    PITCHING_PLUS = [
+        "Name",
+        "Team",
+        "IP",
+        "sp_p_FF",
+        "sp_p_SI",
+        "sp_p_FC",
+        "sp_p_FS",
+        "sp_p_SL",
+        "sp_p_CU",
+        "sp_p_CH",
+        "sp_p_KC",
+        "sp_p_FO",
+        "sp_stuff",
+        "sp_location",
+        "sp_pitching",
+    ]
 
 
 class FangraphsTeams(Enum):
@@ -569,28 +1101,3 @@ class FangraphsLeagueTypes(Enum):
 
     def __str__(self):
         return self.value
-
-
-FANGRAPHS_BATTING_URL = (
-    "https://www.fangraphs.com/leaders/major-league?"
-    "pos={pos}&stats=bat&lg={league}&qual={qual}&type={stat_type}"
-    "&season={end_season}&season1={start_season}"
-    "&startdate={start_date}&enddate={end_date}&hand={handedness}"
-    "&rost={rost}&team={team}&pagenum=1&pageitems=2000000000"
-)
-# "https://www.fangraphs.com/leaders/major-league?pos={pos}&lg=&qual=y&type=8&season=&season1=&startdate=2021-04-01&enddate=2021-04-30&rost=0&pageitems=2000000000&month=0&team=0&stats={starter_reliever}"
-FANGRAPHS_PITCHING_URL = (
-    "https://www.fangraphs.com/leaders/major-league?"
-    "pos={pos}&lg={league}&qual={qual}&type={stat_type}"
-    "&season={end_season}&season1={start_season}&stats={starter_reliever}"
-    "&startdate={start_date}&enddate={end_date}&hand={handedness}"
-    "&rost={rost}&team={team}&pagenum=1&pageitems=2000000000"
-)
-
-FANGRAPHS_FIELDING_URL = (
-    "https://www.fangraphs.com/leaders/major-league?"
-    "pos={pos}&stats=fld&lg={league}&qual={qual}&type={stat_type}"
-    "&season={end_season}&season1={start_season}"
-    "&startdate={start_date}&enddate={end_date}"
-    "&rost={rost}&team={team}&pagenum=1&pageitems=2000000000"
-)
