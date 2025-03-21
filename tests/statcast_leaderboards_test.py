@@ -749,3 +749,193 @@ def test_statcast_oaa_leaderboard_splityears():
     assert type(df) is pl.DataFrame
     assert "year" in df.columns
     assert df["year"].n_unique() == 2
+
+
+def test_statcast_baserunning_rv_leaderboard_badinputs():
+    with pytest.raises(ValueError):
+        pyb.statcast_baserunning_run_value_leaderboard(start_year=None, end_year=2020)
+    with pytest.raises(ValueError):
+        pyb.statcast_baserunning_run_value_leaderboard(start_year=2020, end_year=None)
+    with pytest.raises(ValueError):
+        pyb.statcast_baserunning_run_value_leaderboard(start_year=2015, end_year=2020)
+    with pytest.raises(ValueError):
+        pyb.statcast_baserunning_run_value_leaderboard(start_year=2020, end_year=2015)
+    with pytest.raises(ValueError):
+        pyb.statcast_baserunning_run_value_leaderboard(start_year=2024, end_year=2023)
+    with pytest.raises(ValueError):
+        pyb.statcast_baserunning_run_value_leaderboard(
+            start_year=2020, end_year=2020, perspective="individual"
+        )
+    with pytest.raises(ValueError):
+        pyb.statcast_baserunning_run_value_leaderboard(
+            start_year=2020, end_year=2020, min_oppurtunities=0
+        )
+    with pytest.raises(ValueError):
+        pyb.statcast_baserunning_run_value_leaderboard(
+            start_year=2020, end_year=2020, min_oppurtunities="qualified"
+        )
+
+
+def test_statcast_baserunning_leaderboard_regular():
+    df = pyb.statcast_baserunning_run_value_leaderboard(start_year=2024, end_year=2024)
+    assert df is not None
+    assert type(df) is pl.DataFrame
+    assert df.shape[0] == 193
+    assert df.shape[1] == 18
+    assert df.select(pl.col("player_id").n_unique()).item() == 193
+    assert df.select(pl.col("start_year").unique()).item() == 2024
+    assert df.select(pl.col("end_year").unique()).item() == 2024
+    df2 = pyb.statcast_baserunning_run_value_leaderboard(
+        start_year=2024, end_year=2024, perspective="Run", return_pandas=True
+    )
+    assert df2 is not None
+    assert type(df2) is pd.DataFrame
+    assert df2.shape[0] == 193
+    assert df2.shape[1] == 18
+    assert_frame_equal(df, pl.DataFrame(df2, schema=df.schema))
+
+
+def test_statcast_baserunning_leaderboard_perspectives():
+    df = pyb.statcast_baserunning_run_value_leaderboard(
+        start_year=2024, end_year=2024, perspective="League"
+    )
+    assert df.shape[0] == 1
+    assert df.shape[1] == 18
+    assert type(df) is pl.DataFrame
+    assert df.select(pl.col("player_id").first()).item() == 999999
+    assert df.select(pl.col("entity_name").first()).item() == "League"
+    assert df.select(pl.col("team_name").first()).item() == "League"
+
+    df2 = pyb.statcast_baserunning_run_value_leaderboard(
+        start_year=2024, end_year=2024, perspective="Batting+Team"
+    )
+    assert df2.shape[0] == 30
+    assert df2.shape[1] == 18
+    assert type(df2) is pl.DataFrame
+    assert df2.select(pl.col("entity_name").n_unique()).item() == 30
+    assert df2.select(pl.col("team_name").n_unique()).item() == 30
+    assert df2.select(pl.col("player_id").n_unique()).item() == 30
+
+    df3 = pyb.statcast_baserunning_run_value_leaderboard(
+        start_year=2024, end_year=2024, perspective="Pitching+Team"
+    )
+    assert df3.shape[0] == 30
+    assert df3.shape[1] == 18
+    assert type(df3) is pl.DataFrame
+    assert df3.select(pl.col("entity_name").n_unique()).item() == 30
+    assert df3.select(pl.col("team_name").n_unique()).item() == 30
+    assert df3.select(pl.col("player_id").n_unique()).item() == 30
+
+
+def test_statcast_baserunning_leaderboard_min_opps():
+    df = pyb.statcast_baserunning_run_value_leaderboard(
+        start_year=2024, end_year=2024, min_oppurtunities=100
+    )
+    assert df is not None
+    assert type(df) is pl.DataFrame
+    assert df.shape[0] == 6
+    assert df.shape[1] == 18
+    assert df.select(pl.col("player_id").n_unique()).item() == 6
+    assert df.select(pl.col("N_runner_moved").min()).item() >= 100
+
+
+def test_basestealing_rv_badinputs():
+    with pytest.raises(ValueError):
+        pyb.statcast_basestealing_runvalue_leaderboard(start_year=None, end_year=2020)
+    with pytest.raises(ValueError):
+        pyb.statcast_basestealing_runvalue_leaderboard(start_year=2020, end_year=None)
+    with pytest.raises(ValueError):
+        pyb.statcast_basestealing_runvalue_leaderboard(start_year=2015, end_year=2020)
+    with pytest.raises(ValueError):
+        pyb.statcast_basestealing_runvalue_leaderboard(start_year=2020, end_year=2015)
+    with pytest.raises(ValueError):
+        pyb.statcast_basestealing_runvalue_leaderboard(
+            start_year=2024, end_year=2024, min_sb_oppurtunities=0
+        )
+    with pytest.raises(ValueError):
+        pyb.statcast_basestealing_runvalue_leaderboard(
+            start_year=2024, end_year=2024, min_sb_oppurtunities="qualified"
+        )
+    with pytest.raises(ValueError):
+        pyb.statcast_basestealing_runvalue_leaderboard(
+            start_year=2024, end_year=2024, pitch_hand="Lefty"
+        )
+    with pytest.raises(ValueError):
+        pyb.statcast_basestealing_runvalue_leaderboard(
+            start_year=2024, end_year=2024, runner_movement="stolen_base"
+        )
+    with pytest.raises(ValueError):
+        pyb.statcast_basestealing_runvalue_leaderboard(
+            start_year=2024, end_year=2024, target_base="second"
+        )
+    with pytest.raises(ValueError):
+        pyb.statcast_basestealing_runvalue_leaderboard(
+            start_year=2024, end_year=2024, perspective="individual"
+        )
+
+
+def test_statcast_basestealing_rv_leaderboard_regular():
+    df = pyb.statcast_basestealing_runvalue_leaderboard(start_year=2024, end_year=2024)
+    assert df is not None
+    assert type(df) is pl.DataFrame
+    assert df.shape[0] == 434
+    assert df.shape[1] == 24
+    assert df.select(pl.col("player_id").n_unique()).item() == 434
+
+    df2 = pyb.statcast_basestealing_runvalue_leaderboard(
+        start_year=2024, end_year=2024, return_pandas=True
+    )
+    assert df2 is not None
+    assert type(df2) is pd.DataFrame
+    assert df2.shape[0] == 434
+    assert df2.shape[1] == 24
+    assert_frame_equal(df, pl.DataFrame(df2, schema=df.schema))
+
+
+def test_statcast_basestealing_rv_leaderboard_min_sb_opp():
+    df = pyb.statcast_basestealing_runvalue_leaderboard(
+        start_year=2024, end_year=2024, min_sb_oppurtunities=50
+    )
+    assert df is not None
+    assert type(df) is pl.DataFrame
+    assert df.shape[0] == 543
+    assert df.shape[1] == 24
+    assert df.select(pl.col("player_id").n_unique()).item() == 543
+    assert df.select(pl.col("n_init").min()).item() >= 50
+
+
+def test_statcast_basestealing_rv_leaderboard_runner_movement():
+    df = pyb.statcast_basestealing_runvalue_leaderboard(
+        start_year=2024, end_year=2024, runner_movement="Advance"
+    )
+    assert df is not None
+    assert type(df) is pl.DataFrame
+    assert df.shape[0] == 361
+    assert df.shape[1] == 24
+    assert df.select(pl.col("player_id").n_unique()).item() == 361
+    assert df.select(pl.col("n_cs").n_unique()).item() == 1
+    assert df.select(pl.col("n_cs").unique()).item() == 0
+    assert df.select(pl.col("n_pk").n_unique()).item() == 1
+    assert df.select(pl.col("n_pk").unique()).item() == 0
+
+    df2 = pyb.statcast_basestealing_runvalue_leaderboard(
+        start_year=2024, end_year=2024, runner_movement="Out"
+    )
+    assert df2 is not None
+    assert type(df2) is pl.DataFrame
+    assert df.shape[0] == 275
+    assert df.shape[1] == 24
+    assert df.select(pl.col("player_id").n_unique()).item() == 275
+    assert df.select(pl.col("n_sb").n_unique()).item() == 1
+    assert df.select(pl.col("n_sb").unique()).item() == 0
+
+    df3 = pyb.statcast_basestealing_runvalue_leaderboard(
+        start_year=2024, end_year=2024, runner_movement="Hold"
+    )
+    assert df3 is not None
+    assert type(df3) is pl.DataFrame
+    assert df.shape[0] == 434
+    assert df.shape[1] == 24
+    assert df.select(pl.col("player_id").n_unique()).item() == 434
+    assert df.select(pl.col("n_sb").n_unique()).item() == 1
+    assert df.select(pl.col("n_sb").unique()).item() == 0

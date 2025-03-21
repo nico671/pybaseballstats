@@ -779,7 +779,7 @@ def statcast_basestealing_runvalue_leaderboard(
     runner_movement: str = "All",
     target_base: str = "All",
     split_years: bool = False,
-    perspective: str = "Run",
+    perspective: str = "Bat",
     return_pandas: bool = False,
 ) -> pl.DataFrame | pd.DataFrame:
     """Retrieves basestealing run value leaderboard data from Baseball Savant
