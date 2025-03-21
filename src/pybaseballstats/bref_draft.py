@@ -35,11 +35,14 @@ def draft_order_by_round(
     if draft_round < 1 or draft_round > 60:
         raise ValueError("Draft round must be between 1 and 60")
 
-    driver.get(BREF_DRAFT_URL.format(draft_year=year, draft_round=draft_round))
-    wait = WebDriverWait(driver, 10)
-    draft_table = wait.until(
-        EC.presence_of_element_located((By.CSS_SELECTOR, "#div_draft_stats"))
-    )
+    try:
+        driver.get(BREF_DRAFT_URL.format(draft_year=year, draft_round=draft_round))
+        wait = WebDriverWait(driver, 10)
+        draft_table = wait.until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "#div_draft_stats"))
+        )
+    finally:
+        driver.quit()
 
     soup = BeautifulSoup(draft_table.get_attribute("outerHTML"), "html.parser")
     table = soup.find("table", id="draft_stats")
@@ -129,12 +132,15 @@ def franchise_draft_order(
         "WSN",
     ]:
         raise ValueError("Invalid team abbreviation")
-    driver.get(TEAM_YEAR_DRAFT_URL.format(year=year, team=team))
+    try:
+        driver.get(TEAM_YEAR_DRAFT_URL.format(year=year, team=team))
 
-    wait = WebDriverWait(driver, 10)
-    draft_table = wait.until(
-        EC.presence_of_element_located((By.CSS_SELECTOR, "#div_draft_stats"))
-    )
+        wait = WebDriverWait(driver, 10)
+        draft_table = wait.until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "#div_draft_stats"))
+        )
+    finally:
+        driver.quit()
 
     soup = BeautifulSoup(draft_table.get_attribute("outerHTML"), "html.parser")
 

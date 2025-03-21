@@ -4,14 +4,17 @@ import pandas as pd
 import polars as pl
 import requests
 
+from pybaseballstats.utils.consts import FangraphsFieldingStatType
 from pybaseballstats.utils.fangraphs_utils import (
     FANGRAPHS_BATTING_API_URL,
+    FANGRAPHS_FIELDING_API_URL,
     FANGRAPHS_PITCHING_API_URL,
     FangraphsBattingPosTypes,
     FangraphsBattingStatType,
     FangraphsPitchingStatType,
     FangraphsTeams,
     fangraphs_batting_input_val,
+    fangraphs_fielding_input_val,
     fangraphs_pitching_range_input_val,
 )
 
@@ -202,4 +205,78 @@ def fangraphs_pitching_range(
     )
     df = df.filter(pl.col("Age") >= min_age) if min_age else df
     df = df.filter(pl.col("Age") <= max_age) if max_age else df
+    return df if not return_pandas else df.to_pandas()
+
+
+def fangraphs_fielding_range(
+    start_date: Union[str, None] = None,
+    end_date: Union[str, None] = None,
+    start_year: Union[int, None] = None,
+    end_year: Union[int, None] = None,
+    min_inn: Union[str, int] = "y",
+    stat_types: List[FangraphsFieldingStatType] = None,
+    active_roster_only: bool = False,
+    team: FangraphsTeams = FangraphsTeams.ALL,
+    league: Literal["nl", "al", ""] = "",
+    min_age: Optional[int] = None,
+    max_age: Optional[int] = None,
+    fielding_position: FangraphsBattingPosTypes = FangraphsBattingPosTypes.ALL,
+    return_pandas: bool = False,
+) -> pl.DataFrame | pd.DataFrame:
+    (
+        start_date,
+        end_date,
+        start_year,
+        end_year,
+        min_inn,
+        fielding_position,
+        active_roster_only,
+        team,
+        league,
+        min_age,
+        max_age,
+        stat_types,
+    ) = fangraphs_fielding_input_val(
+        start_date=start_date,
+        end_date=end_date,
+        start_year=start_year,
+        end_year=end_year,
+        min_inn=min_inn,
+        stat_types=stat_types,
+        active_roster_only=active_roster_only,
+        team=team,
+        league=league,
+        min_age=min_age,
+        max_age=max_age,
+        fielding_position=fielding_position,
+    )
+
+    url = FANGRAPHS_FIELDING_API_URL.format(
+        start_date=start_date if start_date else "",
+        end_date=end_date if end_date else "",
+        start_year=start_year if start_year else "",
+        end_year=end_year if end_year else "",
+        min_inn=min_inn,
+        fielding_position=fielding_position.value,
+        team=team.value if isinstance(team, FangraphsTeams) else team,
+        league=league,
+        active_roster_only=active_roster_only,
+        month=1000 if start_date else 0,
+    )
+    resp = requests.get(url)
+    data = resp.json()["data"]
+    df = pl.DataFrame(data, infer_schema_length=None)
+    df = df.drop(["PlayerNameRoute", "Name", "Team"])
+    for extra in [
+        "Season",
+        "season",
+        "SeasonMax",
+        "SeasonMin",
+        "playerid",
+        "xMLBAMID",
+        "TeamNameAbb",
+        "PlayerName",
+    ]:
+        stat_types.insert(0, extra)
+    df = df.select([col for col in stat_types if col in df.columns])
     return df if not return_pandas else df.to_pandas()

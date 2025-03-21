@@ -2,9 +2,67 @@ from enum import Enum
 
 
 class FangraphsFieldingStatType(Enum):
-    STANDARD = 0
-    ADVANCED = 1
-    STATCAST = 24
+    STANDARD = [
+        "Name",
+        "Team",
+        "Pos",
+        "G",
+        "GS",
+        "Inn",
+        "PO",
+        "A",
+        "E",
+        "FE",
+        "TE",
+        "DP",
+        "DPS",
+        "DPT",
+        "DPF",
+        "Scp",
+        "SB",
+        "CS",
+        "PB",
+        "WP",
+        "FP",
+        "TZ",
+    ]
+    ADVANCED = [
+        "Name",
+        "Team",
+        "Pos",
+        "Inn",
+        "rSZ",
+        "rCERA",
+        "rSB",
+        "rGDP",
+        "rARM",
+        "rGFP",
+        "rPM",
+        "rTS",
+        "DRS",
+        "ARM",
+        "DPR",
+        "RngR",
+        "ErrR",
+        "UZR",
+        "UZR/150",
+        "FRM",
+        "OAA",
+        "Range",
+        "Def",
+    ]
+    STATCAST = [
+        "Name",
+        "Team",
+        "Pos",
+        "Inn",
+        "Throwing",
+        "Blocking",
+        "Framing",
+        "Arm",
+        "Range",
+        "FRV",
+    ]
 
 
 class FangraphsPitchingStatType(Enum):
