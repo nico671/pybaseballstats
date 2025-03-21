@@ -169,12 +169,10 @@ def fangraphs_batting_input_val(
     )
 
 
-FANGRAPHS_FIELDING_API_URL = "https://www.fangraphs.com/api/leaders/major-league/data?age=&pos={fielding_position}&stats=fld&lg={league}&qual={min_inn}&season={end_year}&season1={start_year}&startdate={start_date}&enddate={end_date}&month={month}&team={team}&pageitems=2000000000&pagenum=1&ind=0&rost={active_roster_only}&players=0&type=0&postseason=&sortdir=default&sortstat=TZ"
+FANGRAPHS_FIELDING_API_URL = "https://www.fangraphs.com/api/leaders/major-league/data?age=&pos={fielding_position}&stats=fld&lg={league}&qual={min_inn}&season={end_year}&season1={start_year}&startdate=&enddate=&month=0&hand=&team={team}&pageitems=2000000000&pagenum=1&ind=0&rost={active_roster_only}&players=0&type=1&postseason=&sortdir=default&sortstat=Defense"
 
 
 def fangraphs_fielding_input_val(
-    start_date: Union[str, None] = None,
-    end_date: Union[str, None] = None,
     start_year: Union[int, None] = None,
     end_year: Union[int, None] = None,
     min_inn: Union[str, int] = "y",
@@ -182,29 +180,10 @@ def fangraphs_fielding_input_val(
     active_roster_only: bool = False,
     team: FangraphsTeams = FangraphsTeams.ALL,
     league: Literal["nl", "al", ""] = "",
-    min_age: Optional[int] = None,
-    max_age: Optional[int] = None,
     fielding_position: FangraphsBattingPosTypes = FangraphsBattingPosTypes.ALL,
-    return_pandas: bool = False,
 ):
-    # start_date, end_date, start_season, end_season validation
-    # Ensure that either (start_date & end_date) OR (start_season & end_season) are provided
-    if (start_date and end_date) and (start_year and end_year):
-        raise ValueError(
-            "Specify either (start_date, end_date) OR (start_year, end_year), but not both."
-        )
-
-    if not (start_date and end_date) and not (start_year and end_year):
-        raise ValueError(
-            "You must provide either (start_date, end_date) OR (start_year, end_year)."
-        )
-
-    # Validate and convert dates if provided
-    if start_date and end_date:
-        start_date, end_date = fangraphs_validate_dates(start_date, end_date)
-        start_year = None
-        end_year = None
-        print(f"Using date range: {start_date} to {end_date}")
+    if not (start_year and end_year):
+        raise ValueError("You must provide (start_year, end_year).")
 
     # Validate seasons if provided
     if start_year and end_year:
@@ -213,8 +192,6 @@ def fangraphs_fielding_input_val(
                 f"start_year ({start_year}) cannot be after end_year ({end_year})."
             )
         print(f"Using season range: {start_year} to {end_year}")
-        start_date = None
-        end_date = None
 
     # min_pa validation
     if isinstance(min_inn, str):
@@ -254,23 +231,6 @@ def fangraphs_fielding_input_val(
     if league:
         print(f"Filtering by league: {league}")
 
-    if (min_age is not None and max_age is None) or (
-        min_age is None and max_age is not None
-    ):
-        raise ValueError("Both min_age and max_age must be provided or neither")
-    if min_age is None:
-        min_age = 14
-    if max_age is None:
-        max_age = 56
-    if min_age > max_age:
-        raise ValueError(
-            f"min_age ({min_age}) cannot be greater than max_age ({max_age})"
-        )
-    if min_age < 14:
-        raise ValueError("min_age must be at least 14")
-    if max_age > 56:
-        raise ValueError("max_age must be at most 56")
-
     stat_cols = set()
     # stat_types validation
     if stat_types is None:
@@ -287,8 +247,6 @@ def fangraphs_fielding_input_val(
                 stat_cols.add(stat)
     stat_types = list(stat_cols)
     return (
-        start_date,
-        end_date,
         start_year,
         end_year,
         min_inn,
@@ -296,13 +254,11 @@ def fangraphs_fielding_input_val(
         active_roster_only,
         team,
         league,
-        min_age,
-        max_age,
         stat_types,
     )
 
 
-FANGRAPHS_PITCHING_API_URL = "https://www.fangraphs.com/api/leaders/major-league/data?age=&pos=all&stats=pit&lg={league}&qual={min_ip}&season={end_year}&season1={start_year}&startdate={start_date}&enddate={end_date}&month={month}&hand={pitching_hand}&team={team}&pagenum=1&pageitems=2000000000&ind=0&rost={active_roster_only}&stats={starter_reliever}&players=0&type=0&postseason=&sortdir=default&sortstat=SO"
+FANGRAPHS_PITCHING_API_URL = "https://www.fangraphs.com/api/leaders/major-league/data?age=&pos=all&lg={league}&qual={min_ip}&season={end_year}&season1={start_year}&startdate={start_date}&enddate={end_date}&month={month}&hand={pitching_hand}&team={team}&pagenum=1&pageitems=2000000000&ind=0&rost={active_roster_only}&stats={starter_reliever}&players=0&type=0&postseason=&sortdir=default&sortstat=SO"
 
 
 def fangraphs_pitching_range_input_val(

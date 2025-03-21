@@ -3,9 +3,12 @@ import sys
 
 import polars as pl
 import pytest
-from polars.testing import assert_frame_equal
+from polars.testing import assert_frame_equal, assert_series_equal
 
-from pybaseballstats.utils.consts import FangraphsBattingPosTypes
+from pybaseballstats.utils.consts import (
+    FangraphsBattingPosTypes,
+    FangraphsPitchingStatType,
+)
 
 # 15th test
 # Setup path to import pybaseballstats
@@ -391,3 +394,340 @@ def test_fangraphs_pitching_range_years():
     assert df.select(pl.col("SeasonMin").min().first()).item() == 2023
     assert df.select(pl.col("SeasonMax").max().first()).item() == 2024
     assert df.select(pl.col("xMLBAMID").n_unique()).item() == 46
+
+
+def test_fangraphs_pitching_range_minip():
+    df = pyb.fangraphs_pitching_range(
+        start_date="2024-04-01",
+        end_date="2024-04-10",
+        min_ip=10,
+    )
+    assert df is not None
+    assert df.shape[0] == 73
+    assert df.shape[1] == 380
+    assert df.select(pl.col("IP").min()).item() >= 10
+    assert df.select(pl.col("xMLBAMID").n_unique()).item() == 73
+
+
+def test_fangraphs_pitching_range_certain_stat_types():
+    df = pyb.fangraphs_pitching_range(
+        start_date="2024-04-01",
+        end_date="2024-04-10",
+        stat_types=[
+            FangraphsPitchingStatType.ADVANCED,
+            FangraphsPitchingStatType.STANDARD,
+        ],
+    )
+    assert df is not None
+    assert df.shape[0] == 89
+    assert df.shape[1] == 49
+    assert df.select(pl.col("season").n_unique()).item() == 1
+    assert df.select(pl.col("season").unique().first()).item() == 2024
+    assert df.select(pl.col("xMLBAMID").n_unique()).item() == 89
+
+
+def test_fangraphs_pitching_range_active_roster_only():
+    df = pyb.fangraphs_pitching_range(
+        start_date="2024-04-01",
+        end_date="2024-04-10",
+        active_roster_only=True,
+    )
+    assert df is not None
+    assert df.shape[0] == 74
+    assert df.shape[1] == 380
+
+
+def test_fangraphs_pitching_range_team():
+    df = pyb.fangraphs_pitching_range(
+        start_date="2024-04-01",
+        end_date="2024-04-10",
+        team=pyb.FangraphsTeams.NATIONALS,
+    )
+    assert df is not None
+    assert df.shape[0] == 3
+    assert df.shape[1] == 380
+    assert df.select(pl.col("Team").n_unique()).item() == 1
+    assert df.select(pl.col("Team").first()).item() == "WSN"
+
+
+def test_fangraphs_pitching_range_league():
+    df = pyb.fangraphs_pitching_range(
+        start_date="2024-04-01",
+        end_date="2024-04-10",
+        league="al",
+    )
+    assert df is not None
+    assert df.shape[0] == 43
+    assert df.shape[1] == 380
+    assert df.select(pl.col("Team").n_unique()).item() <= 15
+
+
+def test_fangraphs_pitching_range_age():
+    df = pyb.fangraphs_pitching_range(
+        start_date="2024-04-01",
+        end_date="2024-04-10",
+        min_age=20,
+        max_age=25,
+    )
+    assert df is not None
+    assert df.shape[0] == 11
+    assert df.shape[1] == 380
+    assert df.select(pl.col("Age").min()).item() >= 20
+    assert df.select(pl.col("Age").max()).item() <= 25
+    assert df.select(pl.col("xMLBAMID").n_unique()).item() == 11
+
+
+def test_fangraphs_pitching_range_pitching_hand():
+    df = pyb.fangraphs_pitching_range(
+        start_date="2024-04-01",
+        end_date="2024-04-10",
+        pitching_hand="R",
+    )
+    assert df is not None
+    assert df.shape[0] == 63
+    assert df.shape[1] == 380
+    assert df.select(pl.col("Throws").n_unique()).item() == 1
+    assert df.select(pl.col("Throws").first()).item() == "R"
+    df1 = pyb.fangraphs_pitching_range(
+        start_year=1973,
+        end_year=2025,
+        pitching_hand="S",
+        min_ip=0,
+    )
+    assert df1 is not None
+    assert df1.shape[0] == 1
+    assert df1.shape[1] == 383
+    assert df1.select(pl.col("Throws").n_unique()).item() == 1
+    assert df1.select(pl.col("Throws").first()).item() == "B"
+
+
+def test_fangraphs_pitching_range_starter_reliever():
+    df = pyb.fangraphs_pitching_range(
+        start_date="2024-04-01",
+        end_date="2024-04-10",
+        starter_reliever="sta",
+    )
+    assert df is not None
+    assert df.shape[0] == 87
+    assert df.shape[1] == 380
+    assert df.select(pl.col("GS").sum()).item() > 0
+    assert_series_equal(
+        df.select(pl.col("GS")).to_series(),
+        df.select(pl.col("G")).to_series(),
+        check_names=False,
+    )
+    df1 = pyb.fangraphs_pitching_range(
+        start_date="2024-04-01",
+        end_date="2024-04-10",
+        starter_reliever="rel",
+    )
+    assert df1 is not None
+    assert df1.shape[0] == 195
+    assert df1.shape[1] == 380
+    assert df1.select(pl.col("GS").sum()).item() == 0
+    assert df1.select(pl.col("G").sum()).item() > 0
+
+
+def test_fangraphs_fielding_range_bad_inputs():
+    with pytest.raises(ValueError):
+        pyb.fangraphs_fielding_range(
+            start_year=None,
+            end_year=None,
+        )
+    with pytest.raises(ValueError):
+        pyb.fangraphs_fielding_range(
+            start_year=2024,
+            end_year=2023,
+        )
+    with pytest.raises(ValueError):
+        pyb.fangraphs_fielding_range(
+            start_year=2024,
+            end_year=2024,
+            min_inn="q",
+        )
+    with pytest.raises(ValueError):
+        pyb.fangraphs_fielding_range(
+            start_year=2024,
+            end_year=2024,
+            min_inn=-1,
+        )
+    with pytest.raises(ValueError):
+        pyb.fangraphs_fielding_range(
+            start_year=2024,
+            end_year=2024,
+            fielding_position="notenum",
+        )
+    with pytest.raises(ValueError):
+        pyb.fangraphs_fielding_range(
+            start_year=2024,
+            end_year=2024,
+            active_roster_only="invalid",
+        )
+    with pytest.raises(ValueError):
+        pyb.fangraphs_fielding_range(
+            start_year=2024,
+            end_year=2024,
+            team="invalid",
+        )
+    with pytest.raises(ValueError):
+        pyb.fangraphs_fielding_range(
+            start_year=2024,
+            end_year=2024,
+            league="not al nl or empty",
+        )
+    with pytest.raises(ValueError):
+        pyb.fangraphs_fielding_range(
+            start_year=2024,
+            end_year=2024,
+            fielding_position="notenum",
+        )
+
+
+def test_fangraphs_fielding_range_years():
+    df = pyb.fangraphs_fielding_range(
+        start_year=2023,
+        end_year=2024,
+    )
+    assert df is not None
+    assert df.shape[0] == 93
+    assert df.shape[1] == 73
+    assert df.select(pl.col("SeasonMin").min().first()).item() == 2023
+    assert df.select(pl.col("SeasonMax").max().first()).item() == 2024
+    assert df.select(pl.col("xMLBAMID").n_unique()).item() == 93
+
+    df1 = pyb.fangraphs_fielding_range(
+        start_year=2023,
+        end_year=2024,
+        return_pandas=True,
+    )
+    assert df1 is not None
+    assert df1.shape[0] == 93
+    assert df1.shape[1] == 73
+    assert_frame_equal(df, pl.DataFrame(df1, schema=df.schema))
+
+
+def test_fangraphs_fielding_range_min_inn():
+    df = pyb.fangraphs_fielding_range(
+        start_year=2024,
+        end_year=2024,
+        min_inn=10,
+    )
+    assert df is not None
+    assert df.shape[0] == 1794
+    assert df.shape[1] == 73
+    assert df.select(pl.col("Inn").min()).item() >= 10
+    df1 = pyb.fangraphs_fielding_range(
+        start_year=2024,
+        end_year=2024,
+        min_inn="y",
+    )
+    assert df1 is not None
+    assert df1.shape[0] == 112
+    assert df1.shape[1] == 73
+    assert df1.select(pl.col("xMLBAMID").n_unique()).item() == 112
+    assert df1.select(pl.col("Inn").min()).item() >= 899
+
+
+def test_fangraphs_fielding_range_stat_types():
+    df = pyb.fangraphs_fielding_range(
+        start_year=2024,
+        end_year=2024,
+        stat_types=[
+            pyb.FangraphsFieldingStatType.ADVANCED,
+            pyb.FangraphsFieldingStatType.STANDARD,
+        ],
+    )
+    assert df is not None
+    assert df.shape[0] == 112
+    assert df.shape[1] == 52
+    for stat in [
+        "Made0",
+        "Prob0",
+        "Made10",
+        "Prob10",
+        "Made40",
+        "Prob40",
+        "Made60",
+        "Prob60",
+        "Made90",
+        "Prob90",
+        "Made100",
+        "Prob100",
+        "CStrikes",
+        "CFraming",
+        "OAA",
+        "rFRP",
+        "aFRP",
+        "bFRP",
+        "tFRP",
+        "fFRP",
+        "FRP",
+    ]:
+        assert stat not in df.columns
+    assert df.select(pl.col("Season").n_unique()).item() == 1
+    assert df.select(pl.col("Season").unique().first()).item() == 2024
+
+
+def test_fangraphs_fielding_range_active_roster_only():
+    df = pyb.fangraphs_fielding_range(
+        start_year=2024,
+        end_year=2024,
+        active_roster_only=True,
+    )
+    assert df is not None
+    assert df.shape[0] == 109
+    assert df.shape[1] == 73
+
+
+def test_fangraphs_fielding_range_team():
+    df = pyb.fangraphs_fielding_range(
+        start_year=2024,
+        end_year=2024,
+        team=pyb.FangraphsTeams.NATIONALS,
+    )
+    assert df is not None
+    assert df.shape[0] == 4
+    assert df.shape[1] == 73
+    assert df.select(pl.col("TeamNameAbb").n_unique()).item() == 1
+    assert df.select(pl.col("TeamNameAbb").first()).item() == "WSN"
+
+
+def test_fangraphs_fielding_range_league():
+    df = pyb.fangraphs_fielding_range(
+        start_year=2024,
+        end_year=2024,
+        league="al",
+    )
+    assert df is not None
+    assert df.shape[0] == 54
+    assert df.shape[1] == 73
+    assert (
+        df.filter(pl.col("TeamNameAbb") != "2 Tms")
+        .filter(pl.col("TeamNameAbb") != "3 Tms")
+        .select(pl.col("TeamNameAbb").n_unique())
+        .item()
+        <= 15
+    )
+
+
+def test_fangraphs_fielding_range_pos():
+    df = pyb.fangraphs_fielding_range(
+        start_year=2024,
+        end_year=2024,
+        fielding_position=pyb.FangraphsBattingPosTypes.CATCHER,
+    )
+    assert df is not None
+    assert df.shape[0] == 11
+    assert df.shape[1] == 73
+    assert df.select(pl.col("Pos").n_unique()).item() == 1
+    assert df.select(pl.col("Pos").first()).item() == "C"
+    df1 = pyb.fangraphs_fielding_range(
+        start_year=2024,
+        end_year=2024,
+        fielding_position=pyb.FangraphsBattingPosTypes.FIRST_BASE,
+    )
+    assert df1 is not None
+    assert df1.shape[0] == 17
+    assert df1.shape[1] == 73
+    assert df1.select(pl.col("Pos").n_unique()).item() == 1
+    assert df1.select(pl.col("Pos").first()).item() == "1B"
