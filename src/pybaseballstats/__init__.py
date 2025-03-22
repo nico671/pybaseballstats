@@ -1,4 +1,4 @@
-# from .bref_draft import draft_order_by_round, franchise_draft_order  # noqa: F401
+from .bref_draft import draft_order_by_round, franchise_draft_order  # noqa: F401
 from .fangraphs import (  # noqa: F401
     fangraphs_batting_range,
     fangraphs_fielding_range,
