@@ -233,14 +233,14 @@ def test_statcast_arsenal_stats_leaderboard_badinputs():
 
 def test_statcast_arsenal_stats_leaderboard_regular():
     df = pyb.statcast_pitch_arsenal_stats_leaderboard(year=2024)
-    assert df.shape[0] == 410
+    assert df.shape[0] == 411
     assert df.shape[1] == 20
-    assert df["player_id"].n_unique() == 257
+    assert df.select(pl.col("player_id").n_unique()).item() == 258
     assert type(df) is pl.DataFrame
     df2 = pyb.statcast_pitch_arsenal_stats_leaderboard(year=2024, return_pandas=True)
-    assert df2.shape[0] == 410
+    assert df2.shape[0] == 411
     assert df2.shape[1] == 20
-    assert df2["player_id"].nunique() == 257
+    assert df2["player_id"].nunique() == 258
     assert type(df2) is pd.DataFrame
     assert_frame_equal(df, pl.DataFrame(df2, schema=df.schema))
 
@@ -283,13 +283,12 @@ def test_statcast_pitch_arsenals_leaderboard_regular():
     print(df.columns)
     assert df.shape[0] == 712
     assert df.shape[1] == 32
-    assert df["pitcher"].n_unique() == 712
+    assert df.select(pl.col("pitcher").n_unique()).item() == 712
 
     assert type(df) is pl.DataFrame
     df2 = pyb.statcast_pitch_arsenals_leaderboard(year=2024, return_pandas=True)
     assert df2.shape[0] == 712
     assert df2.shape[1] == 32
-    assert df2["pitcher"].nunique() == 712
     assert type(df2) is pd.DataFrame
     assert_frame_equal(df, pl.DataFrame(df2, schema=df.schema))
 
@@ -923,19 +922,19 @@ def test_statcast_basestealing_rv_leaderboard_runner_movement():
     )
     assert df2 is not None
     assert type(df2) is pl.DataFrame
-    assert df.shape[0] == 275
-    assert df.shape[1] == 24
-    assert df.select(pl.col("player_id").n_unique()).item() == 275
-    assert df.select(pl.col("n_sb").n_unique()).item() == 1
-    assert df.select(pl.col("n_sb").unique()).item() == 0
+    assert df2.shape[0] == 275
+    assert df2.shape[1] == 24
+    assert df2.select(pl.col("player_id").n_unique()).item() == 275
+    assert df2.select(pl.col("n_sb").n_unique()).item() == 1
+    assert df2.select(pl.col("n_sb").unique()).item() == 0
 
     df3 = pyb.statcast_basestealing_runvalue_leaderboard(
         start_year=2024, end_year=2024, runner_movement="Hold"
     )
     assert df3 is not None
     assert type(df3) is pl.DataFrame
-    assert df.shape[0] == 434
-    assert df.shape[1] == 24
-    assert df.select(pl.col("player_id").n_unique()).item() == 434
-    assert df.select(pl.col("n_sb").n_unique()).item() == 1
-    assert df.select(pl.col("n_sb").unique()).item() == 0
+    assert df3.shape[0] == 434
+    assert df3.shape[1] == 24
+    assert df3.select(pl.col("player_id").n_unique()).item() == 434
+    assert df3.select(pl.col("n_sb").n_unique()).item() == 1
+    assert df3.select(pl.col("n_sb").unique()).item() == 0

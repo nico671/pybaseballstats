@@ -686,12 +686,6 @@ class FangraphsTeams(Enum):
     YANKEES = 9
 
 
-class FangraphsStatSplitTypes(Enum):
-    PLAYER = ""
-    TEAM = "ts"
-    LEAGUE = "ss"
-
-
 class FangraphsBattingStatType(Enum):
     DASHBOARD = [
         "Name",
@@ -1167,15 +1161,6 @@ class FangraphsBattingPosTypes(Enum):
     PITCHER = "p"
     NON_PITCHER = "np"
     ALL = "all"
-
-    def __str__(self):
-        return self.value
-
-
-class FangraphsLeagueTypes(Enum):
-    ALL = ""
-    NATIONAL_LEAGUE = "nl"
-    AMERICAN_LEAGUE = "al"
 
     def __str__(self):
         return self.value

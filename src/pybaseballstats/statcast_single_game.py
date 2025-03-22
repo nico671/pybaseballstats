@@ -1,6 +1,7 @@
 import asyncio
 import datetime
 import io
+from contextlib import contextmanager
 
 import pandas as pd
 import polars as pl
@@ -15,12 +16,24 @@ from selenium.webdriver.support.ui import WebDriverWait
 from pybaseballstats.statcast import statcast_date_range_pitch_by_pitch
 from pybaseballstats.utils.statcast_utils import ROOT_URL, SINGLE_GAME, _add_extra_stats
 
-options = Options()
-options.add_argument("--headless")
-driver = webdriver.Chrome(options=options)
-
-
 STATCAST_SINGLE_GAME_EV_PV_WP_URL = "https://baseballsavant.mlb.com/gamefeed?date={game_date}&gamePk={game_pk}&chartType=pitch&legendType=pitchName&playerType=pitcher&inning=&count=&pitchHand=&batSide=&descFilter=&ptFilter=&resultFilter=&hf={stat_type}&sportId=1&liveAb=#{game_pk}"
+
+
+@contextmanager
+def get_driver():
+    """Provides a WebDriver instance that automatically quits on exit."""
+    options = Options()
+    options.add_argument("--headless")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+
+    driver = webdriver.Chrome(options=options)
+
+    try:
+        yield driver  # Hands control back to the calling function
+    finally:
+        driver.quit()  # Ensures WebDriver is always closed
 
 
 def statcast_single_game_pitch_by_pitch(
@@ -84,7 +97,7 @@ def get_statcast_single_game_exit_velocity(
     return_pandas: bool = False,
 ) -> pl.DataFrame | pd.DataFrame:
     game_date_str = _handle_single_game_date(game_date)
-    try:
+    with get_driver() as driver:
         # Use the URL from the previous cell
         driver.get(
             STATCAST_SINGLE_GAME_EV_PV_WP_URL.format(
@@ -102,9 +115,6 @@ def get_statcast_single_game_exit_velocity(
         )
         ev_table_html = ev_table.get_attribute("outerHTML")
         print(ev_table_html)
-
-    finally:
-        driver.quit()
 
     soup = BeautifulSoup(ev_table_html, "html.parser")
     table = soup.find("table")
@@ -199,7 +209,7 @@ def get_statcast_single_game_pitch_velocity(
     return_pandas: bool = False,
 ) -> pl.DataFrame | pd.DataFrame:
     game_date_str = _handle_single_game_date(game_date)
-    try:
+    with get_driver() as driver:
         driver.get(
             STATCAST_SINGLE_GAME_EV_PV_WP_URL.format(
                 game_date=game_date_str, game_pk=game_pk, stat_type="pitchVelocity"
@@ -214,8 +224,6 @@ def get_statcast_single_game_pitch_velocity(
             )
         )
         pv_table_html = pv_table.get_attribute("outerHTML")
-    finally:
-        driver.quit()
     soup = BeautifulSoup(pv_table_html, "html.parser")
     table = soup.find("table")
 
@@ -310,8 +318,7 @@ def get_statcast_single_game_wp_table(
     return_pandas: bool = False,
 ) -> pl.DataFrame | pd.DataFrame:
     game_date_str = _handle_single_game_date(game_date)
-
-    try:
+    with get_driver() as driver:
         # Use the URL from the previous cell
         driver.get(
             STATCAST_SINGLE_GAME_EV_PV_WP_URL.format(
@@ -327,8 +334,6 @@ def get_statcast_single_game_wp_table(
             )
         )
         wp_table_html = wp_table.get_attribute("outerHTML")
-    finally:
-        driver.quit()
 
     soup = BeautifulSoup(wp_table_html, "html.parser")
     table = soup.find("table")
