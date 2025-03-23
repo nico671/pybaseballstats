@@ -7,6 +7,8 @@ import requests
 from bs4 import BeautifulSoup
 
 
+# TODO: usage docs
+# TODO: move consts and helper functions to utils
 class FangraphsSingleGameTeams(Enum):
     Angels = "Angels"
     Astros = "Astros"

@@ -14,6 +14,7 @@ STADIUM_SCALE = 2.495 / 2.33
 
 
 # TODO: make the stadium plot more general and add docstrings for all functions
+# TODO: usage docs
 def plot_stadium(team: str, title: str = None):
     # Construct absolute path to the CSV file
     csv_path = Path(__file__).parent / "data" / "mlbstadiums.csv"

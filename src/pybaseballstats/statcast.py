@@ -14,6 +14,8 @@ from .utils.statcast_utils import (
 nest_asyncio.apply()
 
 
+# TODO: usage docs
+# TODO: search for possible speedups in the code
 def statcast_date_range_pitch_by_pitch(
     start_dt: str,
     end_dt: str,

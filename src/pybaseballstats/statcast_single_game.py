@@ -19,6 +19,7 @@ from pybaseballstats.utils.statcast_utils import ROOT_URL, SINGLE_GAME, _add_ext
 STATCAST_SINGLE_GAME_EV_PV_WP_URL = "https://baseballsavant.mlb.com/gamefeed?date={game_date}&gamePk={game_pk}&chartType=pitch&legendType=pitchName&playerType=pitcher&inning=&count=&pitchHand=&batSide=&descFilter=&ptFilter=&resultFilter=&hf={stat_type}&sportId=1&liveAb=#{game_pk}"
 
 
+# TODO: usage docs
 @contextmanager
 def get_driver():
     """Provides a WebDriver instance that automatically quits on exit."""
