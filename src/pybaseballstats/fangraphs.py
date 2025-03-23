@@ -18,6 +18,8 @@ from pybaseballstats.utils.fangraphs_utils import (
     fangraphs_pitching_range_input_val,
 )
 
+# TODO: figure out how to handle team stats and league stats
+
 
 def fangraphs_batting_range(
     start_date: Union[str, None] = None,

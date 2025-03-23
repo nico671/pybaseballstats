@@ -1,6 +1,10 @@
+import json
+from typing import Literal
+
 import pandas as pd
 import polars as pl
 import requests
+from bs4 import BeautifulSoup
 
 from pybaseballstats.utils.statcast_utils import _handle_dates
 
@@ -855,4 +859,70 @@ def statcast_basestealing_runvalue_leaderboard(
             )
         ).content
     )
+    return df if not return_pandas else df.to_pandas()
+
+
+PARK_FACTORS_BY_YEAR_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/statcast-park-factors?type=year&year={year}&batSide={bat_side}&condition={condition}&rolling={rolling_years}&parks=mlb"
+
+
+def statcast_park_factors_leaderboard_by_years(
+    year: int,
+    bat_side: Literal["L", "R", ""] = "",
+    condition: Literal["All", "Day", "Night", "Roof Closed", "Open Air"] = "All",
+    rolling_years: int = 3,
+    return_pandas: bool = False,
+) -> pl.DataFrame | pd.DataFrame:
+    if year is None:
+        raise ValueError("year must be provided")
+    if year < 1999:
+        raise ValueError("year must be after 1999")
+    if bat_side not in ["L", "R", ""]:
+        raise ValueError("bat_side must be one of 'L', 'R', or ''")
+    if condition not in ["All", "Day", "Night", "Roof Closed", "Open Air"]:
+        raise ValueError(
+            "condition must be one of 'All', 'Day', 'Night', 'Roof Closed', 'Open Air'"
+        )
+    if rolling_years < 1 or rolling_years > 3:
+        raise ValueError("rolling_years must be between 1 and 3")
+
+    resp = requests.get(
+        PARK_FACTORS_BY_YEAR_LEADERBOARD_URL.format(
+            year=year,
+            bat_side=bat_side,
+            condition=condition,
+            rolling_years=rolling_years,
+        )
+    )
+    soup = BeautifulSoup(resp.content, "html.parser")
+    data_thing = soup.select_one(
+        "#leaderboard_statcast-park-factors > div.article-template > script"
+    )
+    data_string = data_thing.text.split("\n")[1]
+    further = data_string.split("[")[1]
+    further = further.split("]")[0]
+    data = json.loads(f"[{further}]")
+    df = pl.DataFrame(data)
+    df = df.drop(
+        [
+            "grouping_venue_conditions",
+            "key_is_year_rolling",
+            "key_num_years_rolling",
+            "key_year",
+            "key_bat_side",
+            "venue_id",
+            "main_team_id",
+        ]
+    )
+    df = df.rename(
+        {
+            "venue_name": "stadium_name",
+            "name_display_club": "team_name",
+        }
+    )
+    df = df.with_columns(
+        pl.exclude(["stadium_name", "team_name", "year_range"]).cast(pl.Int32)
+    )
+    cols = df.columns
+    cols.insert(2, cols.pop(cols.index("year_range")))
+    df = df.select(cols)
     return df if not return_pandas else df.to_pandas()

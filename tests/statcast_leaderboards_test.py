@@ -1,7 +1,11 @@
 import pandas as pd
 import polars as pl
 import pytest
-from polars.testing import assert_frame_equal, assert_series_not_equal
+from polars.testing import (
+    assert_frame_equal,
+    assert_frame_not_equal,
+    assert_series_not_equal,
+)
 
 import pybaseballstats as pyb
 
@@ -938,3 +942,102 @@ def test_statcast_basestealing_rv_leaderboard_runner_movement():
     assert df3.select(pl.col("player_id").n_unique()).item() == 434
     assert df3.select(pl.col("n_sb").n_unique()).item() == 1
     assert df3.select(pl.col("n_sb").unique()).item() == 0
+
+
+def test_statcast_park_factors_leaderboard_by_years_badinputs():
+    with pytest.raises(ValueError):
+        pyb.statcast_park_factors_leaderboard_by_years(year=None)
+    with pytest.raises(ValueError):
+        pyb.statcast_park_factors_leaderboard_by_years(year=1988)
+    with pytest.raises(ValueError):
+        pyb.statcast_park_factors_leaderboard_by_years(year=2024, bat_side="Lefty")
+    with pytest.raises(ValueError):
+        pyb.statcast_park_factors_leaderboard_by_years(year=2024, condition="daytime")
+    with pytest.raises(ValueError):
+        pyb.statcast_park_factors_leaderboard_by_years(year=2024, rolling_years=10)
+
+
+def test_statcast_park_factors_leaderboard_by_years_regular():
+    df = pyb.statcast_park_factors_leaderboard_by_years(year=2024)
+    assert df is not None
+    assert type(df) is pl.DataFrame
+    assert df.shape[0] == 30
+    assert df.shape[1] == 20
+    assert df.select(pl.col("stadium_name").n_unique()).item() == 30
+    assert df.select(pl.col("team_name").n_unique()).item() == 30
+    assert df.select(pl.col("year_range").n_unique()).item() == 1
+    assert df.select(pl.col("year_range").unique()).item() == "2022-2024"
+    assert df.select(pl.col("index_runs").median()).item() == 100
+
+    df2 = pyb.statcast_park_factors_leaderboard_by_years(year=2024, return_pandas=True)
+    assert df2 is not None
+    assert type(df2) is pd.DataFrame
+    assert df2.shape[0] == 30
+    assert df2.shape[1] == 20
+    assert_frame_equal(df, pl.DataFrame(df2, schema=df.schema))
+
+
+def test_statcast_park_factors_leaderboard_by_years_bat_side():
+    df = pyb.statcast_park_factors_leaderboard_by_years(year=2024, bat_side="R")
+    assert df is not None
+    assert type(df) is pl.DataFrame
+    assert df.shape[0] == 30
+    assert df.shape[1] == 20
+    num_pa_df = (
+        df.filter(pl.col("team_name") == "Rangers")
+        .select(pl.col("n_pa").first())
+        .item()
+    )
+
+    df2 = pyb.statcast_park_factors_leaderboard_by_years(year=2024, bat_side="L")
+    assert df2 is not None
+    assert type(df2) is pl.DataFrame
+    assert df2.shape[0] == 30
+    assert df2.shape[1] == 20
+    num_pa_df2 = (
+        df2.filter(pl.col("team_name") == "Rangers")
+        .select(pl.col("n_pa").first())
+        .item()
+    )
+    assert_frame_not_equal(df, df2)
+
+    df3 = pyb.statcast_park_factors_leaderboard_by_years(year=2024, bat_side="")
+    assert df3 is not None
+    assert type(df3) is pl.DataFrame
+    assert df3.shape[0] == 30
+    assert df3.shape[1] == 20
+    num_pa_df3 = (
+        df3.filter(pl.col("team_name") == "Rangers")
+        .select(pl.col("n_pa").first())
+        .item()
+    )
+    assert_frame_not_equal(df, df3)
+    assert_frame_not_equal(df2, df3)
+    assert abs(num_pa_df3 - (num_pa_df + num_pa_df2)) <= 1
+
+
+def test_statcast_park_factors_leaderboard_by_years_condition():
+    df = pyb.statcast_park_factors_leaderboard_by_years(year=2024, condition="Night")
+    assert df is not None
+    assert type(df) is pl.DataFrame
+    assert df.shape[0] == 30
+    assert df.shape[1] == 20
+
+    df2 = pyb.statcast_park_factors_leaderboard_by_years(
+        year=2024, condition="Roof Closed"
+    )
+    assert df2 is not None
+    assert type(df2) is pl.DataFrame
+    assert df2.shape[0] == 8
+    assert df2.shape[1] == 20
+    assert_frame_not_equal(df, df2)
+
+
+def test_statcast_park_factors_leaderboard_by_years_rolling_years():
+    df = pyb.statcast_park_factors_leaderboard_by_years(year=2024, rolling_years=1)
+    assert df is not None
+    assert type(df) is pl.DataFrame
+    assert df.shape[0] == 30
+    assert df.shape[1] == 20
+    assert df.select(pl.col("year_range").n_unique()).item() == 1
+    assert df.select(pl.col("year_range").unique()).item() == "2024"

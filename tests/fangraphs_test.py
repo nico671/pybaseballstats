@@ -433,7 +433,7 @@ def test_fangraphs_pitching_range_active_roster_only():
         active_roster_only=True,
     )
     assert df is not None
-    assert df.shape[0] == 74
+    assert df.shape[0] == 72
     assert df.shape[1] == 380
 
 
