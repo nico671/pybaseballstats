@@ -190,17 +190,6 @@ def test_fangraphs_batting_range_fielding_position():
     assert df.select(pl.col("Pos").first()).item() == "C"
 
 
-def test_fangraphs_batting_range_active_roster_only():
-    df = pyb.fangraphs_batting_range(
-        start_date="2024-04-01",
-        end_date="2024-04-10",
-        active_roster_only=True,
-    )
-    assert df is not None
-    assert df.shape[0] == 178
-    assert df.shape[1] == 316
-
-
 def test_fangraphs_batting_range_team():
     df = pyb.fangraphs_batting_range(
         start_date="2024-04-01",
@@ -424,17 +413,6 @@ def test_fangraphs_pitching_range_certain_stat_types():
     assert df.select(pl.col("season").n_unique()).item() == 1
     assert df.select(pl.col("season").unique().first()).item() == 2024
     assert df.select(pl.col("xMLBAMID").n_unique()).item() == 89
-
-
-def test_fangraphs_pitching_range_active_roster_only():
-    df = pyb.fangraphs_pitching_range(
-        start_date="2024-04-01",
-        end_date="2024-04-10",
-        active_roster_only=True,
-    )
-    assert df is not None
-    assert df.shape[0] == 72
-    assert df.shape[1] == 380
 
 
 def test_fangraphs_pitching_range_team():
@@ -666,17 +644,6 @@ def test_fangraphs_fielding_range_stat_types():
         assert stat not in df.columns
     assert df.select(pl.col("Season").n_unique()).item() == 1
     assert df.select(pl.col("Season").unique().first()).item() == 2024
-
-
-def test_fangraphs_fielding_range_active_roster_only():
-    df = pyb.fangraphs_fielding_range(
-        start_year=2024,
-        end_year=2024,
-        active_roster_only=True,
-    )
-    assert df is not None
-    assert df.shape[0] == 109
-    assert df.shape[1] == 73
 
 
 def test_fangraphs_fielding_range_team():

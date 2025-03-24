@@ -12,57 +12,7 @@ from pybaseballstats.utils.umpire_scorecard_utils import (
     UmpireScorecardTeams,
 )
 
-
-# TODO: usage docs
-def umpire_games_date_range(
-    start_date: str,
-    end_date: str,
-    season_type: str = "*",
-    home_team: UmpireScorecardTeams = UmpireScorecardTeams.ALL,
-    away_team: UmpireScorecardTeams = UmpireScorecardTeams.ALL,
-    umpire_name: str = "",
-    return_pandas: bool = False,
-) -> pl.DataFrame | pd.DataFrame:
-    """Get a DataFrame of umpire games for a date range.
-
-    Args:
-        start_date (str): Start date in 'YYYY-MM-DD' format.
-        end_date (str): Start date in 'YYYY-MM-DD' format.
-        season_type (str, optional): Restrict games to only regular season games ("R"), only postseason games ("P") or both ("*"). Defaults to "*".
-        home_team (UmpireScorecardTeams, optional): Restrict games to ones where the given team is the home team. Defaults to UmpireScorecardTeams.ALL.
-        away_team (UmpireScorecardTeams, optional): Restrict games to ones where the given team is the away team. Defaults to UmpireScorecardTeams.ALL.
-        umpire_name (str, optional): Restrict games to ones where the name of the umpire matches the parameter. If "" then all umpires are allowed. Defaults to "".
-        return_pandas (bool, optional): If true return data as pandas Dataframe instead of a polars Dataframe. Defaults to False.
-
-    Raises:
-        ValueError: If start_date or end_date is None.
-        ValueError: If season_type is not one of "*", "R", or "P".
-
-    Returns:
-        pl.DataFrame | pd.DataFrame: DataFrame of umpire games for the date range.
-    """
-    # input validation
-    if start_date is None or end_date is None:
-        raise ValueError("Both start_date and end_date must be provided.")
-    start_date, end_date = _handle_dates(start_date, end_date)
-    if season_type not in ["*", "R", "P"]:
-        raise ValueError("season_type must be one of '*', 'R', or 'P'")
-    umpire_name = "" if umpire_name is None else umpire_name
-    url = GAMES_URL.format(
-        season_type=season_type,
-        start_date=start_date,
-        end_date=end_date,
-        home_team=home_team.value,
-        away_team=away_team.value,
-        umpire_name=urllib.parse.quote(umpire_name),
-    )
-    if umpire_name != "":
-        print(url)
-        print(requests.get(url).json())
-    df = pl.DataFrame(requests.get(url).json()["games"], infer_schema_length=1000000000)
-    return df if not return_pandas else df.to_pandas()
-
-
+# # TODO: usage docs
 # def umpire_games_date_range(
 #     start_date: str,
 #     end_date: str,
@@ -76,7 +26,7 @@ def umpire_games_date_range(
 
 #     Args:
 #         start_date (str): Start date in 'YYYY-MM-DD' format.
-#         end_date (str): End date in 'YYYY-MM-DD' format.
+#         end_date (str): Start date in 'YYYY-MM-DD' format.
 #         season_type (str, optional): Restrict games to only regular season games ("R"), only postseason games ("P") or both ("*"). Defaults to "*".
 #         home_team (UmpireScorecardTeams, optional): Restrict games to ones where the given team is the home team. Defaults to UmpireScorecardTeams.ALL.
 #         away_team (UmpireScorecardTeams, optional): Restrict games to ones where the given team is the away team. Defaults to UmpireScorecardTeams.ALL.
@@ -109,48 +59,89 @@ def umpire_games_date_range(
 #         print(url)
 #         print(requests.get(url).json())
 #     df = pl.DataFrame(requests.get(url).json()["games"], infer_schema_length=1000000000)
-#     df = df.with_columns(
-#         [
-#             pl.col(col)
-#             .cast(pl.String)
-#             .str.replace("NA", "-1")
-#             .cast(pl.Int64)
-#             .alias(col)
-#             for col in [
-#                 "Home Score",
-#                 "Away Score",
-#                 "Called Pitches",
-#                 "Correct Calls",
-#                 "Called Wrong",
-#             ]
-#         ]
-#     )
-#     df = df.with_columns(
-#         [
-#             pl.col(col)
-#             .cast(pl.String)
-#             .str.replace("NA", "-1.0")
-#             .cast(pl.Float32)
-#             .alias(col)
-#             for col in [
-#                 "Accuracy",
-#                 "baseline_x_correct_calls",
-#                 "x_correct_calls",
-#                 "correct_calls_above_x",
-#                 "x_overall_accuracy",
-#                 "accuracy_above_x",
-#                 "Consistency",
-#                 "Favor",
-#                 "home_batter_impact",
-#                 "home_pitcher_impact",
-#                 "away_batter_impact",
-#                 "away_pitcher_impact",
-#                 "Total Run Impact",
-#                 "x_called_wrong",
-#             ]
-#         ]
-#     )
 #     return df if not return_pandas else df.to_pandas()
+
+
+# TODO: usage docs
+def umpire_games_date_range(
+    start_date: str,
+    end_date: str,
+    season_type: str = "*",
+    home_team: UmpireScorecardTeams = UmpireScorecardTeams.ALL,
+    away_team: UmpireScorecardTeams = UmpireScorecardTeams.ALL,
+    umpire_name: str = "",
+    return_pandas: bool = False,
+) -> pl.DataFrame | pd.DataFrame:
+    """Get a DataFrame of umpire games for a date range.
+
+    Args:
+        start_date (str): Start date in 'YYYY-MM-DD' format.
+        end_date (str): End date in 'YYYY-MM-DD' format.
+        season_type (str, optional): Restrict games to only regular season games ("R"), only postseason games ("P") or both ("*"). Defaults to "*".
+        home_team (UmpireScorecardTeams, optional): Restrict games to ones where the given team is the home team. Defaults to UmpireScorecardTeams.ALL.
+        away_team (UmpireScorecardTeams, optional): Restrict games to ones where the given team is the away team. Defaults to UmpireScorecardTeams.ALL.
+        umpire_name (str, optional): Restrict games to ones where the name of the umpire matches the parameter. If "" then all umpires are allowed. Defaults to "".
+        return_pandas (bool, optional): If true return data as pandas Dataframe instead of a polars Dataframe. Defaults to False.
+
+    Raises:
+        ValueError: If start_date or end_date is None.
+        ValueError: If season_type is not one of "*", "R", or "P".
+
+    Returns:
+        pl.DataFrame | pd.DataFrame: DataFrame of umpire games for the date range.
+    """
+    # input validation
+    if start_date is None or end_date is None:
+        raise ValueError("Both start_date and end_date must be provided.")
+    start_date, end_date = _handle_dates(start_date, end_date)
+    if season_type not in ["*", "R", "P"]:
+        raise ValueError("season_type must be one of '*', 'R', or 'P'")
+    umpire_name = "" if umpire_name is None else umpire_name
+    url = GAMES_URL.format(
+        season_type=season_type,
+        start_date=start_date,
+        end_date=end_date,
+        home_team=home_team.value,
+        away_team=away_team.value,
+        umpire_name=urllib.parse.quote(umpire_name),
+    )
+    if umpire_name != "":
+        print(url)
+        print(requests.get(url).json())
+    df = pl.DataFrame(requests.get(url).json()["games"], infer_schema_length=1000000000)
+    if df.shape[0] == 0:
+        return df if not return_pandas else df.to_pandas()
+    df = df.with_columns(
+        [
+            pl.col(col)
+            .cast(pl.String)
+            .str.replace("NA", "-1.0")
+            .cast(pl.Float32)
+            .alias(col)
+            for col in [
+                "Home Score",
+                "Away Score",
+                "Called Pitches",
+                "Correct Calls",
+                "Called Wrong",
+                "Accuracy",
+                "baseline_x_correct_calls",
+                "x_correct_calls",
+                "correct_calls_above_x",
+                "x_overall_accuracy",
+                "accuracy_above_x",
+                "Consistency",
+                "Favor",
+                "home_batter_impact",
+                "home_pitcher_impact",
+                "away_batter_impact",
+                "away_pitcher_impact",
+                "Total Run Impact",
+                "x_called_wrong",
+            ]
+        ]
+    )
+    return df if not return_pandas else df.to_pandas()
 
 
 def umpire_stats_date_range(
