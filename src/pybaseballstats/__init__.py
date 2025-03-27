@@ -8,13 +8,13 @@ from .fangraphs_single_game import (  # noqa: F401
     FangraphsSingleGameTeams,
     fangraphs_single_game_play_by_play,
 )
-from .player_lookup import player_lookup  # noqa: F401
 from .plotting import (  # noqa: F401
     plot_scatter_on_sz,
     plot_stadium,
     plot_strike_zone,
     scatter_plot_over_stadium,
 )
+from .retrosheet import player_lookup  # noqa: F401
 from .statcast import (  # noqa: F401
     statcast_date_range_pitch_by_pitch,
     statcast_single_batter_range_pitch_by_pitch,
