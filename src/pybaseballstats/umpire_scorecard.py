@@ -12,8 +12,9 @@ from pybaseballstats.utils.umpire_scorecard_utils import (
     UmpireScorecardTeams,
 )
 
-
 # TODO: usage docs
+
+
 def umpire_games_date_range(
     start_date: str,
     end_date: str,
@@ -56,12 +57,12 @@ def umpire_games_date_range(
         away_team=away_team.value,
         umpire_name=urllib.parse.quote(umpire_name),
     )
-    if umpire_name != "":
-        print(url)
-        print(requests.get(url).json())
     df = pl.DataFrame(requests.get(url).json()["games"], infer_schema_length=1000000000)
     if df.shape[0] == 0:
         return df if not return_pandas else df.to_pandas()
+    if season_type == "P":
+        # Filter out records with type 'A' as they are not relevant for postseason games
+        df = df.filter(pl.col("type") != "A")
     return df if not return_pandas else df.to_pandas()
 
 

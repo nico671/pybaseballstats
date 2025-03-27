@@ -63,7 +63,8 @@ def test_umpire_games_date_range_regular():
     assert data.shape[0] == 129
     assert data.shape[1] == 33
     assert type(data) is pl.DataFrame
-
+    assert data.select(pl.col("Date").min()).item() == "2024-04-01"
+    assert data.select(pl.col("Date").max()).item() == "2024-04-10"
     data = umpire_games_date_range(
         start_date="2024-04-01",
         end_date="2024-04-10",
@@ -82,17 +83,19 @@ def test_umpire_games_date_range_regular():
 def test_umpire_games_date_range_custom_team():
     data = umpire_games_date_range(
         start_date="2024-04-01",
-        end_date="2024-04-10",
+        end_date="2024-08-10",
         season_type="*",
         home_team=UmpireScorecardTeams.WSH,
-        away_team=UmpireScorecardTeams.ALL,
+        away_team=UmpireScorecardTeams.NYM,
         umpire_name="",
         return_pandas=False,
     )
     assert data is not None
-    assert data.shape[0] == 6
+    assert data.shape[0] == 7
     assert data.shape[1] == 33
     assert type(data) is pl.DataFrame
+    assert data.select(pl.col("Home Team").first()).item() == "WSH"
+    assert data.select(pl.col("Away Team").first()).item() == "NYM"
 
 
 def test_umpire_games_date_range_custom_umpire():
@@ -117,13 +120,48 @@ def test_umpire_games_date_range_custom_umpire():
         home_team=UmpireScorecardTeams.ALL,
         away_team=UmpireScorecardTeams.ALL,
         umpire_name="Vic Carapazza",
-        return_pandas=True,
     )
-    print(data)
     assert data is not None
     assert data.shape[0] == 2
     assert data.shape[1] == 33
-    assert type(data) is pd.DataFrame
+    assert type(data) is pl.DataFrame
+    assert data.select(pl.col("Umpire").unique()).item() == "Vic Carapazza"
+
+
+def test_umpire_games_date_range_custom_season_type():
+    df1 = umpire_games_date_range(
+        start_date="2024-04-01",
+        end_date="2024-04-10",
+        season_type="P",
+        home_team=UmpireScorecardTeams.ALL,
+        away_team=UmpireScorecardTeams.ALL,
+        umpire_name="",
+    )
+    assert df1 is not None
+    assert df1.shape[0] == 0
+    assert df1.shape[1] == 0
+    assert type(df1) is pl.DataFrame
+
+    df2 = umpire_games_date_range(
+        start_date="2024-04-01",
+        end_date="2024-11-10",
+        season_type="P",
+        home_team=UmpireScorecardTeams.ALL,
+        away_team=UmpireScorecardTeams.ALL,
+        umpire_name="",
+    )
+    assert df2 is not None
+    assert df2.shape[0] == 43
+    assert df2.shape[1] == 33
+    assert type(df2) is pl.DataFrame
+    assert set(df2.select(pl.col("type").unique()).to_series().to_list()) == set(
+        [
+            "D",
+            "F",
+            "L",
+            "W",
+        ]
+    )
 
 
 # Test umpire_stats_date_range
