@@ -103,10 +103,16 @@ def retrosheet_ejections_data(
         pl.col("DATE").str.to_date("%m/%d/%Y").alias("DATE"),
     )
     if start_date:
-        start_dt = datetime.strptime(start_date, "%m/%d/%Y")
+        try:
+            start_dt = datetime.strptime(start_date, "%m/%d/%Y")
+        except ValueError:
+            raise ValueError("start_date must be in 'MM/DD/YYYY' format")
         df = df.filter(pl.col("DATE") >= start_dt)
     if end_date:
-        end_dt = datetime.strptime(end_date, "%m/%d/%Y")
+        try:
+            end_dt = datetime.strptime(end_date, "%m/%d/%Y")
+        except ValueError:
+            raise ValueError("end_date must be in 'MM/DD/YYYY' format")
         df = df.filter(pl.col("DATE") <= end_dt)
     if df.shape[0] == 0:
         print("Warning: No ejections found for the given date range.")
@@ -122,7 +128,7 @@ def retrosheet_ejections_data(
             print("Warning: No ejections found for the given umpire name.")
             return df
     if inning:
-        if inning < -1 or inning > 20:
+        if inning >= -1 and inning <= 20:
             df = df.filter(pl.col("INNING") == inning)
             if df.shape[0] == 0:
                 print("Warning: No ejections found for the given inning.")

@@ -14,7 +14,7 @@ from .plotting import (  # noqa: F401
     plot_strike_zone,
     scatter_plot_over_stadium,
 )
-from .retrosheet import player_lookup  # noqa: F401
+from .retrosheet import player_lookup, retrosheet_ejections_data  # noqa: F401
 from .statcast import (  # noqa: F401
     statcast_date_range_pitch_by_pitch,
     statcast_single_batter_range_pitch_by_pitch,
