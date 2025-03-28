@@ -47,7 +47,7 @@ from .statcast_single_game import (  # noqa: F401
 from .umpire_scorecard import (  # noqa: F401
     UmpireScorecardTeams,
     team_umpire_stats_date_range,
-    umpire_games_date_range,
+    umpire_scorecard_games_date_range,
     umpire_stats_date_range,
 )
 

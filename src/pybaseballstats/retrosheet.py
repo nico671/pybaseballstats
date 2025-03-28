@@ -46,8 +46,11 @@ def get_people_data() -> pl.DataFrame:
 
 
 def player_lookup(
-    first_name: str = None, last_name: str = None, strip_accents: bool = False
-) -> pl.DataFrame:
+    first_name: str = None,
+    last_name: str = None,
+    strip_accents: bool = False,
+    return_pandas: bool = False,
+) -> pl.DataFrame | pd.DataFrame:
     if not first_name and not last_name:
         raise ValueError("At least one of first_name or last_name must be provided")
     full_df = get_people_data()
@@ -73,15 +76,16 @@ def player_lookup(
             ]
         )
     if first_name and last_name:
-        return (
+        df = (
             full_df.filter(pl.col("name_first") == first_name)
             .filter(pl.col("name_last") == last_name)
             .select(keep_cols)
         )
     elif first_name:
-        return full_df.filter(pl.col("name_first") == first_name).select(keep_cols)
+        df = full_df.filter(pl.col("name_first") == first_name).select(keep_cols)
     else:
-        return full_df.filter(pl.col("name_last") == last_name).select(keep_cols)
+        df = full_df.filter(pl.col("name_last") == last_name).select(keep_cols)
+    return df if not return_pandas else df.to_pandas()
 
 
 EJECTIONS_URL = "https://raw.githubusercontent.com/chadwickbureau/retrosheet/refs/heads/master/reference/ejections.csv"
