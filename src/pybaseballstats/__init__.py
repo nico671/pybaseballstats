@@ -46,9 +46,9 @@ from .statcast_single_game import (  # noqa: F401
 )
 from .umpire_scorecard import (  # noqa: F401
     UmpireScorecardTeams,
-    team_umpire_stats_date_range,
     umpire_scorecard_games_date_range,
-    umpire_stats_date_range,
+    umpire_scorecard_teams_date_range,
+    umpire_scorecard_umpires_date_range,
 )
 
 # Re-export only necessary Enums from fangraphs_utils

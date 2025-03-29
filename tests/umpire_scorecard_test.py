@@ -1,59 +1,173 @@
+import polars as pl
 import pytest
+from polars.testing import assert_frame_equal
 
 import pybaseballstats as pyb
 
 
-# Test umpire_games_date_range
-def test_umpire_games_date_range_badinputs():
+# Test umpire_scorecard_games_date_range
+def test_umpire_scorecard_games_date_range_badinputs():
     with pytest.raises(ValueError):
-        pyb.umpire_games_date_range(
-            start_dt=None,
+        pyb.umpire_scorecard_games_date_range(
+            start_date=None,
+            end_date="2024-04-01",
         )
     with pytest.raises(ValueError):
-        pyb.umpire_games_date_range(end_dt=None)
+        pyb.umpire_scorecard_games_date_range(start_date="2024-04-01", end_date=None)
     with pytest.raises(ValueError):
-        pyb.umpire_games_date_range(
-            start_dt="2024-04-01",
-            end_dt="2024-03-01",
+        pyb.umpire_scorecard_games_date_range(
+            start_date="2024-04-01",
+            end_date="2024-03-01",
         )
     with pytest.raises(ValueError):
-        pyb.umpire_games_date_range(
-            start_dt="2014-04-01",
+        pyb.umpire_scorecard_games_date_range(
+            start_date="2014-04-01",
+            end_date="2024-05-01",
         )
     with pytest.raises(ValueError):
-        pyb.umpire_games_date_range(
-            end_dt="9999-04-01",
+        pyb.umpire_scorecard_games_date_range(
+            start_date="2024-04-01",
+            end_date="9999-04-01",
         )
     with pytest.raises(ValueError):
-        pyb.umpire_games_date_range(
-            start_dt="2024-04-01",
-            end_dt="2024-05-01",
+        pyb.umpire_scorecard_games_date_range(
+            start_date="2024-04-01",
+            end_date="2024-05-01",
             game_type="not_a_game_type",
         )
     with pytest.raises(ValueError):
-        pyb.umpire_games_date_range(
-            start_dt="2024-04-01",
-            end_dt="2024-05-01",
+        pyb.umpire_scorecard_games_date_range(
+            start_date="2024-04-01",
+            end_date="2024-05-01",
             focus_team=pyb.UmpireScorecardTeams.ALL,
             focus_team_home_away="not_a_home_away",
         )
     with pytest.raises(ValueError):
-        pyb.umpire_games_date_range(
-            start_dt="2024-04-01",
-            end_dt="2024-05-01",
-            focus_team=pyb.UmpireScorecardTeams.ALL,
-            opponent_team=pyb.UmpireScorecardTeams.ALL,
-        )
-    with pytest.raises(ValueError):
-        pyb.umpire_games_date_range(
-            start_dt="2024-04-01",
-            end_dt="2024-05-01",
+        pyb.umpire_scorecard_games_date_range(
+            start_date="2024-04-01",
+            end_date="2024-05-01",
             focus_team=pyb.UmpireScorecardTeams.NATIONALS,
             opponent_team=pyb.UmpireScorecardTeams.NATIONALS,
         )
-    with pytest.raises(ValueError):
-        pyb.umpire_games_date_range(
-            start_dt="2024-04-01",
-            end_dt="2024-05-01",
-            opponent_team=pyb.UmpireScorecardTeams.ALL,
-        )
+
+
+def test_umpire_scorecard_games_date_range():
+    df = pyb.umpire_scorecard_games_date_range(
+        start_date="2024-04-01",
+        end_date="2024-04-30",
+    )
+    assert df is not None
+    assert df.shape[0] == 397
+    assert df.shape[1] == 32
+    assert df.select(pl.col("date").min()).item() == "2024-04-01"
+    assert df.select(pl.col("date").max()).item() == "2024-04-30"
+    assert df.select(pl.col("type").n_unique()).item() == 1
+    assert df.select(pl.col("type").unique()).item() == "R"
+    assert df.select(pl.col("home_team").n_unique()).item() == 30
+    assert df.select(pl.col("away_team").n_unique()).item() == 30
+
+    df2 = pyb.umpire_scorecard_games_date_range(
+        start_date="2024-04-01",
+        end_date="2024-04-30",
+        return_pandas=True,
+    )
+    assert df2 is not None
+    assert df2.shape[0] == 397
+    assert df2.shape[1] == 32
+    assert_frame_equal(df, pl.DataFrame(df2, schema=df.schema))
+
+
+def test_umpire_scorecard_games_date_range_custom_game_type():
+    df = pyb.umpire_scorecard_games_date_range(
+        start_date="2024-04-01",
+        end_date="2024-04-30",
+        game_type="P",
+    )
+    assert df is not None
+    assert df.shape[0] == 0
+    assert df.shape[1] == 0
+    df = pyb.umpire_scorecard_games_date_range(
+        start_date="2024-04-01",
+        end_date="2024-09-30",
+        game_type="A",
+    )
+    assert df is not None
+    assert df.shape[0] == 1
+    assert df.shape[1] == 32
+    assert df.select(pl.col("date").min()).item() == "2024-07-16"
+    assert df.select(pl.col("type").unique()).item() == "A"
+
+    df = pyb.umpire_scorecard_games_date_range(
+        start_date="2024-04-01",
+        end_date="2024-11-30",
+        game_type="W",
+    )
+    assert df is not None
+    assert df.shape[0] == 5
+    assert df.shape[1] == 32
+    assert df.select(pl.col("date").min()).item() == "2024-10-25"
+    assert df.select(pl.col("date").max()).item() == "2024-10-30"
+    assert df.select(pl.col("type").unique()).item() == "W"
+    assert df.select(pl.col("home_team").n_unique()).item() == 2
+    assert df.select(pl.col("away_team").n_unique()).item() == 2
+    assert set(df.select(pl.col("home_team").unique()).to_series().to_list()) == set(
+        [
+            "NYY",
+            "LAD",
+        ]
+    )
+
+
+def test_umpire_scorecard_games_date_range_custom_team():
+    # just focus team, no opponent or home/away
+    df = pyb.umpire_scorecard_games_date_range(
+        start_date="2024-04-01",
+        end_date="2024-04-30",
+        focus_team=pyb.UmpireScorecardTeams.DODGERS,
+    )
+    assert df is not None
+    assert df.shape[0] == 26
+    assert df.shape[1] == 32
+
+    # focus_team, only home
+    df = pyb.umpire_scorecard_games_date_range(
+        start_date="2024-04-01",
+        end_date="2024-04-30",
+        focus_team=pyb.UmpireScorecardTeams.DODGERS,
+        focus_team_home_away="h",
+    )
+    assert df is not None
+    assert df.shape[0] == 12
+    assert df.shape[1] == 32
+    assert df.select(pl.col("home_team").unique()).item() == "LAD"
+    assert df.select(pl.col("away_team").n_unique()).item() == 4
+    assert df.select(pl.col("home_team").n_unique()).item() == 1
+
+    # focus_team, opponent team, no home/away
+    df = pyb.umpire_scorecard_games_date_range(
+        start_date="2024-04-01",
+        end_date="2024-04-30",
+        focus_team=pyb.UmpireScorecardTeams.DODGERS,
+        opponent_team=pyb.UmpireScorecardTeams.NATIONALS,
+    )
+    assert df is not None
+    assert df.shape[0] == 6
+    assert df.shape[1] == 32
+    assert df.select(pl.col("home_team").n_unique()).item() == 2
+    assert df.select(pl.col("away_team").n_unique()).item() == 2
+
+    # focus_team, opponent team, home/away
+    df = pyb.umpire_scorecard_games_date_range(
+        start_date="2024-04-01",
+        end_date="2024-04-30",
+        focus_team=pyb.UmpireScorecardTeams.DODGERS,
+        opponent_team=pyb.UmpireScorecardTeams.NATIONALS,
+        focus_team_home_away="a",
+    )
+    assert df is not None
+    assert df.shape[0] == 3
+    assert df.shape[1] == 32
+    assert df.select(pl.col("home_team").n_unique()).item() == 1
+    assert df.select(pl.col("home_team").unique()).item() == "WSH"
+    assert df.select(pl.col("away_team").n_unique()).item() == 1
+    assert df.select(pl.col("away_team").unique()).item() == "LAD"

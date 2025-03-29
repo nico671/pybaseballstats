@@ -1,8 +1,8 @@
 from enum import Enum
 
 UMPIRE_SCORECARD_GAMES_URL = "https://umpscorecards.com/api/games?startDate={start_date}&endDate={end_date}&seasonType={game_type}&team={team}"
-UMPIRES_URL = "https://umpscorecards.com/api/umpires/?&season_type={season_type}&start_date={start_date}&end_date={end_date}&team1={home_team}-h&team2={away_team}-a&_=1739746115431"
-TEAMS_URL = "https://umpscorecards.com/api/teams/?&season_type={season_type}&start_date={start_date}&end_date={end_date}&umpire={umpire_name}&team={team}&ha={home_away}&venue={stadium}&_=1739746372270"
+UMPIRE_SCORECARD_UMPIRES_URL = "https://umpscorecards.com/api/umpires?startDate={start_date}&endDate={end_date}&seasonType={game_type}&team={team}"
+UMPIRE_SCORECARD_TEAMS_URL = "https://umpscorecards.com/api/teams?startDate={start_date}&endDate={end_date}&seasonType={game_type}"
 
 
 class UmpireScorecardTeams(Enum):

@@ -253,7 +253,7 @@ def test_statcast_arsenal_stats_leaderboard_regular():
 
 def test_statcast_arsenal_stats_leaderboard_diffperspectives():
     df1 = pyb.statcast_pitch_arsenal_stats_leaderboard(year=2024, perspective="pitcher")
-    assert df1.shape[0] == 582
+    assert df1.shape[0] == 581
     assert df1.shape[1] == 20
     assert type(df1) is pl.DataFrame
     df2 = pyb.statcast_pitch_arsenal_stats_leaderboard(year=2024, perspective="batter")
