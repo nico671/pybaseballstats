@@ -23,15 +23,14 @@ def statcast_date_range_pitch_by_pitch(
     extra_stats: bool = False,
     return_pandas: bool = False,
 ) -> pl.LazyFrame | pd.DataFrame:
-    """
-    Pulls pitch by pitch statcast data over a date range.
+    """Pulls pitch by pitch statcast data over a date range.
 
     Args:
-    start_dt: the start date in 'YYYY-MM-DD' format
-    end_dt: the end date in 'YYYY-MM-DD' format
-    team: the team abbreviation you wish to restrict data to (e.g. 'WSH'). If None, data for all teams will be returned.
-    extra_stats: whether to include extra stats
-    return_pandas: whether to return a pandas DataFrame (default is False, returning a Polars LazyFrame)
+        start_dt: the start date in 'YYYY-MM-DD' format
+        end_dt: the end date in 'YYYY-MM-DD' format
+        team: the team abbreviation you wish to restrict data to (e.g. 'WSH'). If None, data for all teams will be returned.
+        extra_stats: whether to include extra stats
+        return_pandas: whether to return a pandas DataFrame (default is False, returning a Polars LazyFrame)
 
     Returns:
         pl.LazyFrame | pd.Dataframe: A DataFrame of statcast data for the date range.
@@ -52,15 +51,14 @@ def statcast_single_batter_range_pitch_by_pitch(
     extra_stats: bool = False,
     return_pandas: bool = False,
 ) -> pl.DataFrame | pd.DataFrame:
-    """
-    Pulls statcast data for single batter over a date range.
+    """Pulls statcast data for single batter over a date range.
 
     Args:
-    start_dt: the start date in 'YYYY-MM-DD' format
-    end_dt: the end date in 'YYYY-MM-DD' format
-    player_id: the player_id of the batter
-    extra_stats: whether to include extra stats
-    return_pandas: whether to return a pandas DataFrame (default is False, returning a Polars DataFrame)
+        start_dt: the start date in 'YYYY-MM-DD' format
+        end_dt: the end date in 'YYYY-MM-DD' format
+        player_id: the player_id of the batter
+        extra_stats: whether to include extra stats
+        return_pandas: whether to return a pandas DataFrame (default is False, returning a Polars DataFrame)
 
     Returns:
         pl.DataFrame | pd.DataFrame: A DataFrame of statcast data for the date range.
@@ -81,15 +79,14 @@ def statcast_single_pitcher_range_pitch_by_pitch(
     extra_stats: bool = False,
     return_pandas: bool = False,
 ) -> pl.DataFrame | pd.DataFrame:
-    """
-    Pulls pitch by pitch statcast data for a single pitcher over a date range.
+    """Pulls pitch by pitch statcast data for a single pitcher over a date range.
 
     Args:
-    start_dt: the start date in 'YYYY-MM-DD' format
-    end_dt: the end date in 'YYYY-MM-DD' format
-    player_id: the player_id of the pitcher
-    extra_stats: whether to include extra stats
-    return_pandas: whether to return a pandas DataFrame (default is False, returning a Polars DataFrame)
+        start_dt: the start date in 'YYYY-MM-DD' format
+        end_dt: the end date in 'YYYY-MM-DD' format
+        player_id: the player_id of the pitcher
+        extra_stats: whether to include extra stats
+        return_pandas: whether to return a pandas DataFrame (default is False, returning a Polars DataFrame)
 
     Returns:
         pl.DataFrame | pd.DataFrame: A DataFrame of statcast data for the date range.

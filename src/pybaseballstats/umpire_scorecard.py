@@ -25,6 +25,49 @@ def umpire_scorecard_games_date_range(
     umpire_name: str = "",
     return_pandas: bool = False,
 ) -> pl.DataFrame | pd.DataFrame:
+    """_summary_
+
+    Parameters
+    ----------
+    start_date : str
+        _description_
+    end_date : str
+        _description_
+    game_type : Literal[, optional
+        _description_, by default "*"
+    focus_team : UmpireScorecardTeams, optional
+        _description_, by default UmpireScorecardTeams.ALL
+    focus_team_home_away : Literal[&quot;h&quot;, &quot;a&quot;, , optional
+        _description_, by default "*"
+    opponent_team : UmpireScorecardTeams, optional
+        _description_, by default UmpireScorecardTeams.ALL
+    umpire_name : str, optional
+        _description_, by default ""
+    return_pandas : bool, optional
+        _description_, by default False
+
+    Returns
+    -------
+    pl.DataFrame | pd.DataFrame
+        _description_
+
+    Raises
+    ------
+    ValueError
+        _description_
+    ValueError
+        _description_
+    ValueError
+        _description_
+    ValueError
+        _description_
+    ValueError
+        _description_
+    ValueError
+        _description_
+    ValueError
+        _description_
+    """
     if start_date is None or end_date is None:
         raise ValueError("Both start_date and end_date must be provided.")
     start_dt = dateparser.parse(start_date)
@@ -90,13 +133,14 @@ def umpire_scorecard_umpires_date_range(
     focus_team_home_away: Literal["h", "a", "*"] = "*",
     opponent_team: UmpireScorecardTeams = UmpireScorecardTeams.ALL,
     umpire_name: str = "",
-    min_games: int = 0,
+    min_games_called: int = 0,
     return_pandas: bool = False,
 ) -> pl.DataFrame | pd.DataFrame:
+    if start_date is None or end_date is None:
+        raise ValueError("Both start_date and end_date must be provided.")
     start_dt = dateparser.parse(start_date)
     end_dt = dateparser.parse(end_date)
-    if start_dt is None or end_dt is None:
-        raise ValueError("Both start_date and end_date must be provided.")
+
     if start_dt > end_dt:
         raise ValueError("start_date must be before end_date.")
     if start_dt.year < 2015 or end_dt.year < 2015:
@@ -133,8 +177,8 @@ def umpire_scorecard_umpires_date_range(
                     team_string += "-a"
                 if focus_team_home_away == "a":
                     team_string += "-h"
-    if min_games < 0:
-        raise ValueError("min_games must be greater than or equal to 0")
+    if min_games_called < 0:
+        raise ValueError("min_games_called must be greater than or equal to 0")
     resp = requests.get(
         UMPIRE_SCORECARD_UMPIRES_URL.format(
             start_date=start_date,
@@ -149,8 +193,8 @@ def umpire_scorecard_umpires_date_range(
     )
     if umpire_name:
         df = df.filter(pl.col("umpire").str.contains(umpire_name))
-    if min_games > 0:
-        df = df.filter(pl.col("n") >= min_games)
+    if min_games_called > 0:
+        df = df.filter(pl.col("n") >= min_games_called)
     return df
 
 
@@ -158,12 +202,14 @@ def umpire_scorecard_teams_date_range(
     start_date: str,
     end_date: str,
     game_type: Literal["*", "R", "A", "P", "F", "D", "L", "W"] = "*",
+    focus_team: UmpireScorecardTeams = UmpireScorecardTeams.ALL,
     return_pandas: bool = False,
 ) -> pl.DataFrame | pd.DataFrame:
+    if start_date is None or end_date is None:
+        raise ValueError("Both start_date and end_date must be provided.")
     start_dt = dateparser.parse(start_date)
     end_dt = dateparser.parse(end_date)
-    if start_dt is None or end_dt is None:
-        raise ValueError("Both start_date and end_date must be provided.")
+
     if start_dt > end_dt:
         raise ValueError("start_date must be before end_date.")
     if start_dt.year < 2015 or end_dt.year < 2015:
@@ -189,4 +235,6 @@ def umpire_scorecard_teams_date_range(
     df = pl.DataFrame(
         json.loads(resp.text)["rows"],
     )
-    return df
+    if focus_team != UmpireScorecardTeams.ALL:
+        df = df.filter(pl.col("team").str.contains(focus_team.value))
+    return df if not return_pandas else df.to_pandas()

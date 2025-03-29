@@ -1,0 +1,85 @@
+import os
+import sys
+
+import pandas as pd
+import polars as pl
+import pytest
+from polars.testing import assert_frame_equal
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+import pybaseballstats as pyb
+
+START_DT = "2024-04-01"
+END_DT = "2024-04-10"
+
+
+def test_statcast_single_game_game_pk_not_correct():
+    data = pyb.statcast_single_game_pitch_by_pitch(
+        game_pk=0,
+    )
+    assert data is not None
+    assert data.shape[0] == 0
+    assert data.shape[1] == 113
+    assert type(data) is pl.DataFrame
+
+
+def test_statcast_single_game_game_pk_correct():
+    data = pyb.statcast_single_game_pitch_by_pitch(
+        game_pk=634, return_pandas=False, extra_stats=False
+    )
+    assert data is not None
+    assert type(data) is pl.DataFrame
+    assert data.shape[0] == 303
+    assert data.shape[1] == 113
+    assert data.select(pl.col("game_pk").n_unique()).item() == 1
+    assert data.select(pl.col("game_pk").unique()).item() == 634
+    assert data.select(pl.col("game_date").n_unique()).item() == 1
+    assert data.select(pl.col("game_date").unique()).item() == "1999-07-21"
+
+    df2 = pyb.statcast_single_game_pitch_by_pitch(
+        game_pk=634, return_pandas=True, extra_stats=False
+    )
+    assert df2 is not None
+    assert type(df2) is pd.DataFrame
+    assert df2.shape[0] == 303
+    assert df2.shape[1] == 113
+    assert_frame_equal(data, pl.DataFrame(df2, schema=data.schema))
+
+
+def test_statcast_single_game_game_pk_correct_extra_stats():
+    df = pyb.statcast_single_game_pitch_by_pitch(
+        game_pk=634, return_pandas=False, extra_stats=True
+    )
+    assert df is not None
+    assert type(df) is pl.DataFrame
+    assert df.shape[0] == 303
+    assert df.shape[1] == 249
+    assert df.select(pl.col("game_pk").n_unique()).item() == 1
+    assert df.select(pl.col("game_pk").unique()).item() == 634
+    assert df.select(pl.col("game_date").n_unique()).item() == 1
+    assert df.select(pl.col("game_date").unique()).item() == "1999-07-21"
+
+
+# single game ev test
+
+
+def test_statcast_single_game_ev_badinputs():
+    with pytest.raises(ValueError):
+        pyb.get_statcast_single_game_exit_velocity(
+            game_pk=745340, game_date="2024/05/10"
+        )
+
+
+def test_statcast_single_game_ev():
+    df = pyb.get_statcast_single_game_exit_velocity(
+        game_pk=745340,
+        game_date="2024-05-10",
+        return_pandas=False,
+    )
+    assert df is not None
+    assert type(df) is pl.DataFrame
+    assert df.shape[0] == 55
+    assert df.shape[1] == 12
+    assert df.select(pl.col("num_pa").max()).item() == 71
+    assert df.select(pl.col("num_pa").min()).item() == 1
+    assert df.select(pl.col("batter_name").n_unique()).item() == 20

@@ -39,7 +39,7 @@ def get_driver():
 
 def statcast_single_game_pitch_by_pitch(
     game_pk: int, extra_stats: bool = False, return_pandas: bool = False
-) -> pl.LazyFrame | pd.DataFrame:
+) -> pl.DataFrame | pd.DataFrame:
     """Pulls statcast data for a single game.
 
     Args:
@@ -48,23 +48,22 @@ def statcast_single_game_pitch_by_pitch(
         return_pandas (bool, optional): whether or not to return as a Pandas DataFrame. Defaults to False (returns Polars LazyFrame).
 
     Returns:
-        pl.LazyFrame | pd.DataFrame: DataFrame of statcast data for the game
+        pl.DataFrame | pd.DataFrame: DataFrame of statcast data for the game
     """
     response = requests.get(
         ROOT_URL + SINGLE_GAME.format(game_pk=game_pk),
     )
     statcast_content = response.content
     if not extra_stats:
-        return (
-            pl.scan_csv(io.StringIO(statcast_content.decode("utf-8")))
-            if not return_pandas
-            else pd.read_csv(io.StringIO(statcast_content.decode("utf-8")))
-        )
+        df = pl.scan_csv(io.StringIO(statcast_content.decode("utf-8"))).collect()
     else:
         df = pl.scan_csv(io.StringIO(statcast_content.decode("utf-8")))
         start_dt = df.select(pl.col("game_date").min())
         end_dt = df.select(pl.col("game_date").max())
-        return asyncio.run(_add_extra_stats(df, start_dt, end_dt, return_pandas))
+        df = asyncio.run(
+            _add_extra_stats(df, start_dt, end_dt, return_pandas)
+        ).collect()
+    return df if not return_pandas else df.to_pandas()
 
 
 def get_available_game_pks_for_date(
@@ -72,6 +71,12 @@ def get_available_game_pks_for_date(
 ):
     available_games = {}
     df = statcast_date_range_pitch_by_pitch(game_date, game_date).collect()
+    if df.shape[0] == 0 or df.shape[1] == 0:
+        # No games found for the specified date
+        print(
+            "No games found for the specified date. Please check the date format / date and try again."
+        )
+        return available_games
     for i, group in df.group_by("game_pk"):
         game_pk = group.select(pl.col("game_pk").first()).item()
         available_games[game_pk] = {}
@@ -85,7 +90,10 @@ def get_available_game_pks_for_date(
 
 
 def _handle_single_game_date(game_date: str):
-    dt_object = datetime.datetime.strptime(game_date, "%Y-%m-%d")
+    try:
+        dt_object = datetime.datetime.strptime(game_date, "%Y-%m-%d")
+    except ValueError:
+        raise ValueError("Incorrect date format. Please use YYYY-MM-DD format.")
     # Format date as month/day/year and replace slashes with %2F for URL encoding
     formatted_date = f"{dt_object.month}/{dt_object.day}/{dt_object.year}"
     url_encoded_date = formatted_date.replace("/", "%2F")
@@ -97,7 +105,11 @@ def get_statcast_single_game_exit_velocity(
     game_date: str,
     return_pandas: bool = False,
 ) -> pl.DataFrame | pd.DataFrame:
-    game_date_str = _handle_single_game_date(game_date)
+    try:
+        game_date_str = _handle_single_game_date(game_date)
+    except ValueError as e:
+        raise e
+
     with get_driver() as driver:
         # Use the URL from the previous cell
         driver.get(
@@ -108,14 +120,12 @@ def get_statcast_single_game_exit_velocity(
 
         # Wait for the chart to load
         wait = WebDriverWait(driver, 10)
-        print("exitVelocityTable_{game_pk}".format(game_pk=game_pk))
         ev_table = wait.until(
             EC.presence_of_element_located(
                 (By.ID, "exitVelocityTable_{game_pk}".format(game_pk=game_pk))
             )
         )
         ev_table_html = ev_table.get_attribute("outerHTML")
-        print(ev_table_html)
 
     soup = BeautifulSoup(ev_table_html, "html.parser")
     table = soup.find("table")
@@ -195,7 +205,7 @@ def get_statcast_single_game_exit_velocity(
             pl.col("exit_velo").cast(pl.Float32),
             pl.col("launch_angle").cast(pl.Float32),
             pl.col("hit_distance").cast(pl.Int16),
-            pl.col("bat_speed").cast(pl.Float32),
+            pl.col("bat_speed").str.replace("⚡", "").cast(pl.Float32),
             pl.col("pitch_velocity").cast(pl.Float32),
             pl.col("xBA").cast(pl.Float32),
         ]
