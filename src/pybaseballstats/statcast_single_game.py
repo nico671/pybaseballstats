@@ -105,10 +105,7 @@ def get_statcast_single_game_exit_velocity(
     game_date: str,
     return_pandas: bool = False,
 ) -> pl.DataFrame | pd.DataFrame:
-    try:
-        game_date_str = _handle_single_game_date(game_date)
-    except ValueError as e:
-        raise e
+    game_date_str = _handle_single_game_date(game_date)
 
     with get_driver() as driver:
         # Use the URL from the previous cell
@@ -310,6 +307,7 @@ def get_statcast_single_game_pitch_velocity(
     )
     df = df.with_columns(
         [
+            pl.col("Inning").cast(pl.Int8),
             pl.col("game_pitch_number").cast(pl.Int32),
             pl.col("pitcher_pitch_number").cast(pl.Int16),
             pl.col("game_pa_number").cast(pl.Int16),

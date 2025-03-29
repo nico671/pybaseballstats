@@ -9,9 +9,6 @@ from polars.testing import assert_frame_equal
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import pybaseballstats as pyb
 
-START_DT = "2024-04-01"
-END_DT = "2024-04-10"
-
 
 def test_statcast_single_game_game_pk_not_correct():
     data = pyb.statcast_single_game_pitch_by_pitch(
@@ -83,3 +80,49 @@ def test_statcast_single_game_ev():
     assert df.select(pl.col("num_pa").max()).item() == 71
     assert df.select(pl.col("num_pa").min()).item() == 1
     assert df.select(pl.col("batter_name").n_unique()).item() == 20
+
+
+def test_statcast_single_game_pv_badinputs():
+    with pytest.raises(ValueError):
+        pyb.get_statcast_single_game_pitch_velocity(
+            game_pk=745340, game_date="2024/05/10"
+        )
+
+
+def test_statcast_single_game_pv():
+    df = pyb.get_statcast_single_game_pitch_velocity(
+        game_pk=745340,
+        game_date="2024-05-10",
+        return_pandas=False,
+    )
+    assert df is not None
+    assert type(df) is pl.DataFrame
+    assert df.shape[0] == 287
+    assert df.shape[1] == 13
+    assert df.select(pl.col("game_pa_number").max()).item() == 73
+    assert df.select(pl.col("game_pa_number").min()).item() == 1
+    assert df.select(pl.col("pitcher_name").n_unique()).item() == 8
+    assert df.select(pl.col("game_pitch_number").max()).item() == 333
+    assert df.select(pl.col("game_pitch_number").min()).item() == 4
+
+
+def test_statcast_single_game_wp_badinputs():
+    with pytest.raises(ValueError):
+        pyb.get_statcast_single_game_wp_table(game_pk=745340, game_date="2024/05/10")
+
+
+def test_statcast_single_game_wp():
+    df = pyb.get_statcast_single_game_wp_table(
+        game_pk=745340,
+        game_date="2024-05-10",
+        return_pandas=False,
+    )
+    assert df is not None
+    assert type(df) is pl.DataFrame
+    assert df.shape[0] == 74
+    assert df.shape[1] == 8
+    assert df.select(pl.col("game_pa_number").max()).item() == 73
+    assert df.select(pl.col("game_pa_number").min()).item() == 0
+    assert df.select(pl.col("pitcher_name").n_unique()).item() == 9
+    assert df.select(pl.col("Home WP%").min()).item() == 0.0
+    assert df.select(pl.col("Away WP%").max()).item() == 100.0

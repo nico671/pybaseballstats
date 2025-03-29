@@ -13,42 +13,6 @@ START_DT = "2024-04-01"
 END_DT = "2024-04-10"
 
 
-def test_statcast_single_game_game_pk_not_correct():
-    data = pyb.statcast_single_game_pitch_by_pitch(
-        game_pk=100000000000, return_pandas=False, extra_stats=False
-    ).collect()
-    assert data is not None
-    assert data.shape[0] == 0
-    assert data.shape[1] == 113
-    assert type(data) is pl.DataFrame
-
-
-def test_statcast_single_game_game_pk_correct():
-    data = pyb.statcast_single_game_pitch_by_pitch(
-        game_pk=634, return_pandas=False, extra_stats=False
-    )
-    assert type(data) is pl.LazyFrame
-    data = data.collect()
-    assert data is not None
-    assert data.shape[0] == 303
-    assert data.shape[1] == 113
-    assert data["game_pk"].unique().shape[0] == 1
-    assert data.select("game_pk").unique().item() == 634
-    assert type(data) is pl.DataFrame
-
-
-def test_statcast_single_game_game_pk_correct_extra_stats():
-    data = pyb.statcast_single_game_pitch_by_pitch(
-        game_pk=634, return_pandas=False, extra_stats=True
-    ).collect()
-    assert data is not None
-    assert data.shape[0] == 303
-    assert data.shape[1] == 249
-    assert data["game_pk"].unique().shape[0] == 1
-    assert data.select("game_pk").unique().item() == 634
-    assert type(data) is pl.DataFrame
-
-
 ## statcast_date_range_pitch_by_pitch_TESTS
 def test_statcast_date_range_pitch_by_pitch():
     data = pyb.statcast_date_range_pitch_by_pitch(
