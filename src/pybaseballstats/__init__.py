@@ -34,6 +34,7 @@ from .statcast_leaderboards import (  # noqa: F401
     statcast_outfield_catch_probability_leaderboard,
     statcast_outsaboveaverage_leaderboard,
     statcast_park_factors_leaderboard_by_years,
+    statcast_park_factors_leaderboard_distance,
     statcast_pitch_arsenal_stats_leaderboard,
     statcast_pitch_arsenals_leaderboard,
 )

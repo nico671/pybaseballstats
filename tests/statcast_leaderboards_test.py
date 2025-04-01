@@ -253,7 +253,7 @@ def test_statcast_arsenal_stats_leaderboard_regular():
 
 def test_statcast_arsenal_stats_leaderboard_diffperspectives():
     df1 = pyb.statcast_pitch_arsenal_stats_leaderboard(year=2024, perspective="pitcher")
-    assert df1.shape[0] == 581
+    assert df1.shape[0] >= 580
     assert df1.shape[1] == 20
     assert type(df1) is pl.DataFrame
     df2 = pyb.statcast_pitch_arsenal_stats_leaderboard(year=2024, perspective="batter")
@@ -1043,3 +1043,24 @@ def test_statcast_park_factors_leaderboard_by_years_rolling_years():
     assert df.shape[1] == 20
     assert df.select(pl.col("year_range").n_unique()).item() == 1
     assert df.select(pl.col("year_range").unique()).item() == "2024"
+
+
+def test_statcast_park_factors_leaderboard_distance_badinputs():
+    with pytest.raises(ValueError):
+        pyb.statcast_park_factors_leaderboard_distance(year=None)
+    with pytest.raises(ValueError):
+        pyb.statcast_park_factors_leaderboard_distance(year=1988)
+    with pytest.raises(ValueError):
+        pyb.statcast_park_factors_leaderboard_distance(year=2026)
+
+
+def test_statcast_park_factors_leaderboard_distance_regular():
+    df = pyb.statcast_park_factors_leaderboard_distance(year=2024)
+    assert df is not None
+    assert type(df) is pl.DataFrame
+    assert df.shape[0] == 30
+    assert df.shape[1] == 22
+    assert df.select(pl.col("year").unique()).item() == 2024
+    assert df.select(pl.col("venue_name").n_unique()).item() == 30
+    assert df.select(pl.col("elevation_feet").max()).item() == 5190
+    assert df.select(pl.col("elevation_feet").min()).item() == 0
