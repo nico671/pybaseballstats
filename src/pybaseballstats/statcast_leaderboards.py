@@ -927,3 +927,63 @@ def statcast_park_factors_leaderboard_by_years(
     cols.insert(2, cols.pop(cols.index("year_range")))
     df = df.select(cols)
     return df if not return_pandas else df.to_pandas()
+
+
+PARK_FACTORS_DISTANCE_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/statcast-park-factors?type=distance&year={year}&batSide=&stat=index_wOBA&condition=All&rolling=3&parks=mlb&csv=true"
+
+
+def statcast_park_factors_leaderboard_distance(
+    year: int, return_pandas: bool = False
+) -> pl.DataFrame | pd.DataFrame:
+    if year is None:
+        raise ValueError("year must be provided")
+    if year > 2024 or year < 2016:
+        raise ValueError("year must be between 2016 and 2024")
+
+    resp = requests.get(
+        PARK_FACTORS_DISTANCE_LEADERBOARD_URL.format(
+            year=year,
+        )
+    )
+
+    soup = BeautifulSoup(resp.content, "html.parser")
+    data = soup.select_one(
+        "#leaderboard_statcast-park-factors > div.article-template > script"
+    )
+    data = data.text.split("\n")[1]
+    data = data.split("[")[1]
+    data = data.split("]")[0]
+    data = json.loads(f"[{data}]")
+
+    df = pl.DataFrame(data)
+    df = df.with_columns(
+        pl.col(
+            [
+                "year",
+                "venue_id",
+                "main_team_id",
+                "elevation_feet",
+                "n",
+                "avg_roof",
+                "avg_daytime",
+                "n_year_venue_roof_for_cool_hot_code",
+            ]
+        ).cast(pl.Int32),
+        pl.col(
+            [
+                "avg_temperature",
+                "extra_distance",
+                "temperature_extra_distance",
+                "elevation_extra_distance",
+                "roof_extra_distance",
+                "environment_extra_distance",
+                "avg_temp_cool",
+                "extra_distance_cool",
+                "avg_temp_warm",
+                "extra_distance_warm",
+                "avg_temp_hot",
+                "extra_distance_hot",
+            ]
+        ),
+    )
+    return df if not return_pandas else df.to_pandas()

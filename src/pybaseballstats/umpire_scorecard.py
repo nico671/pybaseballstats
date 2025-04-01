@@ -25,49 +25,6 @@ def umpire_scorecard_games_date_range(
     umpire_name: str = "",
     return_pandas: bool = False,
 ) -> pl.DataFrame | pd.DataFrame:
-    """_summary_
-
-    Parameters
-    ----------
-    start_date : str
-        _description_
-    end_date : str
-        _description_
-    game_type : Literal[, optional
-        _description_, by default "*"
-    focus_team : UmpireScorecardTeams, optional
-        _description_, by default UmpireScorecardTeams.ALL
-    focus_team_home_away : Literal[&quot;h&quot;, &quot;a&quot;, , optional
-        _description_, by default "*"
-    opponent_team : UmpireScorecardTeams, optional
-        _description_, by default UmpireScorecardTeams.ALL
-    umpire_name : str, optional
-        _description_, by default ""
-    return_pandas : bool, optional
-        _description_, by default False
-
-    Returns
-    -------
-    pl.DataFrame | pd.DataFrame
-        _description_
-
-    Raises
-    ------
-    ValueError
-        _description_
-    ValueError
-        _description_
-    ValueError
-        _description_
-    ValueError
-        _description_
-    ValueError
-        _description_
-    ValueError
-        _description_
-    ValueError
-        _description_
-    """
     if start_date is None or end_date is None:
         raise ValueError("Both start_date and end_date must be provided.")
     start_dt = dateparser.parse(start_date)
