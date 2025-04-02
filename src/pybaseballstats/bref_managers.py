@@ -1,30 +1,13 @@
-from contextlib import contextmanager
-
 import pandas as pd
 import polars as pl
 from bs4 import BeautifulSoup
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
+from pybaseballstats.utils.bref_singleton import BREFSingleton
 
-@contextmanager
-def get_driver():
-    """Provides a WebDriver instance that automatically quits on exit."""
-    options = Options()
-    options.add_argument("--headless")
-    options.add_argument("--disable-gpu")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-
-    driver = webdriver.Chrome(options=options)
-    try:
-        yield driver  # Hands control to the function using it
-    finally:
-        driver.quit()  # Ensures WebDriver is always closed
-
+bref = BREFSingleton.instance()
 
 MANAGERS_URL = "https://www.baseball-reference.com/leagues/majors/{year}-managers.shtml#manager_record"
 
@@ -36,8 +19,9 @@ def managers_basic_data(
         raise ValueError("Year must be provided")
     if not isinstance(year, int):
         raise TypeError("Year must be an integer")
-    print("getting driver")
-    with get_driver() as driver:
+    if year < 1871:
+        raise ValueError("Year must be greater than 1871")
+    with bref.get_driver() as driver:
         try:
             driver.get(MANAGERS_URL.format(year=year))
             wait = WebDriverWait(driver, 15)
@@ -92,4 +76,84 @@ def managers_basic_data(
             pl.col("L_post").cast(pl.Int32).alias("postseason_losses"),
         ]
     ).drop(["W_post", "L_post"])
+    return df if not return_pandas else df.to_pandas()
+
+
+MANAGER_TENDENCY_URL = "https://www.baseball-reference.com/leagues/majors/{year}-managers.shtml#manager_tendencies"
+
+
+def manager_tendencies_data(
+    year: int, return_pandas: bool = False
+) -> pl.DataFrame | pd.DataFrame:
+    if not year:
+        raise ValueError("Year must be provided")
+    if not isinstance(year, int):
+        raise TypeError("Year must be an integer")
+    if year < 1871:
+        raise ValueError("Year must be greater than 1871")
+
+    with bref.get_driver() as driver:
+        driver.get(MANAGER_TENDENCY_URL.format(year=year))
+        wait = WebDriverWait(driver, 15)
+        draft_table = wait.until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "#manager_tendencies"))
+        )
+
+        soup = BeautifulSoup(draft_table.get_attribute("outerHTML"), "lxml")
+    table = soup.find("table", {"id": "manager_tendencies"})
+    thead = soup.find_all("thead")[0]
+
+    thead_rows = thead.find_all("tr")
+    thead_rows = thead_rows[1]
+    headers = []
+    for th in thead_rows.find_all("th"):
+        headers.append(th.attrs["data-stat"])
+    headers.remove("ranker")
+    headers = list(set(headers))
+    tbody = table.find_all("tbody")[0]
+    row_data = {}
+
+    body_rows = tbody.find_all("tr")
+    for tr in body_rows:
+        for td in tr.find_all("td"):
+            print(td)
+            if td.attrs["data-stat"] not in row_data:
+                row_data[td.attrs["data-stat"]] = []
+            row_data[td.attrs["data-stat"]].append(td.get_text(strip=True))
+    df = pl.DataFrame(row_data)
+    df = df.select(pl.all().str.replace("", "0").str.replace("%", ""))
+    df = df.with_columns(
+        pl.col(
+            [
+                "age",
+                "manager_games",
+                "steal_2b_chances",
+                "steal_2b_attempts",
+                "steal_2b_rate_plus",
+                "steal_3b_chances",
+                "steal_3b_attempts",
+                "steal_3b_rate_plus",
+                "sac_bunt_chances",
+                "sac_bunts",
+                "sac_bunt_rate_plus",
+                "ibb_chances",
+                "ibb",
+                "ibb_rate_plus",
+                "pinch_hitters_plus",
+                "pinch_runners_plus",
+                "pitchers_used_per_game_plus",
+            ]
+        ).cast(pl.Int32),
+        pl.col(
+            [
+                "steal_2b_rate",
+                "steal_3b_rate",
+                "sac_bunt_rate",
+                "ibb_rate",
+                "pinch_hitters",
+                "pinch_runners",
+                "pitchers_used_per_game",
+            ]
+        ).cast(pl.Float32),
+    )
     return df if not return_pandas else df.to_pandas()

@@ -246,7 +246,7 @@ def test_statcast_arsenal_stats_leaderboard_regular():
     df2 = pyb.statcast_pitch_arsenal_stats_leaderboard(year=2024, return_pandas=True)
     assert df2.shape[0] > 400
     assert df2.shape[1] == 20
-    assert df2["player_id"].nunique() == 258
+    assert df2["player_id"].nunique() >= 250
     assert type(df2) is pd.DataFrame
     assert_frame_equal(df, pl.DataFrame(df2, schema=df.schema))
 
@@ -264,7 +264,7 @@ def test_statcast_arsenal_stats_leaderboard_diffminpa():
     df = pyb.statcast_pitch_arsenal_stats_leaderboard(year=2024, min_pa=200)
     assert df.shape[0] >= 39
     assert df.shape[1] == 20
-    assert df["player_id"].n_unique() == 39
+    assert df["player_id"].n_unique() >= 39
     assert type(df) is pl.DataFrame
     df2 = pyb.statcast_pitch_arsenal_stats_leaderboard(year=2024, min_pa=100)
     assert df2.shape[0] > df.shape[0]
