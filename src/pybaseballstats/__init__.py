@@ -60,3 +60,16 @@ from .utils.fangraphs_utils import (  # noqa: F401
     FangraphsPitchingStatType,
     FangraphsTeams,
 )
+
+# TODO: switch to this versioning, need to update tests
+# from . import (
+#     bref_draft,
+#     fangraphs,
+#     fangraphs_single_game,
+#     plotting,
+#     retrosheet,
+#     statcast,
+#     statcast_leaderboards,
+#     statcast_single_game,
+#     umpire_scorecard,
+# )

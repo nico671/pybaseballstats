@@ -8,10 +8,11 @@ from bs4 import BeautifulSoup
 
 from pybaseballstats.utils.statcast_utils import _handle_dates
 
-BAT_TRACKING_URL = "https://baseballsavant.mlb.com/leaderboard/bat-tracking?attackZone=&batSide=&contactType=&count=&dateStart={start_dt}&dateEnd={end_dt}&gameType=&groupBy=&isHardHit=&minSwings={min_swings}&minGroupSwings=1&pitchHand=&pitchType=&seasonStart=&seasonEnd=&team=&type={perspective}&csv=true"
-
+BAT_TRACKING_URL = "https://baseballsavant.mlb.com/leaderboard/bat-tracking?attackZone=&batSide=&contactType=&count=&dateStart={start_dt}&dateEnd={end_dt}&gameType=&groupBy=&isHardHit=&minSwings={min_swings}&minGroupSwings=1&pitchHand=&pitchType=&seasonStart={start_season}&seasonEnd={end_season}&team=&type={perspective}&csv=true"
 
 # TODO: usage docs
+
+
 def statcast_bat_tracking_leaderboard(
     start_dt: str,
     end_dt: str,
@@ -42,6 +43,8 @@ def statcast_bat_tracking_leaderboard(
     if start_dt is None or end_dt is None:
         raise ValueError("Both start_dt and end_dt must be provided")
     start_dt, end_dt = _handle_dates(start_dt, end_dt)
+    start_season = start_dt.year
+    end_season = end_dt.year
     if start_dt.year < 2023 or end_dt.year < 2023:
         raise ValueError("Bat tracking data is only available from 2023 onwards")
     if start_dt > end_dt:
@@ -67,6 +70,8 @@ def statcast_bat_tracking_leaderboard(
             BAT_TRACKING_URL.format(
                 start_dt=start_dt,
                 end_dt=end_dt,
+                start_season=start_season,
+                end_season=end_season,
                 min_swings=min_swings,
                 perspective=perspective,
             )

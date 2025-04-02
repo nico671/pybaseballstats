@@ -1,31 +1,16 @@
 # TODO: Usage documentation
 
-from contextlib import contextmanager
 
 import pandas as pd
 import polars as pl
 from bs4 import BeautifulSoup
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
+from pybaseballstats.utils.bref_singleton import BREFSingleton
 
-@contextmanager
-def get_driver():
-    """Provides a WebDriver instance that automatically quits on exit."""
-    options = Options()
-    options.add_argument("--headless")
-    options.add_argument("--disable-gpu")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-
-    driver = webdriver.Chrome(options=options)
-    try:
-        yield driver  # Hands control to the function using it
-    finally:
-        driver.quit()  # Ensures WebDriver is always closed
+bref = BREFSingleton.instance()
 
 
 BREF_DRAFT_URL = "https://www.baseball-reference.com/draft/index.fcgi?year_ID={draft_year}&draft_round={draft_round}&draft_type=junreg&query_type=year_round&from_type_hs=0&from_type_jc=0&from_type_4y=0&from_type_unk=0"
@@ -53,7 +38,7 @@ def draft_order_by_round(
     if draft_round < 1 or draft_round > 60:
         raise ValueError("Draft round must be between 1 and 60")
 
-    with get_driver() as driver:
+    with bref.get_driver() as driver:
         driver.get(BREF_DRAFT_URL.format(draft_year=year, draft_round=draft_round))
         wait = WebDriverWait(driver, 15)
         draft_table = wait.until(
@@ -149,7 +134,7 @@ def franchise_draft_order(
     ]:
         raise ValueError("Invalid team abbreviation")
 
-    with get_driver() as driver:
+    with bref.get_driver() as driver:
         driver.get(TEAM_YEAR_DRAFT_URL.format(year=year, team=team))
 
         wait = WebDriverWait(driver, 15)

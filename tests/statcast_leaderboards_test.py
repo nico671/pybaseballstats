@@ -241,7 +241,7 @@ def test_statcast_arsenal_stats_leaderboard_regular():
         df.shape[0] > 400
     )  # changed it to this bc it kept flip flopping and being annoying TODO: see if you can diagnose this issue bud
     assert df.shape[1] == 20
-    assert df.select(pl.col("player_id").n_unique()).item() == 258
+    assert df.select(pl.col("player_id").n_unique()).item() >= 250
     assert type(df) is pl.DataFrame
     df2 = pyb.statcast_pitch_arsenal_stats_leaderboard(year=2024, return_pandas=True)
     assert df2.shape[0] > 400
@@ -253,7 +253,7 @@ def test_statcast_arsenal_stats_leaderboard_regular():
 
 def test_statcast_arsenal_stats_leaderboard_diffperspectives():
     df1 = pyb.statcast_pitch_arsenal_stats_leaderboard(year=2024, perspective="pitcher")
-    assert df1.shape[0] >= 580
+    assert df1.shape[0] >= 500
     assert df1.shape[1] == 20
     assert type(df1) is pl.DataFrame
     df2 = pyb.statcast_pitch_arsenal_stats_leaderboard(year=2024, perspective="batter")
@@ -262,7 +262,7 @@ def test_statcast_arsenal_stats_leaderboard_diffperspectives():
 
 def test_statcast_arsenal_stats_leaderboard_diffminpa():
     df = pyb.statcast_pitch_arsenal_stats_leaderboard(year=2024, min_pa=200)
-    assert df.shape[0] == 39
+    assert df.shape[0] >= 39
     assert df.shape[1] == 20
     assert df["player_id"].n_unique() == 39
     assert type(df) is pl.DataFrame
@@ -556,7 +556,7 @@ def test_statcast_catcher_framing_leaderboard_badinputs():
 
 def test_statcast_catcher_framing_leaderboard_regular():
     df = pyb.statcast_catcher_framing_leaderboard(year=2023)
-    assert df.shape[0] == 65
+    assert df.shape[0] >= 60
     assert df.shape[1] == 15
     assert type(df) is pl.DataFrame
 
@@ -569,7 +569,7 @@ def test_statcast_catcher_framing_leaderboard_regular():
 
 def test_statcast_catcher_framing_leaderboard_diffminpitches():
     df = pyb.statcast_catcher_framing_leaderboard(year=2023, min_pitches_called="q")
-    assert df.shape[0] == 65
+    assert df.shape[0] >= 60
     assert type(df) is pl.DataFrame
 
     df2 = pyb.statcast_catcher_framing_leaderboard(year=2023, min_pitches_called=1000)

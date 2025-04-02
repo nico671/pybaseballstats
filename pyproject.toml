@@ -1,6 +1,6 @@
 [project]
 name = "pybaseballstats"
-version = "0.2.1"
+version = "0.2.2"
 description = "A Python package for scraping baseball data."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -8,6 +8,8 @@ dependencies = [
     "aiohttp>=3.11.11",
     "bs4>=0.0.2",
     "dateparser>=1.2.1",
+    "html5lib>=1.1",
+    "lxml>=5.3.1",
     "matplotlib>=3.10.0",
     "nest-asyncio>=1.6.0",
     "pandas>=2.2.3",
@@ -44,6 +46,9 @@ Repository = "https://github.com/nico671/pybaseballstats"
 
 [tool.uv.workspace]
 members = ["pybaseballstats"]
+
+[tool.uv.sources]
+pybaseballstats = { workspace = true }
 [build-system]
 requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
@@ -53,6 +58,7 @@ dev = [
     "coverage>=7.6.12",
     "hypothesis>=6.127.1",
     "ipykernel>=6.29.5",
+    "pybaseballstats",
     "pytest>=8.3.4",
     "ruff>=0.9.7",
 ]
