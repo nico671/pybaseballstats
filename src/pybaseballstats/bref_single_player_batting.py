@@ -28,7 +28,9 @@ def _extract_table(table):
     return row_data
 
 
-#  TODO: split this function
+# TODO: docsttrings for all functions
+# TODO: add tests for all functions
+# TODO: usage documentation for all functions
 def single_player_standard_batting(
     player_code: str, return_pandas: bool = False
 ) -> pl.DataFrame | pd.DataFrame:
@@ -93,6 +95,29 @@ def single_player_standard_batting(
     standard_stats_df = standard_stats_df.select(
         pl.all().name.map(lambda col_name: col_name.replace("_abbr", ""))
     )
+    standard_stats_df = standard_stats_df.with_columns(
+        pl.lit(player_code).alias("key_bbref")
+    )
+    return standard_stats_df if not return_pandas else standard_stats_df.to_pandas()
+
+
+def single_player_value_batting(
+    player_code: str, return_pandas: bool = False
+) -> pl.DataFrame | pd.DataFrame:
+    last_name_initial = player_code[0].lower()
+    with bref.get_driver() as driver:
+        driver.get(
+            BREF_SINGLE_PLAYER_BATTING_URL.format(
+                initial=last_name_initial, player_code=player_code
+            )
+        )
+        wait = WebDriverWait(driver, 15)
+        standard_stats_table = wait.until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "#content"))
+        )
+        soup = BeautifulSoup(
+            standard_stats_table.get_attribute("outerHTML"), "html.parser"
+        )
     value_batting_table = soup.find("div", {"id": "all_players_value_batting"})
     value_batting_table = value_batting_table.find("table")
     value_batting_df = pl.DataFrame(_extract_table(value_batting_table))
@@ -130,6 +155,29 @@ def single_player_standard_batting(
             ]
         ).cast(pl.Float32),
     )
+    value_batting_df = value_batting_df.with_columns(
+        pl.lit(player_code).alias("key_bbref")
+    )
+    return value_batting_df if not return_pandas else value_batting_df.to_pandas()
+
+
+def single_player_advanced_batting(
+    player_code: str, return_pandas: bool = False
+) -> pl.DataFrame | pd.DataFrame:
+    last_name_initial = player_code[0].lower()
+    with bref.get_driver() as driver:
+        driver.get(
+            BREF_SINGLE_PLAYER_BATTING_URL.format(
+                initial=last_name_initial, player_code=player_code
+            )
+        )
+        wait = WebDriverWait(driver, 15)
+        standard_stats_table = wait.until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "#content"))
+        )
+        soup = BeautifulSoup(
+            standard_stats_table.get_attribute("outerHTML"), "html.parser"
+        )
     advanced_batting_table = soup.find("div", {"id": "all_players_advanced_batting"})
 
     advanced_batting_table = advanced_batting_table.find("table")
@@ -177,11 +225,7 @@ def single_player_standard_batting(
             ]
         ).cast(pl.Float32),
     )
-    df = standard_stats_df.join(value_batting_df, on="age", how="inner").select(
-        pl.exclude("^.*_right$")
+    advanced_batting_df = advanced_batting_df.with_columns(
+        pl.lit(player_code).alias("key_bbref")
     )
-    df = df.join(advanced_batting_df, on="age", how="inner").select(
-        pl.exclude("^.*_right$")
-    )
-    df = df.with_columns(pl.lit(player_code).alias("key_bbref"))
-    return df if not return_pandas else df.to_pandas()
+    return advanced_batting_df if not return_pandas else advanced_batting_df.to_pandas()
