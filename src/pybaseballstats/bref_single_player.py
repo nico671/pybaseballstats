@@ -29,7 +29,7 @@ def _extract_table(table):
 
 
 # TODO: docsttrings for all functions
-# TODO: add tests for all functions
+# TODO: decide whether or not to merge these 3 functions
 # TODO: usage documentation for all functions
 def single_player_standard_batting(
     player_code: str, return_pandas: bool = False
