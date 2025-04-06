@@ -11,7 +11,7 @@ import pybaseballstats as pyb
 
 
 def test_statcast_single_game_game_pk_not_correct():
-    data = pyb.statcast_single_game_pitch_by_pitch(
+    data = pyb.statcast_single_game.statcast_single_game_pitch_by_pitch(
         game_pk=0,
     )
     assert data is not None
@@ -21,7 +21,7 @@ def test_statcast_single_game_game_pk_not_correct():
 
 
 def test_statcast_single_game_game_pk_correct():
-    data = pyb.statcast_single_game_pitch_by_pitch(
+    data = pyb.statcast_single_game.statcast_single_game_pitch_by_pitch(
         game_pk=634, return_pandas=False, extra_stats=False
     )
     assert data is not None
@@ -33,7 +33,7 @@ def test_statcast_single_game_game_pk_correct():
     assert data.select(pl.col("game_date").n_unique()).item() == 1
     assert data.select(pl.col("game_date").unique()).item() == "1999-07-21"
 
-    df2 = pyb.statcast_single_game_pitch_by_pitch(
+    df2 = pyb.statcast_single_game.statcast_single_game_pitch_by_pitch(
         game_pk=634, return_pandas=True, extra_stats=False
     )
     assert df2 is not None
@@ -44,7 +44,7 @@ def test_statcast_single_game_game_pk_correct():
 
 
 def test_statcast_single_game_game_pk_correct_extra_stats():
-    df = pyb.statcast_single_game_pitch_by_pitch(
+    df = pyb.statcast_single_game.statcast_single_game_pitch_by_pitch(
         game_pk=634, return_pandas=False, extra_stats=True
     )
     assert df is not None
@@ -62,13 +62,13 @@ def test_statcast_single_game_game_pk_correct_extra_stats():
 
 def test_statcast_single_game_ev_badinputs():
     with pytest.raises(ValueError):
-        pyb.get_statcast_single_game_exit_velocity(
+        pyb.statcast_single_game.get_statcast_single_game_exit_velocity(
             game_pk=745340, game_date="2024/05/10"
         )
 
 
 def test_statcast_single_game_ev():
-    df = pyb.get_statcast_single_game_exit_velocity(
+    df = pyb.statcast_single_game.get_statcast_single_game_exit_velocity(
         game_pk=745340,
         game_date="2024-05-10",
         return_pandas=False,
@@ -84,13 +84,13 @@ def test_statcast_single_game_ev():
 
 def test_statcast_single_game_pv_badinputs():
     with pytest.raises(ValueError):
-        pyb.get_statcast_single_game_pitch_velocity(
+        pyb.statcast_single_game.get_statcast_single_game_pitch_velocity(
             game_pk=745340, game_date="2024/05/10"
         )
 
 
 def test_statcast_single_game_pv():
-    df = pyb.get_statcast_single_game_pitch_velocity(
+    df = pyb.statcast_single_game.get_statcast_single_game_pitch_velocity(
         game_pk=745340,
         game_date="2024-05-10",
         return_pandas=False,
@@ -108,11 +108,13 @@ def test_statcast_single_game_pv():
 
 def test_statcast_single_game_wp_badinputs():
     with pytest.raises(ValueError):
-        pyb.get_statcast_single_game_wp_table(game_pk=745340, game_date="2024/05/10")
+        pyb.statcast_single_game.get_statcast_single_game_wp_table(
+            game_pk=745340, game_date="2024/05/10"
+        )
 
 
 def test_statcast_single_game_wp():
-    df = pyb.get_statcast_single_game_wp_table(
+    df = pyb.statcast_single_game.get_statcast_single_game_wp_table(
         game_pk=745340,
         game_date="2024-05-10",
         return_pandas=False,

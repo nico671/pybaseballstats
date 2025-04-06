@@ -5,112 +5,105 @@ import polars as pl
 import pytest
 from polars.testing import assert_frame_equal, assert_series_equal
 
-from pybaseballstats.utils.consts import (
-    FangraphsBattingPosTypes,
-    FangraphsPitchingStatType,
-)
-
-# 15th test
-# Setup path to import pybaseballstats
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import pybaseballstats as pyb
 
 
 def test_fangraphs_batting_range_bad_inputs():
     with pytest.raises(ValueError):
-        pyb.fangraphs_batting_range(
+        pyb.fangraphs.fangraphs_batting_range(
             start_date="2024-04-01",
             end_date="2024-05-01",
             start_year=2024,
             end_year=2024,
         )
     with pytest.raises(ValueError):
-        pyb.fangraphs_batting_range(
+        pyb.fangraphs.fangraphs_batting_range(
             start_date=None,
             end_date=None,
             start_year=None,
             end_year=None,
         )
     with pytest.raises(ValueError):
-        pyb.fangraphs_batting_range(
+        pyb.fangraphs.fangraphs_batting_range(
             start_date="04-01-2024",
             end_date="05-01-2024",
         )
     with pytest.raises(ValueError):
-        pyb.fangraphs_batting_range(
+        pyb.fangraphs.fangraphs_batting_range(
             start_date="2024-05-01",
             end_date="2024-03-01",
         )
     with pytest.raises(ValueError):
-        pyb.fangraphs_batting_range(
+        pyb.fangraphs.fangraphs_batting_range(
             start_year=2024,
             end_year=2023,
         )
     with pytest.raises(ValueError):
-        pyb.fangraphs_batting_range(
+        pyb.fangraphs.fangraphs_batting_range(
             start_date="2024-04-01",
             end_date="2024-05-01",
             min_pa="q",
         )
     with pytest.raises(ValueError):
-        pyb.fangraphs_batting_range(
+        pyb.fangraphs.fangraphs_batting_range(
             start_date="2024-04-01",
             end_date="2024-05-01",
             min_pa=-1,
         )
     with pytest.raises(ValueError):
-        pyb.fangraphs_batting_range(
+        pyb.fangraphs.fangraphs_batting_range(
             start_date="2024-04-01",
             end_date="2024-05-01",
             fielding_position="notenum",
         )
     with pytest.raises(ValueError):
-        pyb.fangraphs_batting_range(
+        pyb.fangraphs.fangraphs_batting_range(
             start_date="2024-04-01",
             end_date="2024-05-01",
             active_roster_only="invalid",
         )
     with pytest.raises(ValueError):
-        pyb.fangraphs_batting_range(
+        pyb.fangraphs.fangraphs_batting_range(
             start_date="2024-04-01",
             end_date="2024-05-01",
             team="invalid",
         )
     with pytest.raises(ValueError):
-        pyb.fangraphs_batting_range(
+        pyb.fangraphs.fangraphs_batting_range(
             start_date="2024-04-01",
             end_date="2024-05-01",
             league="not al nl or empty",
         )
     with pytest.raises(ValueError):
-        pyb.fangraphs_batting_range(
+        pyb.fangraphs.fangraphs_batting_range(
             start_date="2024-04-01",
             end_date="2024-05-01",
             min_age=13,
             max_age=12,
         )
     with pytest.raises(ValueError):
-        pyb.fangraphs_batting_range(
+        pyb.fangraphs.fangraphs_batting_range(
             start_date="2024-04-01",
             end_date="2024-05-01",
             min_age=13,
             max_age=25,
         )
     with pytest.raises(ValueError):
-        pyb.fangraphs_batting_range(
+        pyb.fangraphs.fangraphs_batting_range(
             start_date="2024-04-01",
             end_date="2024-05-01",
             min_age=25,
             max_age=70,
         )
     with pytest.raises(ValueError):
-        pyb.fangraphs_batting_range(
+        pyb.fangraphs.fangraphs_batting_range(
             start_date="2024-04-01",
             end_date="2024-05-01",
             batting_hand="invalid",
         )
     with pytest.raises(ValueError):
-        pyb.fangraphs_batting_range(
+        pyb.fangraphs.fangraphs_batting_range(
             start_date="2024-04-01",
             end_date="2024-05-01",
             stat_types=["invalid"],
@@ -118,7 +111,7 @@ def test_fangraphs_batting_range_bad_inputs():
 
 
 def test_fangraphs_batting_range_dates():
-    df = pyb.fangraphs_batting_range(
+    df = pyb.fangraphs.fangraphs_batting_range(
         start_date="2024-04-01",
         end_date="2024-04-10",
     )
@@ -128,7 +121,7 @@ def test_fangraphs_batting_range_dates():
     assert df.select(pl.col("Season").n_unique()).item() == 1
     assert df.select(pl.col("Season").unique().first()).item() == 2024
     assert df.select(pl.col("xMLBAMID").n_unique()).item() == 199
-    df1 = pyb.fangraphs_batting_range(
+    df1 = pyb.fangraphs.fangraphs_batting_range(
         start_date="2024-04-01",
         end_date="2024-04-10",
         return_pandas=True,
@@ -140,7 +133,7 @@ def test_fangraphs_batting_range_dates():
 
 
 def test_fangraphs_batting_range_years():
-    df = pyb.fangraphs_batting_range(
+    df = pyb.fangraphs.fangraphs_batting_range(
         start_year=2023,
         end_year=2024,
     )
@@ -155,7 +148,7 @@ def test_fangraphs_batting_range_years():
 
 
 def test_fangraphs_batting_range_minpa():
-    df = pyb.fangraphs_batting_range(
+    df = pyb.fangraphs.fangraphs_batting_range(
         start_date="2024-04-01",
         end_date="2024-04-10",
         min_pa=10,
@@ -165,7 +158,7 @@ def test_fangraphs_batting_range_minpa():
     assert df.shape[1] == 316
     assert df.select(pl.col("PA").min()).item() >= 10
     assert df.select(pl.col("xMLBAMID").n_unique()).item() == 339
-    df1 = pyb.fangraphs_batting_range(
+    df1 = pyb.fangraphs.fangraphs_batting_range(
         start_date="2024-04-01",
         end_date="2024-04-10",
         min_pa="y",
@@ -177,10 +170,10 @@ def test_fangraphs_batting_range_minpa():
 
 
 def test_fangraphs_batting_range_fielding_position():
-    df = pyb.fangraphs_batting_range(
+    df = pyb.fangraphs.fangraphs_batting_range(
         start_date="2024-04-01",
         end_date="2024-04-10",
-        fielding_position=FangraphsBattingPosTypes.CATCHER,
+        fielding_position=pyb.fangraphs.FangraphsBattingPosTypes.CATCHER,
     )
     assert df is not None
     assert df.shape[0] == 16
@@ -191,10 +184,10 @@ def test_fangraphs_batting_range_fielding_position():
 
 
 def test_fangraphs_batting_range_team():
-    df = pyb.fangraphs_batting_range(
+    df = pyb.fangraphs.fangraphs_batting_range(
         start_date="2024-04-01",
         end_date="2024-04-10",
-        team=pyb.FangraphsTeams.NATIONALS,
+        team=pyb.fangraphs.FangraphsTeams.NATIONALS,
     )
     assert df is not None
     assert df.shape[0] == 5
@@ -204,7 +197,7 @@ def test_fangraphs_batting_range_team():
 
 
 def test_fangraphs_batting_range_league():
-    df = pyb.fangraphs_batting_range(
+    df = pyb.fangraphs.fangraphs_batting_range(
         start_date="2024-04-01",
         end_date="2024-04-10",
         league="al",
@@ -216,7 +209,7 @@ def test_fangraphs_batting_range_league():
 
 
 def test_fangraphs_batting_range_age():
-    df = pyb.fangraphs_batting_range(
+    df = pyb.fangraphs.fangraphs_batting_range(
         start_date="2024-04-01",
         end_date="2024-04-10",
         min_age=20,
@@ -231,7 +224,7 @@ def test_fangraphs_batting_range_age():
 
 
 def test_fangraphs_batting_range_handedness():
-    df = pyb.fangraphs_batting_range(
+    df = pyb.fangraphs.fangraphs_batting_range(
         start_date="2024-04-01",
         end_date="2024-04-10",
         batting_hand="R",
@@ -241,7 +234,7 @@ def test_fangraphs_batting_range_handedness():
     assert df.shape[1] == 316
     assert df.select(pl.col("Bats").n_unique()).item() == 1
     assert df.select(pl.col("Bats").first()).item() == "R"
-    df1 = pyb.fangraphs_batting_range(
+    df1 = pyb.fangraphs.fangraphs_batting_range(
         start_date="2024-04-01",
         end_date="2024-04-10",
         batting_hand="S",
@@ -255,93 +248,93 @@ def test_fangraphs_batting_range_handedness():
 
 def test_fangraphs_pitching_range_badinputs():
     with pytest.raises(ValueError):
-        pyb.fangraphs_pitching_range(
+        pyb.fangraphs.fangraphs_pitching_range(
             start_date="2024-04-01",
             end_date="2024-05-01",
             start_year=2024,
             end_year=2024,
         )
     with pytest.raises(ValueError):
-        pyb.fangraphs_pitching_range(
+        pyb.fangraphs.fangraphs_pitching_range(
             start_date=None,
             end_date=None,
             start_year=None,
             end_year=None,
         )
     with pytest.raises(ValueError):
-        pyb.fangraphs_pitching_range(
+        pyb.fangraphs.fangraphs_pitching_range(
             start_date="04-01-2024",
             end_year=2024,
         )
     with pytest.raises(ValueError):
-        pyb.fangraphs_pitching_range(
+        pyb.fangraphs.fangraphs_pitching_range(
             start_date="2024-05-01",
             end_date="2024-03-01",
         )
     with pytest.raises(ValueError):
-        pyb.fangraphs_pitching_range(
+        pyb.fangraphs.fangraphs_pitching_range(
             start_year=2024,
             end_year=2023,
         )
     with pytest.raises(ValueError):
-        pyb.fangraphs_pitching_range(
+        pyb.fangraphs.fangraphs_pitching_range(
             start_date="2024-04-01",
             end_date="2024-05-01",
             min_ip="q",
         )
     with pytest.raises(ValueError):
-        pyb.fangraphs_pitching_range(
+        pyb.fangraphs.fangraphs_pitching_range(
             start_date="2024-04-01",
             end_date="2024-05-01",
             min_ip=-1,
         )
     with pytest.raises(ValueError):
-        pyb.fangraphs_pitching_range(
+        pyb.fangraphs.fangraphs_pitching_range(
             start_date="2024-04-01",
             end_date="2024-05-01",
             team="invalid",
         )
     with pytest.raises(ValueError):
-        pyb.fangraphs_pitching_range(
+        pyb.fangraphs.fangraphs_pitching_range(
             start_date="2024-04-01",
             end_date="2024-05-01",
             league="not al nl or empty",
         )
     with pytest.raises(ValueError):
-        pyb.fangraphs_pitching_range(
+        pyb.fangraphs.fangraphs_pitching_range(
             start_date="2024-04-01",
             end_date="2024-05-01",
             min_age=13,
             max_age=12,
         )
     with pytest.raises(ValueError):
-        pyb.fangraphs_pitching_range(
+        pyb.fangraphs.fangraphs_pitching_range(
             start_date="2024-04-01",
             end_date="2024-05-01",
             min_age=13,
             max_age=25,
         )
     with pytest.raises(ValueError):
-        pyb.fangraphs_pitching_range(
+        pyb.fangraphs.fangraphs_pitching_range(
             start_date="2024-04-01",
             end_date="2024-05-01",
             min_age=25,
             max_age=70,
         )
     with pytest.raises(ValueError):
-        pyb.fangraphs_pitching_range(
+        pyb.fangraphs.fangraphs_pitching_range(
             start_date="2024-04-01",
             end_date="2024-05-01",
             pitching_hand="invalid",
         )
     with pytest.raises(ValueError):
-        pyb.fangraphs_pitching_range(
+        pyb.fangraphs.fangraphs_pitching_range(
             start_date="2024-04-01",
             end_date="2024-05-01",
             starter_reliever="invalid",
         )
     with pytest.raises(ValueError):
-        pyb.fangraphs_pitching_range(
+        pyb.fangraphs.fangraphs_pitching_range(
             start_date="2024-04-01",
             end_date="2024-05-01",
             stat_types=["invalid"],
@@ -349,7 +342,7 @@ def test_fangraphs_pitching_range_badinputs():
 
 
 def test_fangraphs_pitching_range_dates():
-    df = pyb.fangraphs_pitching_range(
+    df = pyb.fangraphs.fangraphs_pitching_range(
         start_date="2024-04-01",
         end_date="2024-04-10",
     )
@@ -359,7 +352,7 @@ def test_fangraphs_pitching_range_dates():
     assert df.select(pl.col("season").n_unique()).item() == 1
     assert df.select(pl.col("season").unique().first()).item() == 2024
     assert df.select(pl.col("xMLBAMID").n_unique()).item() == 89
-    df1 = pyb.fangraphs_pitching_range(
+    df1 = pyb.fangraphs.fangraphs_pitching_range(
         start_date="2024-04-01",
         end_date="2024-04-10",
         return_pandas=True,
@@ -371,7 +364,7 @@ def test_fangraphs_pitching_range_dates():
 
 
 def test_fangraphs_pitching_range_years():
-    df = pyb.fangraphs_pitching_range(
+    df = pyb.fangraphs.fangraphs_pitching_range(
         start_year=2023,
         end_year=2024,
     )
@@ -386,7 +379,7 @@ def test_fangraphs_pitching_range_years():
 
 
 def test_fangraphs_pitching_range_minip():
-    df = pyb.fangraphs_pitching_range(
+    df = pyb.fangraphs.fangraphs_pitching_range(
         start_date="2024-04-01",
         end_date="2024-04-10",
         min_ip=10,
@@ -399,12 +392,12 @@ def test_fangraphs_pitching_range_minip():
 
 
 def test_fangraphs_pitching_range_certain_stat_types():
-    df = pyb.fangraphs_pitching_range(
+    df = pyb.fangraphs.fangraphs_pitching_range(
         start_date="2024-04-01",
         end_date="2024-04-10",
         stat_types=[
-            FangraphsPitchingStatType.ADVANCED,
-            FangraphsPitchingStatType.STANDARD,
+            pyb.fangraphs.FangraphsPitchingStatType.ADVANCED,
+            pyb.fangraphs.FangraphsPitchingStatType.STANDARD,
         ],
     )
     assert df is not None
@@ -416,10 +409,10 @@ def test_fangraphs_pitching_range_certain_stat_types():
 
 
 def test_fangraphs_pitching_range_team():
-    df = pyb.fangraphs_pitching_range(
+    df = pyb.fangraphs.fangraphs_pitching_range(
         start_date="2024-04-01",
         end_date="2024-04-10",
-        team=pyb.FangraphsTeams.NATIONALS,
+        team=pyb.fangraphs.FangraphsTeams.NATIONALS,
     )
     assert df is not None
     assert df.shape[0] == 3
@@ -429,7 +422,7 @@ def test_fangraphs_pitching_range_team():
 
 
 def test_fangraphs_pitching_range_league():
-    df = pyb.fangraphs_pitching_range(
+    df = pyb.fangraphs.fangraphs_pitching_range(
         start_date="2024-04-01",
         end_date="2024-04-10",
         league="al",
@@ -441,7 +434,7 @@ def test_fangraphs_pitching_range_league():
 
 
 def test_fangraphs_pitching_range_age():
-    df = pyb.fangraphs_pitching_range(
+    df = pyb.fangraphs.fangraphs_pitching_range(
         start_date="2024-04-01",
         end_date="2024-04-10",
         min_age=20,
@@ -456,7 +449,7 @@ def test_fangraphs_pitching_range_age():
 
 
 def test_fangraphs_pitching_range_pitching_hand():
-    df = pyb.fangraphs_pitching_range(
+    df = pyb.fangraphs.fangraphs_pitching_range(
         start_date="2024-04-01",
         end_date="2024-04-10",
         pitching_hand="R",
@@ -466,7 +459,7 @@ def test_fangraphs_pitching_range_pitching_hand():
     assert df.shape[1] == 380
     assert df.select(pl.col("Throws").n_unique()).item() == 1
     assert df.select(pl.col("Throws").first()).item() == "R"
-    df1 = pyb.fangraphs_pitching_range(
+    df1 = pyb.fangraphs.fangraphs_pitching_range(
         start_year=1973,
         end_year=2025,
         pitching_hand="S",
@@ -480,7 +473,7 @@ def test_fangraphs_pitching_range_pitching_hand():
 
 
 def test_fangraphs_pitching_range_starter_reliever():
-    df = pyb.fangraphs_pitching_range(
+    df = pyb.fangraphs.fangraphs_pitching_range(
         start_date="2024-04-01",
         end_date="2024-04-10",
         starter_reliever="sta",
@@ -494,7 +487,7 @@ def test_fangraphs_pitching_range_starter_reliever():
         df.select(pl.col("G")).to_series(),
         check_names=False,
     )
-    df1 = pyb.fangraphs_pitching_range(
+    df1 = pyb.fangraphs.fangraphs_pitching_range(
         start_date="2024-04-01",
         end_date="2024-04-10",
         starter_reliever="rel",
@@ -508,53 +501,53 @@ def test_fangraphs_pitching_range_starter_reliever():
 
 def test_fangraphs_fielding_range_bad_inputs():
     with pytest.raises(ValueError):
-        pyb.fangraphs_fielding_range(
+        pyb.fangraphs.fangraphs_fielding_range(
             start_year=None,
             end_year=None,
         )
     with pytest.raises(ValueError):
-        pyb.fangraphs_fielding_range(
+        pyb.fangraphs.fangraphs_fielding_range(
             start_year=2024,
             end_year=2023,
         )
     with pytest.raises(ValueError):
-        pyb.fangraphs_fielding_range(
+        pyb.fangraphs.fangraphs_fielding_range(
             start_year=2024,
             end_year=2024,
             min_inn="q",
         )
     with pytest.raises(ValueError):
-        pyb.fangraphs_fielding_range(
+        pyb.fangraphs.fangraphs_fielding_range(
             start_year=2024,
             end_year=2024,
             min_inn=-1,
         )
     with pytest.raises(ValueError):
-        pyb.fangraphs_fielding_range(
+        pyb.fangraphs.fangraphs_fielding_range(
             start_year=2024,
             end_year=2024,
             fielding_position="notenum",
         )
     with pytest.raises(ValueError):
-        pyb.fangraphs_fielding_range(
+        pyb.fangraphs.fangraphs_fielding_range(
             start_year=2024,
             end_year=2024,
             active_roster_only="invalid",
         )
     with pytest.raises(ValueError):
-        pyb.fangraphs_fielding_range(
+        pyb.fangraphs.fangraphs_fielding_range(
             start_year=2024,
             end_year=2024,
             team="invalid",
         )
     with pytest.raises(ValueError):
-        pyb.fangraphs_fielding_range(
+        pyb.fangraphs.fangraphs_fielding_range(
             start_year=2024,
             end_year=2024,
             league="not al nl or empty",
         )
     with pytest.raises(ValueError):
-        pyb.fangraphs_fielding_range(
+        pyb.fangraphs.fangraphs_fielding_range(
             start_year=2024,
             end_year=2024,
             fielding_position="notenum",
@@ -562,7 +555,7 @@ def test_fangraphs_fielding_range_bad_inputs():
 
 
 def test_fangraphs_fielding_range_years():
-    df = pyb.fangraphs_fielding_range(
+    df = pyb.fangraphs.fangraphs_fielding_range(
         start_year=2023,
         end_year=2024,
     )
@@ -573,7 +566,7 @@ def test_fangraphs_fielding_range_years():
     assert df.select(pl.col("SeasonMax").max().first()).item() == 2024
     assert df.select(pl.col("xMLBAMID").n_unique()).item() == 93
 
-    df1 = pyb.fangraphs_fielding_range(
+    df1 = pyb.fangraphs.fangraphs_fielding_range(
         start_year=2023,
         end_year=2024,
         return_pandas=True,
@@ -585,7 +578,7 @@ def test_fangraphs_fielding_range_years():
 
 
 def test_fangraphs_fielding_range_min_inn():
-    df = pyb.fangraphs_fielding_range(
+    df = pyb.fangraphs.fangraphs_fielding_range(
         start_year=2024,
         end_year=2024,
         min_inn=10,
@@ -594,7 +587,7 @@ def test_fangraphs_fielding_range_min_inn():
     assert df.shape[0] == 1794
     assert df.shape[1] == 73
     assert df.select(pl.col("Inn").min()).item() >= 10
-    df1 = pyb.fangraphs_fielding_range(
+    df1 = pyb.fangraphs.fangraphs_fielding_range(
         start_year=2024,
         end_year=2024,
         min_inn="y",
@@ -607,12 +600,12 @@ def test_fangraphs_fielding_range_min_inn():
 
 
 def test_fangraphs_fielding_range_stat_types():
-    df = pyb.fangraphs_fielding_range(
+    df = pyb.fangraphs.fangraphs_fielding_range(
         start_year=2024,
         end_year=2024,
         stat_types=[
-            pyb.FangraphsFieldingStatType.ADVANCED,
-            pyb.FangraphsFieldingStatType.STANDARD,
+            pyb.fangraphs.FangraphsFieldingStatType.ADVANCED,
+            pyb.fangraphs.FangraphsFieldingStatType.STANDARD,
         ],
     )
     assert df is not None
@@ -647,10 +640,10 @@ def test_fangraphs_fielding_range_stat_types():
 
 
 def test_fangraphs_fielding_range_team():
-    df = pyb.fangraphs_fielding_range(
+    df = pyb.fangraphs.fangraphs_fielding_range(
         start_year=2024,
         end_year=2024,
-        team=pyb.FangraphsTeams.NATIONALS,
+        team=pyb.fangraphs.FangraphsTeams.NATIONALS,
     )
     assert df is not None
     assert df.shape[0] == 4
@@ -660,7 +653,7 @@ def test_fangraphs_fielding_range_team():
 
 
 def test_fangraphs_fielding_range_league():
-    df = pyb.fangraphs_fielding_range(
+    df = pyb.fangraphs.fangraphs_fielding_range(
         start_year=2024,
         end_year=2024,
         league="al",
@@ -678,20 +671,20 @@ def test_fangraphs_fielding_range_league():
 
 
 def test_fangraphs_fielding_range_pos():
-    df = pyb.fangraphs_fielding_range(
+    df = pyb.fangraphs.fangraphs_fielding_range(
         start_year=2024,
         end_year=2024,
-        fielding_position=pyb.FangraphsBattingPosTypes.CATCHER,
+        fielding_position=pyb.fangraphs.FangraphsBattingPosTypes.CATCHER,
     )
     assert df is not None
     assert df.shape[0] == 11
     assert df.shape[1] == 73
     assert df.select(pl.col("Pos").n_unique()).item() == 1
     assert df.select(pl.col("Pos").first()).item() == "C"
-    df1 = pyb.fangraphs_fielding_range(
+    df1 = pyb.fangraphs.fangraphs_fielding_range(
         start_year=2024,
         end_year=2024,
-        fielding_position=pyb.FangraphsBattingPosTypes.FIRST_BASE,
+        fielding_position=pyb.fangraphs.FangraphsBattingPosTypes.FIRST_BASE,
     )
     assert df1 is not None
     assert df1.shape[0] == 17

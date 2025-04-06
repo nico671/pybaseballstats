@@ -1,51 +1,56 @@
+import os
+import sys
 from datetime import date
 
 import polars as pl
 import pytest
 from polars.testing import assert_frame_equal
 
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import pybaseballstats as pyb
 
 
 def test_illegal_player_lookup():
     with pytest.raises(ValueError):
-        pyb.player_lookup(first_name=None, last_name=None)
+        pyb.retrosheet.player_lookup(first_name=None, last_name=None)
 
 
 def test_player_lookup():
     # firstname only
-    df1 = pyb.player_lookup(first_name="mookie", last_name="BETTS")
+    df1 = pyb.retrosheet.player_lookup(first_name="mookie", last_name="BETTS")
     assert len(df1) > 0
     assert_frame_equal(
         df1,
-        pyb.player_lookup(first_name="mookie", last_name="betts"),
+        pyb.retrosheet.player_lookup(first_name="mookie", last_name="betts"),
     )
 
 
 def test_player_lookup_strip_accents():
     assert_frame_equal(
-        pyb.player_lookup(first_name="mookie", last_name="betts"),
-        pyb.player_lookup(first_name="möökïë", last_name="bëtts", strip_accents=True),
+        pyb.retrosheet.player_lookup(first_name="mookie", last_name="betts"),
+        pyb.retrosheet.player_lookup(
+            first_name="möökïë", last_name="bëtts", strip_accents=True
+        ),
     )
 
 
 def test_ejections_data_badinputs():
     with pytest.raises(ValueError):
-        pyb.retrosheet_ejections_data(
+        pyb.retrosheet.retrosheet_ejections_data(
             start_date="2023-01-01",
         )
     with pytest.raises(ValueError):
-        pyb.retrosheet_ejections_data(
+        pyb.retrosheet.retrosheet_ejections_data(
             end_date="2023-01-01",
         )
     with pytest.raises(ValueError):
-        pyb.retrosheet_ejections_data(
+        pyb.retrosheet.retrosheet_ejections_data(
             inning=21,
         )
 
 
 def test_ejections_data_dates():
-    df = pyb.retrosheet_ejections_data(
+    df = pyb.retrosheet.retrosheet_ejections_data(
         start_date="01/01/2023",
         end_date="12/31/2023",
     )
@@ -56,7 +61,7 @@ def test_ejections_data_dates():
     assert df.select(pl.col("DATE").max()).item() == date(2023, 10, 20)
     assert df.select(pl.col("DATE").min()).item() == date(2023, 4, 4)
 
-    df2 = pyb.retrosheet_ejections_data(
+    df2 = pyb.retrosheet.retrosheet_ejections_data(
         start_date="01/01/2023",
         end_date="12/31/2023",
         return_pandas=True,
@@ -68,7 +73,7 @@ def test_ejections_data_dates():
 
 
 def test_ejections_data_ejectee_name():
-    df = pyb.retrosheet_ejections_data(
+    df = pyb.retrosheet.retrosheet_ejections_data(
         start_date="01/01/2023",
         end_date="12/31/2023",
         ejectee_name="Harper",
@@ -80,7 +85,7 @@ def test_ejections_data_ejectee_name():
     assert df.select(pl.col("EJECTEENAME").first()).item() == "Bryce Harper"
     assert df.select(pl.col("EJECTEE").n_unique()).item() == 1
 
-    df2 = pyb.retrosheet_ejections_data(
+    df2 = pyb.retrosheet.retrosheet_ejections_data(
         start_date="01/01/2023",
         end_date="12/31/2023",
         ejectee_name="Mike",
@@ -93,7 +98,7 @@ def test_ejections_data_ejectee_name():
 
 
 def test_ejections_data_umpire_name():
-    df = pyb.retrosheet_ejections_data(
+    df = pyb.retrosheet.retrosheet_ejections_data(
         start_date="01/01/2023",
         end_date="12/31/2023",
         umpire_name="Hernandez",
@@ -105,7 +110,7 @@ def test_ejections_data_umpire_name():
     assert df.select(pl.col("UMPIRENAME").first()).item() == "Angel Hernandez"
     assert df.select(pl.col("UMPIRE").n_unique()).item() == 1
 
-    df2 = pyb.retrosheet_ejections_data(
+    df2 = pyb.retrosheet.retrosheet_ejections_data(
         start_date="01/01/2023",
         end_date="12/31/2023",
         umpire_name="Miller",
@@ -118,7 +123,7 @@ def test_ejections_data_umpire_name():
 
 
 def test_ejections_data_inning():
-    df = pyb.retrosheet_ejections_data(
+    df = pyb.retrosheet.retrosheet_ejections_data(
         start_date="01/01/2023",
         end_date="12/31/2023",
         inning=1,
@@ -130,7 +135,7 @@ def test_ejections_data_inning():
     assert df.select(pl.col("INNING").unique()).item() == 1
     assert df.select(pl.col("INNING").n_unique()).item() == 1
 
-    df2 = pyb.retrosheet_ejections_data(
+    df2 = pyb.retrosheet.retrosheet_ejections_data(
         inning=-1,
     )
     assert df2 is not None

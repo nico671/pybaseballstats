@@ -11,28 +11,28 @@ import pybaseballstats as pyb
 
 def test_fangraphs_single_game_play_by_play_badinputs():
     with pytest.raises(ValueError):
-        pyb.fangraphs_single_game_play_by_play(
-            "06-20-2024", pyb.FangraphsSingleGameTeams.White_Sox
+        pyb.fangraphs_single_game.fangraphs_single_game_play_by_play(
+            "06-20-2024", pyb.fangraphs_single_game.FangraphsSingleGameTeams.White_Sox
         )
     with pytest.raises(ValueError):
-        pyb.fangraphs_single_game_play_by_play(
-            "2026-06-20", pyb.FangraphsSingleGameTeams.White_Sox
+        pyb.fangraphs_single_game.fangraphs_single_game_play_by_play(
+            "2026-06-20", pyb.fangraphs_single_game.FangraphsSingleGameTeams.White_Sox
         )
     with pytest.raises(ValueError):
-        pyb.fangraphs_single_game_play_by_play(
+        pyb.fangraphs_single_game.fangraphs_single_game_play_by_play(
             "2024-06-20",
             "whitesox",
         )
     with pytest.raises(ValueError):
-        pyb.fangraphs_single_game_play_by_play(
+        pyb.fangraphs_single_game.fangraphs_single_game_play_by_play(
             "1900-06-20",
-            pyb.FangraphsSingleGameTeams.White_Sox,
+            pyb.fangraphs_single_game.FangraphsSingleGameTeams.White_Sox,
         )
 
 
 def test_fangraphs_single_game_play_by_play_regular():
-    df = pyb.fangraphs_single_game_play_by_play(
-        "2024-06-20", pyb.FangraphsSingleGameTeams.White_Sox
+    df = pyb.fangraphs_single_game.fangraphs_single_game_play_by_play(
+        "2024-06-20", pyb.fangraphs_single_game.FangraphsSingleGameTeams.White_Sox
     )
     assert df is not None
     assert df.shape[0] == 83
@@ -44,8 +44,10 @@ def test_fangraphs_single_game_play_by_play_regular():
         or df.select(pl.col("Win Expectancy").min()).item() == 0.0
     )
 
-    df2 = pyb.fangraphs_single_game_play_by_play(
-        "2024-06-20", pyb.FangraphsSingleGameTeams.White_Sox, return_pandas=True
+    df2 = pyb.fangraphs_single_game.fangraphs_single_game_play_by_play(
+        "2024-06-20",
+        pyb.fangraphs_single_game.FangraphsSingleGameTeams.White_Sox,
+        return_pandas=True,
     )
 
     assert df2 is not None

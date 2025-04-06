@@ -15,7 +15,7 @@ END_DT = "2024-04-10"
 
 ## statcast_date_range_pitch_by_pitch_TESTS
 def test_statcast_date_range_pitch_by_pitch():
-    data = pyb.statcast_date_range_pitch_by_pitch(
+    data = pyb.statcast.statcast_date_range_pitch_by_pitch(
         start_dt=START_DT,
         end_dt=END_DT,
         return_pandas=False,
@@ -32,7 +32,7 @@ def test_statcast_date_range_pitch_by_pitch():
 
 
 def test_statcast_date_range_pitch_by_pitch_extra_stats():
-    data = pyb.statcast_date_range_pitch_by_pitch(
+    data = pyb.statcast.statcast_date_range_pitch_by_pitch(
         start_dt=START_DT,
         end_dt=END_DT,
         return_pandas=False,
@@ -47,7 +47,7 @@ def test_statcast_date_range_pitch_by_pitch_extra_stats():
 
 
 def test_statcast_date_range_pitch_by_pitch_return_pandas():
-    data = pyb.statcast_date_range_pitch_by_pitch(
+    data = pyb.statcast.statcast_date_range_pitch_by_pitch(
         start_dt=START_DT,
         end_dt=END_DT,
         return_pandas=True,
@@ -61,7 +61,7 @@ def test_statcast_date_range_pitch_by_pitch_return_pandas():
 
 def test_statcast_date_range_pitch_by_pitch_flipped_dates():
     with pytest.raises(ValueError):
-        pyb.statcast_date_range_pitch_by_pitch(
+        pyb.statcast.statcast_date_range_pitch_by_pitch(
             start_dt=END_DT,
             end_dt=START_DT,
             return_pandas=False,
@@ -71,7 +71,7 @@ def test_statcast_date_range_pitch_by_pitch_flipped_dates():
 
 def test_statcast_date_range_pitch_by_pitch_null_dates():
     with pytest.raises(ValueError):
-        pyb.statcast_date_range_pitch_by_pitch(
+        pyb.statcast.statcast_date_range_pitch_by_pitch(
             start_dt=None,
             end_dt=None,
             return_pandas=False,
@@ -80,7 +80,7 @@ def test_statcast_date_range_pitch_by_pitch_null_dates():
 
 
 def test_statcast_date_range_pitch_by_pitch_with_team():
-    data = pyb.statcast_date_range_pitch_by_pitch(
+    data = pyb.statcast.statcast_date_range_pitch_by_pitch(
         start_dt=START_DT,
         end_dt=END_DT,
         team="WSH",
@@ -95,7 +95,7 @@ def test_statcast_date_range_pitch_by_pitch_with_team():
 
 def test_statcast_batter_bad_inputs():
     with pytest.raises(ValueError):
-        pyb.statcast_single_batter_range_pitch_by_pitch(
+        pyb.statcast.statcast_single_batter_range_pitch_by_pitch(
             start_dt=END_DT,
             end_dt=START_DT,
             player_id=0,
@@ -103,7 +103,7 @@ def test_statcast_batter_bad_inputs():
             return_pandas=False,
         )
     with pytest.raises(ValueError):
-        pyb.statcast_single_batter_range_pitch_by_pitch(
+        pyb.statcast.statcast_single_batter_range_pitch_by_pitch(
             start_dt=None,
             end_dt=END_DT,
             player_id=677772,
@@ -113,7 +113,7 @@ def test_statcast_batter_bad_inputs():
 
 
 def test_statcast_batter():
-    data = pyb.statcast_single_batter_range_pitch_by_pitch(
+    data = pyb.statcast.statcast_single_batter_range_pitch_by_pitch(
         start_dt=START_DT,
         end_dt=END_DT,
         player_id="547180",
@@ -129,7 +129,7 @@ def test_statcast_batter():
     assert data["batter"].unique().item() == 547180
     assert data.select(pl.col("game_date").min()).to_series().to_list()[0] == START_DT
     assert data.select(pl.col("game_date").max()).to_series().to_list()[0] == END_DT
-    data = pyb.statcast_single_batter_range_pitch_by_pitch(
+    data = pyb.statcast.statcast_single_batter_range_pitch_by_pitch(
         start_dt=START_DT,
         end_dt=END_DT,
         player_id="547180",
@@ -146,7 +146,7 @@ def test_statcast_batter():
 
 def test_statcast_pitcher_bad_inputs():
     with pytest.raises(ValueError):
-        pyb.statcast_single_pitcher_range_pitch_by_pitch(
+        pyb.statcast.statcast_single_pitcher_range_pitch_by_pitch(
             start_dt=END_DT,
             end_dt=START_DT,
             player_id=0,
@@ -154,7 +154,7 @@ def test_statcast_pitcher_bad_inputs():
             return_pandas=False,
         )
     with pytest.raises(ValueError):
-        pyb.statcast_single_pitcher_range_pitch_by_pitch(
+        pyb.statcast.statcast_single_pitcher_range_pitch_by_pitch(
             start_dt=None,
             end_dt=END_DT,
             player_id=671096,
@@ -164,7 +164,7 @@ def test_statcast_pitcher_bad_inputs():
 
 
 def test_statcast_pitcher():
-    data = pyb.statcast_single_pitcher_range_pitch_by_pitch(
+    data = pyb.statcast.statcast_single_pitcher_range_pitch_by_pitch(
         start_dt=START_DT,
         end_dt=END_DT,
         player_id="671096",
@@ -180,7 +180,7 @@ def test_statcast_pitcher():
 
 
 def test_statcast_pitcher_to_pandas():
-    data1 = pyb.statcast_single_pitcher_range_pitch_by_pitch(
+    data1 = pyb.statcast.statcast_single_pitcher_range_pitch_by_pitch(
         start_dt=START_DT,
         end_dt=END_DT,
         player_id="671096",
@@ -191,7 +191,7 @@ def test_statcast_pitcher_to_pandas():
     assert data1.shape[1] == 181
     assert data1.shape[0] == 185
     assert len(data1["pitcher"].unique()) == 1
-    data2 = pyb.statcast_single_pitcher_range_pitch_by_pitch(
+    data2 = pyb.statcast.statcast_single_pitcher_range_pitch_by_pitch(
         start_dt=START_DT,
         end_dt=END_DT,
         player_id="671096",
