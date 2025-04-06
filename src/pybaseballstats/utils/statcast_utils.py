@@ -28,7 +28,7 @@ YEAR_RANGES = {
     2015: (dt.date(2015, 4, 5), dt.date(2015, 11, 1)),
     2024: (dt.date(2024, 3, 15), dt.date(2024, 10, 25)),
     2021: (dt.date(2021, 3, 15), dt.date(2021, 11, 2)),
-    2025: (dt.date(2025, 3, 15), dt.date(2025, 10, 25)),
+    2025: (dt.date(2025, 3, 15), dt.date(2025, 11, 2)),
 }
 
 STATCAST_DATE_FORMAT = "%Y-%m-%d"

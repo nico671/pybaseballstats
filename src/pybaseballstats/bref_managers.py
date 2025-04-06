@@ -116,7 +116,6 @@ def manager_tendencies_data(
     body_rows = tbody.find_all("tr")
     for tr in body_rows:
         for td in tr.find_all("td"):
-            print(td)
             if td.attrs["data-stat"] not in row_data:
                 row_data[td.attrs["data-stat"]] = []
             row_data[td.attrs["data-stat"]].append(td.get_text(strip=True))
@@ -155,5 +154,13 @@ def manager_tendencies_data(
                 "pitchers_used_per_game",
             ]
         ).cast(pl.Float32),
+    )
+    df = df.with_columns(
+        pl.col(
+            [
+                "manager",
+                "team_ID",
+            ]
+        ).str.replace("0", "")
     )
     return df if not return_pandas else df.to_pandas()
