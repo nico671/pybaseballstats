@@ -31,7 +31,7 @@ uv add pybaseballstats
 
 ## Documentation
 
-Usage documentation can be found at /usage_docs/
+Usage documentation can be found at [usage_docs](usage_docs/). This documentation is a work in progress and will be updated as I add more functionality to the package.
 
 ## Contributing
 

@@ -14,10 +14,10 @@
 ```python
 # option 1
 from pybaseballstats.bref_draft import draft_order_by_round 
-
+draft_order_by_round(year, draft_round)
 # option 2
 import pybaseballstats as pyb
-pyb.bref_draft.draft_order_by_round
+pyb.bref_draft.draft_order_by_round(year, draft_round)
 ```
 
 #### Example
@@ -37,9 +37,10 @@ This will return a DataFrame with the draft order for the 1st round of the 2023 
 ```python
 # option 1
 from pybaseballstats.bref_draft import franchise_draft_order
+franchise_draft_order(year, team)
 # option 2
 import pybaseballstats as pyb
-pyb.bref_draft.franchise_draft_order
+pyb.bref_draft.franchise_draft_order(year, team)
 ```
 
 #### Example
