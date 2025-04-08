@@ -346,7 +346,7 @@ def single_player_sabermetric_fielding(
         soup = BeautifulSoup(
             standard_stats_table.get_attribute("outerHTML"), "html.parser"
         )
-    sabermetric_fielding_table = soup.find("div", {"id": "div_sabermetric_fielding"})
+    sabermetric_fielding_table = soup.find("div", {"id": "div_advanced_fielding"})
     sabermetric_fielding_table = sabermetric_fielding_table.find("table")
     sabermetric_fielding_df = pl.DataFrame(_extract_table(sabermetric_fielding_table))
     sabermetric_fielding_df = sabermetric_fielding_df.fill_null(0)

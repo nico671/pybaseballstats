@@ -7,6 +7,7 @@ from polars.testing import assert_frame_equal
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import pybaseballstats as pyb
+from pybaseballstats.utils.bref_utils import BREFTeams
 
 
 def test_draft_order_by_round_badinputs():
@@ -35,13 +36,13 @@ def test_draft_order_by_round_regular():
 
 def test_franchise_draft_order_badinputs():
     with pytest.raises(ValueError):
-        pyb.bref_draft.franchise_draft_order(year=1964, team="ATL")
+        pyb.bref_draft.franchise_draft_order(year=1964, team=None)
     with pytest.raises(ValueError):
         pyb.bref_draft.franchise_draft_order(year=1965, team="FAKE")
 
 
 def test_franchise_draft_order_regular():
-    df = pyb.bref_draft.franchise_draft_order(year=2024, team="WSN")
+    df = pyb.bref_draft.franchise_draft_order(year=2024, team=BREFTeams.NATIONALS)
     assert df.shape[0] == 21
     assert df.shape[1] == 23
     assert df.select(pl.col("year_ID").n_unique()).item() == 1
@@ -52,7 +53,7 @@ def test_franchise_draft_order_regular():
         == 1
     )
     df2 = pyb.bref_draft.franchise_draft_order(
-        year=2024, team="WSN", return_pandas=True
+        year=2024, team=BREFTeams.NATIONALS, return_pandas=True
     )
     assert df2.shape[0] == 21
     assert df2.shape[1] == 23

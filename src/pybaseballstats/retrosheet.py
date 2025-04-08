@@ -6,15 +6,7 @@ import polars as pl
 import requests
 from unidecode import unidecode
 
-PEOPLES_URL = "https://raw.githubusercontent.com/chadwickbureau/register/refs/heads/master/data/people-{num}.csv"
-keep_cols = [
-    "key_fangraphs",
-    "key_mlbam",
-    "key_retro",
-    "key_bbref",
-    "name_last",
-    "name_first",
-]
+from pybaseballstats.utils.retrosheet_utils import EJECTIONS_URL, PEOPLES_URL, keep_cols
 
 
 # TODO: usage docs
@@ -86,9 +78,6 @@ def player_lookup(
     else:
         df = full_df.filter(pl.col("name_last") == last_name).select(keep_cols)
     return df if not return_pandas else df.to_pandas()
-
-
-EJECTIONS_URL = "https://raw.githubusercontent.com/chadwickbureau/retrosheet/refs/heads/master/reference/ejections.csv"
 
 
 def retrosheet_ejections_data(

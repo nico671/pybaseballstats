@@ -37,3 +37,25 @@ def test_single_player_advanced_batting():
     assert df.shape == (12, 29)
     assert df.select(pl.col("team_name").n_unique()).item() == 2
     assert df.select(pl.col("age").n_unique()).item() == 12
+
+
+def test_single_player_standard_fielding():
+    df = pyb.bref_single_player.single_player_standard_fielding(
+        player_code=TEST_PLAYER_CODE, return_pandas=False
+    )
+    assert isinstance(df, pl.DataFrame)
+    assert df.shape == (43, 25)
+    assert df.select(pl.col("team_name").n_unique()).item() == 2
+    assert df.select(pl.col("age").n_unique()).item() == 12
+    assert df.select(pl.col("position").n_unique()).item() == 6
+
+
+def test_single_player_sabermetric_fielding():
+    df = pyb.bref_single_player.single_player_sabermetric_fielding(
+        player_code=TEST_PLAYER_CODE, return_pandas=False
+    )
+    assert isinstance(df, pl.DataFrame)
+    assert df.shape == (27, 27)
+    assert df.select(pl.col("team_ID").n_unique()).item() == 2
+    assert df.select(pl.col("age").n_unique()).item() == 12
+    assert df.select(pl.col("pos").n_unique()).item() == 4

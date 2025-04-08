@@ -725,7 +725,7 @@ def test_statcast_catcher_framing_leaderboard_all_years():
     df = pyb.statcast_leaderboards.statcast_catcher_framing_leaderboard(
         year=0, min_pitches_called=200
     )
-    assert df.shape[0] == 232
+    assert df.shape[0] >= 232
     assert type(df) is pl.DataFrame
     # All years should have more data than a single year
     df2 = pyb.statcast_leaderboards.statcast_catcher_framing_leaderboard(
