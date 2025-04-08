@@ -1,6 +1,6 @@
 [project]
 name = "pybaseballstats"
-version = "0.2.2"
+version = "0.3.0"
 description = "A Python package for scraping baseball data."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -8,7 +8,6 @@ dependencies = [
     "aiohttp>=3.11.11",
     "bs4>=0.0.2",
     "dateparser>=1.2.1",
-    "html5lib>=1.1",
     "lxml>=5.3.1",
     "matplotlib>=3.10.0",
     "nest-asyncio>=1.6.0",
