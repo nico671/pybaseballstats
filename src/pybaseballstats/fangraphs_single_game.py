@@ -1,50 +1,16 @@
 from datetime import datetime
-from enum import Enum
 
 import pandas as pd
 import polars as pl
 import requests
 from bs4 import BeautifulSoup
 
+from pybaseballstats.utils.fangraphs_consts import (
+    FG_SINGLE_GAME_URL,
+    FangraphsSingleGameTeams,
+)
 
 # TODO: usage docs
-# TODO: move consts and helper functions to utils
-class FangraphsSingleGameTeams(Enum):
-    Angels = "Angels"
-    Astros = "Astros"
-    Athletics = "Athletics"
-    Blue_Jays = "Blue+Jays"
-    Braves = "Braves"
-    Brewers = "Brewers"
-    Cardinals = "Cardinals"
-    Cubs = "Cubs"
-    Diamondbacks = "Diamondbacks"
-    Dodgers = "Dodgers"
-    Giants = "Giants"
-    Guardians = "Guardians"
-    Mariners = "Mariners"
-    Marlins = "Marlins"
-    Mets = "Mets"
-    Nationals = "Nationals"
-    Orioles = "Orioles"
-    Padres = "Padres"
-    Phillies = "Phillies"
-    Pirates = "Pirates"
-    Rangers = "Rangers"
-    Rays = "Rays"
-    Red_Sox = "Red+Sox"
-    Reds = "Reds"
-    Rockies = "Rockies"
-    Royals = "Royals"
-    Tigers = "Tigers"
-    Twins = "Twins"
-    White_Sox = "White+Sox"
-    Yankees = "Yankees"
-
-
-FG_SINGLE_GAME_URL = (
-    "https://www.fangraphs.com/boxscore.aspx?date={date}&team={team}&dh=0"
-)
 
 
 def fangraphs_single_game_play_by_play(

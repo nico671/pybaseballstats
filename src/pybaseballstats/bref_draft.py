@@ -1,6 +1,3 @@
-# TODO: Usage documentation
-
-
 import pandas as pd
 import polars as pl
 from bs4 import BeautifulSoup
@@ -95,9 +92,24 @@ def draft_order_by_round(
 TEAM_YEAR_DRAFT_URL = "https://www.baseball-reference.com/draft/index.fcgi?team_ID={team}&year_ID={year}&draft_type=junreg&query_type=franch_year&from_type_hs=0&from_type_4y=0&from_type_unk=0&from_type_jc=0"
 
 
+#  TODO: make the teams into an enum for ease of use
 def franchise_draft_order(
     team: str, year: int, return_pandas: bool = False
 ) -> pl.DataFrame | pd.DataFrame:
+    """Returns a Dataframe of draft data for a given team and year. NOTE: This function uses Selenium to scrape the data, so it may be slow.
+
+    Args:
+        team (str): Which team to pull draft data from
+        year (int): Which year to pull draft data from
+        return_pandas (bool, optional): Whether or not to return the data as a pandas DataFrame. Defaults to False (returning a polars DataFrame).
+
+    Raises:
+        ValueError: If the year is before 1965
+        ValueError: If the team abbreviation is not valid
+
+    Returns:
+        pl.DataFrame | pd.DataFrame: A DataFrame of draft data for the given team and year. If return_pandas is True, a pandas DataFrame will be returned instead of a polars DataFrame.
+    """
     if year < 1965:
         raise ValueError("Draft data is only available from 1965 onwards")
     if team not in [

@@ -15,7 +15,6 @@ nest_asyncio.apply()
 
 
 # TODO: usage docs
-# TODO: search for possible speedups in the code
 def statcast_date_range_pitch_by_pitch(
     start_dt: str,
     end_dt: str,
@@ -33,7 +32,8 @@ def statcast_date_range_pitch_by_pitch(
         return_pandas: whether to return a pandas DataFrame (default is False, returning a Polars LazyFrame)
 
     Returns:
-        pl.LazyFrame | pd.Dataframe: A DataFrame of statcast data for the date range.
+        pl.LazyFrame | pd.Dataframe: A DataFrame of statcast data for the date range. Warning: this may be a large amount of data, depending on the date range and team.
+        If return_pandas is True, a pandas DataFrame will be returned instead of a Polars LazyFrame which may cause memory / performance issues.
     """
 
     async def async_statcast():

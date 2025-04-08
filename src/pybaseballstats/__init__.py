@@ -60,9 +60,6 @@
 #     FangraphsPitchingStatType,
 #     FangraphsTeams,
 # )
-
-# TODO: switch to this versioning, need to update tests
-
 # Restructured imports to avoid circular dependencies
 # Import utility modules first
 # Then import modules that depend on utils but don't depend on each other
