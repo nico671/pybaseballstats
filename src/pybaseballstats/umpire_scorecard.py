@@ -7,7 +7,7 @@ import pandas as pd
 import polars as pl
 import requests
 
-from pybaseballstats.utils.umpire_scorecard_utils import (
+from pybaseballstats.utils.umpire_scorecard_consts import (
     UMPIRE_SCORECARD_GAMES_URL,
     UMPIRE_SCORECARD_TEAMS_URL,
     UMPIRE_SCORECARD_UMPIRES_URL,

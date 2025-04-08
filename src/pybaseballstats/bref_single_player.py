@@ -6,29 +6,15 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
 from pybaseballstats.utils.bref_singleton import BREFSingleton
-
-bref = BREFSingleton.instance()
-BREF_SINGLE_PLAYER_BATTING_URL = (
-    "https://www.baseball-reference.com/players/{initial}/{player_code}.shtml"
+from pybaseballstats.utils.bref_utils import (
+    BREF_SINGLE_PLAYER_BATTING_URL,
+    BREF_SINGLE_PLAYER_FIELDING_URL,
+    _extract_table,
 )
 
-
-def _extract_table(table):
-    trs = table.tbody.find_all("tr")
-    row_data = {}
-    for tr in trs:
-        tds = tr.find_all("td")
-        if len(tds) == 0:
-            continue
-        for td in tds:
-            data_stat = td.attrs["data-stat"]
-            if data_stat not in row_data:
-                row_data[data_stat] = []
-            row_data[data_stat].append(td.string)
-    return row_data
+bref = BREFSingleton.instance()
 
 
-# TODO: docsttrings for all functions
 # TODO: usage documentation for all functions
 def single_player_standard_batting(
     player_code: str, return_pandas: bool = False
@@ -258,11 +244,6 @@ def single_player_advanced_batting(
         pl.lit(player_code).alias("key_bbref")
     )
     return advanced_batting_df if not return_pandas else advanced_batting_df.to_pandas()
-
-
-BREF_SINGLE_PLAYER_FIELDING_URL = (
-    "https://www.baseball-reference.com/players/{initial}/{player_code}-field.shtml"
-)
 
 
 def single_player_standard_fielding(

@@ -12,6 +12,9 @@ bref = BREFSingleton.instance()
 MANAGERS_URL = "https://www.baseball-reference.com/leagues/majors/{year}-managers.shtml#manager_record"
 
 
+# TODO: docstrings for all functions
+# TODO: move consts and helper functions to utils
+# TODO: usage docs for all functions
 def managers_basic_data(
     year: int, return_pandas: bool = False
 ) -> pl.DataFrame | pd.DataFrame:

@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import List, Literal, Optional, Tuple, Union
 
-from pybaseballstats.utils.consts import (
+from pybaseballstats.utils.fangraphs_consts import (
     FangraphsBattingPosTypes,
     FangraphsBattingStatType,
     FangraphsFieldingStatType,
