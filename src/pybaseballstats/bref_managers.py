@@ -6,18 +6,30 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
 from pybaseballstats.utils.bref_singleton import BREFSingleton
+from pybaseballstats.utils.bref_utils import MANAGER_TENDENCY_URL, MANAGERS_URL
 
 bref = BREFSingleton.instance()
 
-MANAGERS_URL = "https://www.baseball-reference.com/leagues/majors/{year}-managers.shtml#manager_record"
-
 
 # TODO: docstrings for all functions
-# TODO: move consts and helper functions to utils
 # TODO: usage docs for all functions
 def managers_basic_data(
     year: int, return_pandas: bool = False
 ) -> pl.DataFrame | pd.DataFrame:
+    """Returns a DataFrame of manager data for a given year. NOTE: This function uses Selenium to scrape the data, so it may be slow.
+
+    Args:
+        year (int): Which year to pull manager data from
+        return_pandas (bool, optional): Whether or not to return the data as a pandas DataFrame. Defaults to False (returning a polars DataFrame).
+
+    Raises:
+        ValueError: If year is None
+        ValueError: If year is less than 1871
+        TypeError: If year is not an integer
+
+    Returns:
+        pl.DataFrame | pd.DataFrame: A DataFrame of manager data for the given year. If False, returns a polars DataFrame. If True, returns a pandas DataFrame.
+    """
     if not year:
         raise ValueError("Year must be provided")
     if not isinstance(year, int):
@@ -82,12 +94,24 @@ def managers_basic_data(
     return df if not return_pandas else df.to_pandas()
 
 
-MANAGER_TENDENCY_URL = "https://www.baseball-reference.com/leagues/majors/{year}-managers.shtml#manager_tendencies"
-
-
 def manager_tendencies_data(
     year: int, return_pandas: bool = False
 ) -> pl.DataFrame | pd.DataFrame:
+    """Returns a DataFrame of manager tendencies data for a given year. NOTE: This function uses Selenium to scrape the data, so it may be slow.
+
+    Args:
+        year (int): Which year to pull manager tendencies data from
+        return_pandas (bool, optional): Whether or not to return the data as a pandas DataFrame. Defaults to False (returning a polars DataFrame).
+
+    Raises:
+        ValueError: If year is None
+        ValueError: If year is less than 1871
+        TypeError: If year is not an integer
+
+
+    Returns:
+        pl.DataFrame | pd.DataFrame: A DataFrame of manager tendencies data for the given year. If False, returns a polars DataFrame. If True, returns a pandas DataFrame.
+    """
     if not year:
         raise ValueError("Year must be provided")
     if not isinstance(year, int):

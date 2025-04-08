@@ -6,11 +6,9 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
 from pybaseballstats.utils.bref_singleton import BREFSingleton
+from pybaseballstats.utils.bref_utils import BREF_DRAFT_URL, BREFTeams
 
 bref = BREFSingleton.instance()
-
-
-BREF_DRAFT_URL = "https://www.baseball-reference.com/draft/index.fcgi?year_ID={draft_year}&draft_round={draft_round}&draft_type=junreg&query_type=year_round&from_type_hs=0&from_type_jc=0&from_type_4y=0&from_type_unk=0"
 
 
 def draft_order_by_round(
@@ -92,9 +90,8 @@ def draft_order_by_round(
 TEAM_YEAR_DRAFT_URL = "https://www.baseball-reference.com/draft/index.fcgi?team_ID={team}&year_ID={year}&draft_type=junreg&query_type=franch_year&from_type_hs=0&from_type_4y=0&from_type_unk=0&from_type_jc=0"
 
 
-#  TODO: make the teams into an enum for ease of use
 def franchise_draft_order(
-    team: str, year: int, return_pandas: bool = False
+    team: BREFTeams, year: int, return_pandas: bool = False
 ) -> pl.DataFrame | pd.DataFrame:
     """Returns a Dataframe of draft data for a given team and year. NOTE: This function uses Selenium to scrape the data, so it may be slow.
 
@@ -112,42 +109,15 @@ def franchise_draft_order(
     """
     if year < 1965:
         raise ValueError("Draft data is only available from 1965 onwards")
-    if team not in [
-        "ANA",
-        "ARI",
-        "ATL",
-        "BAL",
-        "BOS",
-        "CHC",
-        "CHW",
-        "CIN",
-        "CLE",
-        "COL",
-        "DET",
-        "FLA",
-        "HOU",
-        "KCR",
-        "LAD",
-        "MIL",
-        "MIN",
-        "NYM",
-        "NYY",
-        "OAK",
-        "PHI",
-        "PIT",
-        "SDP",
-        "SEA",
-        "SFG",
-        "STL",
-        "TBD",
-        "TEX",
-        "TOR",
-        "WSN",
-    ]:
-        raise ValueError("Invalid team abbreviation")
+    if not isinstance(team, BREFTeams):
+        raise ValueError(
+            "Team must be a valid BREFTeams enum value. See BREFTeams class for valid values."
+        )
+    elif not team:
+        raise ValueError("Team must be provided")
 
     with bref.get_driver() as driver:
-        driver.get(TEAM_YEAR_DRAFT_URL.format(year=year, team=team))
+        driver.get(TEAM_YEAR_DRAFT_URL.format(year=year, team=team.value))
 
         wait = WebDriverWait(driver, 15)
         draft_table = wait.until(
