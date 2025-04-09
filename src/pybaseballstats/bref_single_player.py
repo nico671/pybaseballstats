@@ -361,3 +361,42 @@ def single_player_sabermetric_fielding(
         if not return_pandas
         else sabermetric_fielding_df.to_pandas()
     )
+
+
+def single_player_salaries(
+    player_code: str, return_pandas: bool = False
+) -> pl.DataFrame | pd.DataFrame:
+    """Returns a DataFrame of a player's salary history.
+
+    Args:
+        player_code (str): The player's code from Baseball Reference. This can be found using the pybaseballstats.retrosheet.player_lookup function.
+        return_pandas (bool, optional): If True, returns a pandas DataFrame. If False, returns a polars DataFrame. Defaults to False.
+
+    Returns:
+        pl.DataFrame | pd.DataFrame: A DataFrame containing the player's salary history.
+        This includes the year, team, league, and salary.
+    """
+    last_name_initial = player_code[0].lower()
+    with bref.get_driver() as driver:
+        driver.get(
+            BREF_SINGLE_PLAYER_BATTING_URL.format(
+                initial=last_name_initial, player_code=player_code
+            )
+        )
+        wait = WebDriverWait(driver, 15)
+        salaries_table = wait.until(
+            EC.presence_of_element_located((By.ID, "all_br-salaries"))
+        )
+        soup = BeautifulSoup(salaries_table.get_attribute("outerHTML"), "html.parser")
+        salaries_table = soup.find("table")
+    salaries_df = pl.DataFrame(_extract_table(salaries_table))
+    salaries_df = salaries_df.with_columns(
+        pl.col("Salary")
+        .str.replace("\\$", "")
+        .str.replace(",", "")
+        .str.replace("\\*", "")
+        .cast(pl.Int32),
+    )
+
+    salaries_df = salaries_df.rename({"Salary": "salary ($)"})
+    return salaries_df if not return_pandas else salaries_df.to_pandas()
