@@ -7,7 +7,7 @@ from polars.testing import assert_frame_equal
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import pybaseballstats as pyb
-from pybaseballstats.utils.bref_utils import BREFTeams
+from pybaseballstats.bref_draft import BREFTeams
 
 
 def test_draft_order_by_round_badinputs():

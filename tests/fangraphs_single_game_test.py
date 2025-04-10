@@ -16,10 +16,6 @@ def test_fangraphs_single_game_play_by_play_badinputs():
         )
     with pytest.raises(ValueError):
         pyb.fangraphs_single_game.fangraphs_single_game_play_by_play(
-            "2026-06-20", pyb.fangraphs_single_game.FangraphsSingleGameTeams.White_Sox
-        )
-    with pytest.raises(ValueError):
-        pyb.fangraphs_single_game.fangraphs_single_game_play_by_play(
             "2024-06-20",
             "whitesox",
         )

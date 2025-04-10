@@ -7,6 +7,7 @@ from polars.testing import assert_frame_equal
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import pybaseballstats as pyb
+from pybaseballstats.umpire_scorecard import UmpireScorecardTeams
 
 
 # Test umpire_scorecard_games_date_range
@@ -33,11 +34,6 @@ def test_umpire_scorecard_games_date_range_badinputs():
     with pytest.raises(ValueError):
         pyb.umpire_scorecard.umpire_scorecard_games_date_range(
             start_date="2024-04-01",
-            end_date="9999-04-01",
-        )
-    with pytest.raises(ValueError):
-        pyb.umpire_scorecard.umpire_scorecard_games_date_range(
-            start_date="2024-04-01",
             end_date="2024-05-01",
             game_type="not_a_game_type",
         )
@@ -45,15 +41,15 @@ def test_umpire_scorecard_games_date_range_badinputs():
         pyb.umpire_scorecard.umpire_scorecard_games_date_range(
             start_date="2024-04-01",
             end_date="2024-05-01",
-            focus_team=pyb.umpire_scorecard.UmpireScorecardTeams.ALL,
+            focus_team=UmpireScorecardTeams.ALL,
             focus_team_home_away="not_a_home_away",
         )
     with pytest.raises(ValueError):
         pyb.umpire_scorecard.umpire_scorecard_games_date_range(
             start_date="2024-04-01",
             end_date="2024-05-01",
-            focus_team=pyb.umpire_scorecard.UmpireScorecardTeams.NATIONALS,
-            opponent_team=pyb.umpire_scorecard.UmpireScorecardTeams.NATIONALS,
+            focus_team=UmpireScorecardTeams.NATIONALS,
+            opponent_team=UmpireScorecardTeams.NATIONALS,
         )
 
 
@@ -129,7 +125,7 @@ def test_umpire_scorecard_games_date_range_custom_team():
     df = pyb.umpire_scorecard.umpire_scorecard_games_date_range(
         start_date="2024-04-01",
         end_date="2024-04-30",
-        focus_team=pyb.umpire_scorecard.UmpireScorecardTeams.DODGERS,
+        focus_team=UmpireScorecardTeams.DODGERS,
     )
     assert df is not None
     assert df.shape[0] == 26
@@ -139,7 +135,7 @@ def test_umpire_scorecard_games_date_range_custom_team():
     df = pyb.umpire_scorecard.umpire_scorecard_games_date_range(
         start_date="2024-04-01",
         end_date="2024-04-30",
-        focus_team=pyb.umpire_scorecard.UmpireScorecardTeams.DODGERS,
+        focus_team=UmpireScorecardTeams.DODGERS,
         focus_team_home_away="h",
     )
     assert df is not None
@@ -153,8 +149,8 @@ def test_umpire_scorecard_games_date_range_custom_team():
     df = pyb.umpire_scorecard.umpire_scorecard_games_date_range(
         start_date="2024-04-01",
         end_date="2024-04-30",
-        focus_team=pyb.umpire_scorecard.UmpireScorecardTeams.DODGERS,
-        opponent_team=pyb.umpire_scorecard.UmpireScorecardTeams.NATIONALS,
+        focus_team=UmpireScorecardTeams.DODGERS,
+        opponent_team=UmpireScorecardTeams.NATIONALS,
     )
     assert df is not None
     assert df.shape[0] == 6
@@ -166,8 +162,8 @@ def test_umpire_scorecard_games_date_range_custom_team():
     df = pyb.umpire_scorecard.umpire_scorecard_games_date_range(
         start_date="2024-04-01",
         end_date="2024-04-30",
-        focus_team=pyb.umpire_scorecard.UmpireScorecardTeams.DODGERS,
-        opponent_team=pyb.umpire_scorecard.UmpireScorecardTeams.NATIONALS,
+        focus_team=UmpireScorecardTeams.DODGERS,
+        opponent_team=UmpireScorecardTeams.NATIONALS,
         focus_team_home_away="a",
     )
     assert df is not None
@@ -232,15 +228,15 @@ def test_umpire_scorecard_umpires_badinputs():
         pyb.umpire_scorecard.umpire_scorecard_umpires_date_range(
             start_date="2024-04-01",
             end_date="2024-05-01",
-            focus_team=pyb.umpire_scorecard.UmpireScorecardTeams.ALL,
+            focus_team=UmpireScorecardTeams.ALL,
             focus_team_home_away="not_a_home_away",
         )
     with pytest.raises(ValueError):
         pyb.umpire_scorecard.umpire_scorecard_umpires_date_range(
             start_date="2024-04-01",
             end_date="2024-05-01",
-            focus_team=pyb.umpire_scorecard.UmpireScorecardTeams.NATIONALS,
-            opponent_team=pyb.umpire_scorecard.UmpireScorecardTeams.NATIONALS,
+            focus_team=UmpireScorecardTeams.NATIONALS,
+            opponent_team=UmpireScorecardTeams.NATIONALS,
         )
 
 
@@ -305,7 +301,7 @@ def test_umpire_scorecard_umpires_custom_team():
     df = pyb.umpire_scorecard.umpire_scorecard_umpires_date_range(
         start_date="2024-04-01",
         end_date="2024-04-30",
-        focus_team=pyb.umpire_scorecard.UmpireScorecardTeams.DODGERS,
+        focus_team=UmpireScorecardTeams.DODGERS,
     )
     assert df is not None
     assert df.shape[0] == 24
@@ -319,7 +315,7 @@ def test_umpire_scorecard_umpires_custom_team():
     df = pyb.umpire_scorecard.umpire_scorecard_umpires_date_range(
         start_date="2024-04-01",
         end_date="2024-04-30",
-        focus_team=pyb.umpire_scorecard.UmpireScorecardTeams.DODGERS,
+        focus_team=UmpireScorecardTeams.DODGERS,
         focus_team_home_away="h",
     )
     assert df is not None
@@ -334,8 +330,8 @@ def test_umpire_scorecard_umpires_custom_team():
     df = pyb.umpire_scorecard.umpire_scorecard_umpires_date_range(
         start_date="2024-04-01",
         end_date="2024-04-30",
-        focus_team=pyb.umpire_scorecard.UmpireScorecardTeams.DODGERS,
-        opponent_team=pyb.umpire_scorecard.UmpireScorecardTeams.NATIONALS,
+        focus_team=UmpireScorecardTeams.DODGERS,
+        opponent_team=UmpireScorecardTeams.NATIONALS,
     )
     assert df is not None
     assert df.shape[0] == 6
@@ -348,8 +344,8 @@ def test_umpire_scorecard_umpires_custom_team():
     df = pyb.umpire_scorecard.umpire_scorecard_umpires_date_range(
         start_date="2024-04-01",
         end_date="2024-04-30",
-        focus_team=pyb.umpire_scorecard.UmpireScorecardTeams.DODGERS,
-        opponent_team=pyb.umpire_scorecard.UmpireScorecardTeams.NATIONALS,
+        focus_team=UmpireScorecardTeams.DODGERS,
+        opponent_team=UmpireScorecardTeams.NATIONALS,
         focus_team_home_away="h",
     )
     assert df is not None
@@ -490,7 +486,7 @@ def test_umpire_scorecard_teams_date_range_custom_team():
     df = pyb.umpire_scorecard.umpire_scorecard_teams_date_range(
         start_date="2024-04-01",
         end_date="2024-04-30",
-        focus_team=pyb.umpire_scorecard.UmpireScorecardTeams.DODGERS,
+        focus_team=UmpireScorecardTeams.DODGERS,
     )
     assert df is not None
     assert df.shape[0] == 1

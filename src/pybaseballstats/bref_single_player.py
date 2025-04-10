@@ -7,8 +7,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 from pybaseballstats.utils.bref_singleton import BREFSingleton
 from pybaseballstats.utils.bref_utils import (
-    BREF_SINGLE_PLAYER_BATTING_URL,
-    BREF_SINGLE_PLAYER_FIELDING_URL,
+    BREF_SINGLE_PLAYER_SABERMETRIC_FIELDING_URL,
+    BREF_SINGLE_PLAYER_URL,
     _extract_table,
 )
 
@@ -31,7 +31,7 @@ def single_player_standard_batting(
     last_name_initial = player_code[0].lower()
     with bref.get_driver() as driver:
         driver.get(
-            BREF_SINGLE_PLAYER_BATTING_URL.format(
+            BREF_SINGLE_PLAYER_URL.format(
                 initial=last_name_initial, player_code=player_code
             )
         )
@@ -111,7 +111,7 @@ def single_player_value_batting(
     last_name_initial = player_code[0].lower()
     with bref.get_driver() as driver:
         driver.get(
-            BREF_SINGLE_PLAYER_BATTING_URL.format(
+            BREF_SINGLE_PLAYER_URL.format(
                 initial=last_name_initial, player_code=player_code
             )
         )
@@ -182,7 +182,7 @@ def single_player_advanced_batting(
     last_name_initial = player_code[0].lower()
     with bref.get_driver() as driver:
         driver.get(
-            BREF_SINGLE_PLAYER_BATTING_URL.format(
+            BREF_SINGLE_PLAYER_URL.format(
                 initial=last_name_initial, player_code=player_code
             )
         )
@@ -263,7 +263,7 @@ def single_player_standard_fielding(
     last_name_initial = player_code[0].lower()
     with bref.get_driver() as driver:
         driver.get(
-            BREF_SINGLE_PLAYER_FIELDING_URL.format(
+            BREF_SINGLE_PLAYER_URL.format(
                 initial=last_name_initial, player_code=player_code
             )
         )
@@ -335,7 +335,7 @@ def single_player_sabermetric_fielding(
     last_name_initial = player_code[0].lower()
     with bref.get_driver() as driver:
         driver.get(
-            BREF_SINGLE_PLAYER_FIELDING_URL.format(
+            BREF_SINGLE_PLAYER_SABERMETRIC_FIELDING_URL.format(
                 initial=last_name_initial, player_code=player_code
             )
         )
@@ -379,7 +379,7 @@ def single_player_salaries(
     last_name_initial = player_code[0].lower()
     with bref.get_driver() as driver:
         driver.get(
-            BREF_SINGLE_PLAYER_BATTING_URL.format(
+            BREF_SINGLE_PLAYER_URL.format(
                 initial=last_name_initial, player_code=player_code
             )
         )

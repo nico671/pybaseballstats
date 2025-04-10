@@ -8,9 +8,42 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
 from pybaseballstats.utils.bref_singleton import BREFSingleton
-from pybaseballstats.utils.bref_utils import BREF_DRAFT_URL, BREFTeams
+from pybaseballstats.utils.bref_utils import BREF_DRAFT_URL
 
 bref = BREFSingleton.instance()
+
+
+class BREFTeams(Enum):
+    ANGELS = "ANA"
+    DIAMONDBACKS = "ARI"
+    BRAVES = "ATL"
+    ORIOLES = "BAL"
+    RED_SOX = "BOS"
+    CUBS = "CHC"
+    WHITE_SOX = "CHW"
+    REDS = "CIN"
+    GUARDIANS = "CLE"
+    ROCKIES = "COL"
+    TIGERS = "DET"
+    MARLINS = "FLA"
+    ASTROS = "HOU"
+    ROYALS = "KCR"
+    DODGERS = "LAD"
+    BREWERS = "MIL"
+    TWINS = "MIN"
+    METS = "NYM"
+    YANKEES = "NYY"
+    ATHLETICS = "OAK"
+    PHILLIES = "PHI"
+    PIRATES = "PIT"
+    PADRES = "SDP"
+    MARINERS = "SEA"
+    GIANTS = "SFG"
+    CARDINALS = "STL"
+    RAYS = "TBD"
+    RANGERS = "TEX"
+    BLUE_JAYS = "TOR"
+    NATIONALS = "WSN"
 
 
 def draft_order_by_round(
@@ -171,36 +204,3 @@ def franchise_draft_order(
         ]
     )
     return df if not return_pandas else df.to_pandas()
-
-
-class BREFTeams(Enum):
-    ANGELS = "ANA"
-    DIAMONDBACKS = "ARI"
-    BRAVES = "ATL"
-    ORIOLES = "BAL"
-    RED_SOX = "BOS"
-    CUBS = "CHC"
-    WHITE_SOX = "CHW"
-    REDS = "CIN"
-    GUARDIANS = "CLE"
-    ROCKIES = "COL"
-    TIGERS = "DET"
-    MARLINS = "FLA"
-    ASTROS = "HOU"
-    ROYALS = "KCR"
-    DODGERS = "LAD"
-    BREWERS = "MIL"
-    TWINS = "MIN"
-    METS = "NYM"
-    YANKEES = "NYY"
-    ATHLETICS = "OAK"
-    PHILLIES = "PHI"
-    PIRATES = "PIT"
-    PADRES = "SDP"
-    MARINERS = "SEA"
-    GIANTS = "SFG"
-    CARDINALS = "STL"
-    RAYS = "TBD"
-    RANGERS = "TEX"
-    BLUE_JAYS = "TOR"
-    NATIONALS = "WSN"
