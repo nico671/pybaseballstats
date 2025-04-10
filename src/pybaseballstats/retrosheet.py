@@ -10,7 +10,7 @@ from pybaseballstats.utils.retrosheet_utils import EJECTIONS_URL, PEOPLES_URL, k
 
 
 # TODO: usage docs
-def get_people_data() -> pl.DataFrame:
+def _get_people_data() -> pl.DataFrame:
     df_list = []
     for i in range(0, 10):
         data = requests.get(PEOPLES_URL.format(num=i)).content
@@ -45,7 +45,7 @@ def player_lookup(
 ) -> pl.DataFrame | pd.DataFrame:
     if not first_name and not last_name:
         raise ValueError("At least one of first_name or last_name must be provided")
-    full_df = get_people_data()
+    full_df = _get_people_data()
     if first_name:
         first_name = first_name.lower()
     else:

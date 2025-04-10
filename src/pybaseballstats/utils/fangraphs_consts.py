@@ -1166,39 +1166,6 @@ class FangraphsBattingPosTypes(Enum):
         return self.value
 
 
-class FangraphsSingleGameTeams(Enum):
-    Angels = "Angels"
-    Astros = "Astros"
-    Athletics = "Athletics"
-    Blue_Jays = "Blue+Jays"
-    Braves = "Braves"
-    Brewers = "Brewers"
-    Cardinals = "Cardinals"
-    Cubs = "Cubs"
-    Diamondbacks = "Diamondbacks"
-    Dodgers = "Dodgers"
-    Giants = "Giants"
-    Guardians = "Guardians"
-    Mariners = "Mariners"
-    Marlins = "Marlins"
-    Mets = "Mets"
-    Nationals = "Nationals"
-    Orioles = "Orioles"
-    Padres = "Padres"
-    Phillies = "Phillies"
-    Pirates = "Pirates"
-    Rangers = "Rangers"
-    Rays = "Rays"
-    Red_Sox = "Red+Sox"
-    Reds = "Reds"
-    Rockies = "Rockies"
-    Royals = "Royals"
-    Tigers = "Tigers"
-    Twins = "Twins"
-    White_Sox = "White+Sox"
-    Yankees = "Yankees"
-
-
 FG_SINGLE_GAME_URL = (
     "https://www.fangraphs.com/boxscore.aspx?date={date}&team={team}&dh=0"
 )

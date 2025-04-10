@@ -1,5 +1,7 @@
 from datetime import datetime
+from enum import Enum
 
+import dateparser
 import pandas as pd
 import polars as pl
 import requests
@@ -7,10 +9,41 @@ from bs4 import BeautifulSoup
 
 from pybaseballstats.utils.fangraphs_consts import (
     FG_SINGLE_GAME_URL,
-    FangraphsSingleGameTeams,
 )
 
+
 # TODO: usage docs
+class FangraphsSingleGameTeams(Enum):
+    Angels = "Angels"
+    Astros = "Astros"
+    Athletics = "Athletics"
+    Blue_Jays = "Blue+Jays"
+    Braves = "Braves"
+    Brewers = "Brewers"
+    Cardinals = "Cardinals"
+    Cubs = "Cubs"
+    Diamondbacks = "Diamondbacks"
+    Dodgers = "Dodgers"
+    Giants = "Giants"
+    Guardians = "Guardians"
+    Mariners = "Mariners"
+    Marlins = "Marlins"
+    Mets = "Mets"
+    Nationals = "Nationals"
+    Orioles = "Orioles"
+    Padres = "Padres"
+    Phillies = "Phillies"
+    Pirates = "Pirates"
+    Rangers = "Rangers"
+    Rays = "Rays"
+    Red_Sox = "Red+Sox"
+    Reds = "Reds"
+    Rockies = "Rockies"
+    Royals = "Royals"
+    Tigers = "Tigers"
+    Twins = "Twins"
+    White_Sox = "White+Sox"
+    Yankees = "Yankees"
 
 
 def fangraphs_single_game_play_by_play(
@@ -19,7 +52,8 @@ def fangraphs_single_game_play_by_play(
     return_pandas: bool = False,
 ) -> pl.DataFrame | pd.DataFrame:
     # validate date
-    date_object = datetime.strptime(date, "%Y-%m-%d")
+    date_object = dateparser.parse(date)
+    date_string = date_object.strftime("%Y-%m-%d")
     if date_object > datetime.now():
         raise ValueError("Date cannot be in the future")
     if date_object < datetime(1977, 4, 6):
@@ -28,7 +62,7 @@ def fangraphs_single_game_play_by_play(
     if type(team) is not FangraphsSingleGameTeams:
         raise ValueError("team must be of type FangraphsSingleGameTeams")
     content = requests.get(
-        FG_SINGLE_GAME_URL.format(date=date, team=team.value)
+        FG_SINGLE_GAME_URL.format(date=date_string, team=team.value)
     ).content
     soup = BeautifulSoup(content, "html.parser")
     table = soup.find(

@@ -1,4 +1,5 @@
 import json
+from enum import Enum
 from typing import Literal
 
 # TODO: usage docs
@@ -11,8 +12,40 @@ from pybaseballstats.utils.umpire_scorecard_consts import (
     UMPIRE_SCORECARD_GAMES_URL,
     UMPIRE_SCORECARD_TEAMS_URL,
     UMPIRE_SCORECARD_UMPIRES_URL,
-    UmpireScorecardTeams,
 )
+
+
+class UmpireScorecardTeams(Enum):
+    ALL = "*"
+    DIAMONDBACKS = "AZ"
+    ATHLETICS = "ATH"
+    BRAVES = "ATL"
+    ORIOLES = "BAL"
+    RED_SOX = "BOS"
+    CUBS = "CHC"
+    REDS = "CIN"
+    WHITE_SOX = "CWS"
+    GAURDIANS = "CLE"
+    ROCKIES = "COL"
+    ASTROS = "HOU"
+    ROYALS = "KC"
+    ANGELS = "LAA"
+    DODGERS = "LAD"
+    MARLINS = "MIA"
+    BREWERS = "MIL"
+    TWINS = "MIN"
+    METS = "NYM"
+    YANKEES = "NYY"
+    PHILLIES = "PHI"
+    PIRATES = "PIT"
+    PADRES = "SD"
+    MARINERS = "SEA"
+    GIANTS = "SF"
+    CARDINALS = "STL"
+    RAYS = "TB"
+    RANGERS = "TEX"
+    BLUE_JAYS = "TOR"
+    NATIONALS = "WSH"
 
 
 def umpire_scorecard_games_date_range(
@@ -34,8 +67,6 @@ def umpire_scorecard_games_date_range(
         raise ValueError("start_date must be before end_date.")
     if start_dt.year < 2015 or end_dt.year < 2015:
         raise ValueError("start_date and end_date must be after 2015.")
-    if start_dt.year > 2025 or end_dt.year > 2025:
-        raise ValueError("start_date and end_date must be before 2024.")
     start_date = start_dt.strftime("%Y-%m-%d")
     end_date = end_dt.strftime("%Y-%m-%d")
 

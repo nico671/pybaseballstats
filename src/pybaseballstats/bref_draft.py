@@ -1,3 +1,5 @@
+from enum import Enum
+
 import pandas as pd
 import polars as pl
 from bs4 import BeautifulSoup
@@ -169,3 +171,36 @@ def franchise_draft_order(
         ]
     )
     return df if not return_pandas else df.to_pandas()
+
+
+class BREFTeams(Enum):
+    ANGELS = "ANA"
+    DIAMONDBACKS = "ARI"
+    BRAVES = "ATL"
+    ORIOLES = "BAL"
+    RED_SOX = "BOS"
+    CUBS = "CHC"
+    WHITE_SOX = "CHW"
+    REDS = "CIN"
+    GUARDIANS = "CLE"
+    ROCKIES = "COL"
+    TIGERS = "DET"
+    MARLINS = "FLA"
+    ASTROS = "HOU"
+    ROYALS = "KCR"
+    DODGERS = "LAD"
+    BREWERS = "MIL"
+    TWINS = "MIN"
+    METS = "NYM"
+    YANKEES = "NYY"
+    ATHLETICS = "OAK"
+    PHILLIES = "PHI"
+    PIRATES = "PIT"
+    PADRES = "SDP"
+    MARINERS = "SEA"
+    GIANTS = "SFG"
+    CARDINALS = "STL"
+    RAYS = "TBD"
+    RANGERS = "TEX"
+    BLUE_JAYS = "TOR"
+    NATIONALS = "WSN"
