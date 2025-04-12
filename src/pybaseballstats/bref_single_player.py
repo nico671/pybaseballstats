@@ -400,3 +400,139 @@ def single_player_salaries(
 
     salaries_df = salaries_df.rename({"Salary": "salary ($)"})
     return salaries_df if not return_pandas else salaries_df.to_pandas()
+
+
+def single_player_standard_pitching(
+    player_code: str, return_pandas: bool = False
+) -> pl.DataFrame | pd.DataFrame:
+    last_name_initial = player_code[0].lower()
+    with bref.get_driver() as driver:
+        driver.get(
+            BREF_SINGLE_PLAYER_URL.format(
+                initial=last_name_initial, player_code=player_code
+            )
+        )
+        with bref.get_driver() as driver:
+            driver.get(
+                BREF_SINGLE_PLAYER_URL.format(
+                    initial=last_name_initial, player_code=player_code
+                )
+            )
+            wait = WebDriverWait(driver, 15)
+            standard_pitching_table_wrapper = wait.until(
+                EC.presence_of_element_located((By.ID, "div_players_standard_pitching"))
+            )
+            soup = BeautifulSoup(
+                standard_pitching_table_wrapper.get_attribute("outerHTML"),
+                "html.parser",
+            )
+    standard_pitching_table = soup.find("table")
+    standard_pitching_df = pl.DataFrame(_extract_table(standard_pitching_table))
+    standard_pitching_df = standard_pitching_df.select(
+        pl.all().name.map(lambda col_name: col_name.replace("p_", ""))
+    )
+    standard_pitching_df = standard_pitching_df.select(
+        pl.all().name.map(lambda col_name: col_name.replace("_abbr", ""))
+    )
+    standard_pitching_df = standard_pitching_df.with_columns(
+        pl.col(
+            [
+                "age",
+                "w",
+                "l",
+                "g",
+                "gs",
+                "gf",
+                "cg",
+                "sho",
+                "sv",
+                "h",
+                "r",
+                "er",
+                "hr",
+                "bb",
+                "ibb",
+                "so",
+                "hbp",
+                "bk",
+                "wp",
+                "bfp",
+                "earned_run_avg_plus",
+            ]
+        ).cast(pl.Int32),
+        pl.col(
+            [
+                "war",
+                "win_loss_perc",
+                "earned_run_avg",
+                "ip",
+                "fip",
+                "whip",
+                "hits_per_nine",
+                "hr_per_nine",
+                "bb_per_nine",
+                "so_per_nine",
+                "strikeouts_per_base_on_balls",
+            ]
+        ).cast(pl.Float32),
+    )
+    return (
+        standard_pitching_df if not return_pandas else standard_pitching_df.to_pandas()
+    )
+
+
+def single_player_value_pitching(
+    player_code: str, return_pandas: bool = False
+) -> pl.DataFrame | pd.DataFrame:
+    """Returns a DataFrame of a player's value pitching statistics.
+
+    Args:
+        player_code (str): The player's code from Baseball Reference. This can be found using the pybaseballstats.retrosheet.player_lookup function.
+        return_pandas (bool, optional): If True, returns a pandas DataFrame. If False, returns a polars DataFrame. Defaults to False.
+
+    Returns:
+        pl.DataFrame | pd.DataFrame: Either a polars DataFrame or a pandas DataFrame containing the player's value pitching statistics.
+    """
+    last_name_initial = player_code[0].lower()
+    with bref.get_driver() as driver:
+        driver.get(
+            BREF_SINGLE_PLAYER_URL.format(
+                initial=last_name_initial, player_code=player_code
+            )
+        )
+        wait = WebDriverWait(driver, 15)
+        value_pitching_table_wrapper = wait.until(
+            EC.presence_of_element_located((By.ID, "div_players_value_pitching"))
+        )
+        soup = BeautifulSoup(
+            value_pitching_table_wrapper.get_attribute("outerHTML"), "html.parser"
+        )
+    value_pitching_table = soup.find("table")
+    value_pitching_df = pl.DataFrame(_extract_table(value_pitching_table))
+    value_pitching_df = value_pitching_df.select(
+        pl.all().name.map(lambda col_name: col_name.replace("p_", ""))
+    )
+    value_pitching_df = value_pitching_df.select(
+        pl.all().name.map(lambda col_name: col_name.replace("_abbr", ""))
+    )
+    value_pitching_df = value_pitching_df.with_columns(
+        pl.col(["age", "g", "gs", "r", "ppf_custom", "raa", "rar"]).cast(pl.Int32),
+        pl.col(
+            [
+                "ip",
+                "ra9",
+                "ra9_opp",
+                "ra9_role",
+                "ra9_extras",
+                "ra9_avg_pitcher",
+                "ra9_def",
+                "waa",
+                "waa_adj",
+                "war",
+                "waa_win_perc",
+                "waa_win_perc_162",
+                "leverage_index_avg_rp",
+            ]
+        ).cast(pl.Float32),
+    )
+    return value_pitching_df if not return_pandas else value_pitching_df.to_pandas()

@@ -1,4 +1,3 @@
-# https://stackoverflow.com/questions/31875/is-there-a-simple-elegant-way-to-define-singletons
 import time
 from contextlib import contextmanager
 from datetime import datetime
@@ -8,6 +7,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 
 
+# https://stackoverflow.com/questions/31875/is-there-a-simple-elegant-way-to-define-singletons
 class Singleton:
     """
     A non-thread-safe helper class to ease implementing singletons.
