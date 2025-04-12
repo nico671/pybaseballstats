@@ -536,3 +536,78 @@ def single_player_value_pitching(
         ).cast(pl.Float32),
     )
     return value_pitching_df if not return_pandas else value_pitching_df.to_pandas()
+
+
+def single_player_advanced_pitching(
+    player_code: str, return_pandas: bool = False
+) -> pl.DataFrame | pd.DataFrame:
+    """Returns a DataFrame of a player's advanced pitching statistics.
+    This includes statistics such as batting average on balls in play, home run percentage, strikeout percentage, and more.
+    The statistics are extracted from the player's Baseball Reference page.
+
+    Args:
+        player_code (str): The player's code from Baseball Reference. This can be found using the pybaseballstats.retrosheet.player_lookup function.
+        return_pandas (bool, optional): If True, returns a pandas DataFrame. If False, returns a polars DataFrame. Defaults to False.
+
+    Returns:
+        pl.DataFrame | pd.DataFrame: Either a polars DataFrame or a pandas DataFrame containing the player's advanced pitching statistics. If return_pandas is True, a pandas DataFrame is returned, if False, a polars DataFrame is returned.
+    """
+    last_name_initial = player_code[0].lower()
+    with bref.get_driver() as driver:
+        driver.get(
+            BREF_SINGLE_PLAYER_URL.format(
+                initial=last_name_initial, player_code=player_code
+            )
+        )
+        wait = WebDriverWait(driver, 15)
+        advanced_pitching_table_wrapper = wait.until(
+            EC.presence_of_element_located((By.ID, "div_players_advanced_pitching"))
+        )
+        soup = BeautifulSoup(
+            advanced_pitching_table_wrapper.get_attribute("outerHTML"), "html.parser"
+        )
+    advanced_pitching_table = soup.find("table")
+    advanced_pitching_df = pl.DataFrame(_extract_table(advanced_pitching_table))
+
+    advanced_pitching_df = advanced_pitching_df.select(
+        pl.all().name.map(lambda col_name: col_name.replace("p_", ""))
+    )
+    advanced_pitching_df = advanced_pitching_df.select(
+        pl.all().name.map(lambda col_name: col_name.replace("_abbr", ""))
+    )
+    # allow for float conversions in this column
+    advanced_pitching_df = advanced_pitching_df.with_columns(
+        pl.col("cwpa_def").str.replace("%", "")
+    )
+    advanced_pitching_df = advanced_pitching_df.with_columns(
+        pl.col(
+            [
+                "age",
+            ]
+        ).cast(pl.Int32),
+        pl.col(
+            [
+                "ip",
+                "batting_avg",
+                "onbase_perc",
+                "slugging_perc",
+                "onbase_plus_slugging",
+                "batting_avg_bip",
+                "home_run_perc",
+                "strikeout_perc",
+                "base_on_balls_perc",
+                "avg_exit_velo",
+                "hard_hit_perc",
+                "ld_perc",
+                "gb_perc",
+                "fb_perc",
+                "gb_fb_ratio",
+                "wpa_def",
+                "cwpa_def",
+                "baseout_runs",
+            ]
+        ).cast(pl.Float32),
+    )
+    return (
+        advanced_pitching_df if not return_pandas else advanced_pitching_df.to_pandas()
+    )

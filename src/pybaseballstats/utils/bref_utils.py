@@ -10,6 +10,8 @@ def _extract_table(table):
     trs = table.tbody.find_all("tr")
     row_data = {}
     for tr in trs:
+        if tr.has_attr("class") and "thead" in tr["class"]:
+            continue
         tds = tr.find_all("td")
         if len(tds) == 0:
             continue
@@ -17,7 +19,14 @@ def _extract_table(table):
             data_stat = td.attrs["data-stat"]
             if data_stat not in row_data:
                 row_data[data_stat] = []
-            row_data[data_stat].append(td.string)
+            if td.find("a"):
+                row_data[data_stat].append(td.find("a").string)
+            elif td.find("span"):
+                row_data[data_stat].append(td.find("span").string)
+            elif td.find("strong"):
+                row_data[data_stat].append(td.find("strong").string)
+            else:
+                row_data[data_stat].append(td.string)
     return row_data
 
 
