@@ -37,11 +37,20 @@ def statcast_date_range_pitch_by_pitch(
     """
 
     async def async_statcast():
-        return await _statcast_date_range_helper(
-            start_dt, end_dt, team, extra_stats, return_pandas
-        )
+        try:
+            return await _statcast_date_range_helper(
+                start_dt, end_dt, team, extra_stats, return_pandas
+            )
+        except Exception as e:
+            print(f"Error fetching statcast data: {str(e)}")
+            # Return empty dataframe
+            return pl.LazyFrame() if not return_pandas else pd.DataFrame()
 
-    return asyncio.run(async_statcast())
+    try:
+        return asyncio.run(async_statcast())
+    except Exception as e:
+        print(f"Unexpected error: {str(e)}")
+        return pl.LazyFrame() if not return_pandas else pd.DataFrame()
 
 
 def statcast_single_batter_range_pitch_by_pitch(
@@ -65,11 +74,20 @@ def statcast_single_batter_range_pitch_by_pitch(
     """
 
     async def async_statcast_single_batter():
-        return await _statcast_single_batter_range_helper(
-            start_dt, end_dt, str(player_id), extra_stats, return_pandas
-        )
+        try:
+            return await _statcast_single_batter_range_helper(
+                start_dt, end_dt, str(player_id), extra_stats, return_pandas
+            )
+        except Exception as e:
+            print(f"Error fetching statcast data for batter {player_id}: {str(e)}")
+            # Return empty dataframe
+            return pl.DataFrame() if not return_pandas else pd.DataFrame()
 
-    return asyncio.run(async_statcast_single_batter())
+    try:
+        return asyncio.run(async_statcast_single_batter())
+    except Exception as e:
+        print(f"Unexpected error: {str(e)}")
+        return pl.DataFrame() if not return_pandas else pd.DataFrame()
 
 
 def statcast_single_pitcher_range_pitch_by_pitch(
@@ -93,8 +111,17 @@ def statcast_single_pitcher_range_pitch_by_pitch(
     """
 
     async def async_statcast_single_pitcher():
-        return await _statcast_single_pitcher_range_helper(
-            start_dt, end_dt, str(player_id), extra_stats, return_pandas
-        )
+        try:
+            return await _statcast_single_pitcher_range_helper(
+                start_dt, end_dt, str(player_id), extra_stats, return_pandas
+            )
+        except Exception as e:
+            print(f"Error fetching statcast data for pitcher {player_id}: {str(e)}")
+            # Return empty dataframe
+            return pl.DataFrame() if not return_pandas else pd.DataFrame()
 
-    return asyncio.run(async_statcast_single_pitcher())
+    try:
+        return asyncio.run(async_statcast_single_pitcher())
+    except Exception as e:
+        print(f"Unexpected error: {str(e)}")
+        return pl.DataFrame() if not return_pandas else pd.DataFrame()

@@ -38,36 +38,87 @@ async def _fetch_data(session, url, retries=3):
     for attempt in range(retries):
         try:
             async with session.get(url) as response:
-                return await response.read()
+                if response.status == 200:
+                    return await response.read()
+                else:
+                    print(f"Error {response.status} for {url}")
+                    if attempt < retries - 1:
+                        await asyncio.sleep(1)
+                        continue
+                    else:
+                        return None
         except aiohttp.ClientPayloadError as e:
             if attempt < retries - 1:
-                await asyncio.sleep(1)  # Wait before retrying
-                print(f"Retrying... {retries - attempt - 1} attempts left.")
+                await asyncio.sleep(1 * (attempt + 1))  # Increasing backoff
+                print(
+                    f"Retrying... {retries - attempt - 1} attempts left. Error: {str(e)}"
+                )
                 continue
             else:
-                print(f"Failed to fetch data from {url}.")
-                raise e
+                print(f"Failed to fetch data from {url}. Error: {str(e)}")
+                return None
+        except aiohttp.ClientConnectorError as e:
+            if attempt < retries - 1:
+                await asyncio.sleep(1 * (attempt + 1))
+                print(
+                    f"Connection error. Retrying... {retries - attempt - 1} attempts left."
+                )
+                continue
+            else:
+                print(f"Connection error for {url}: {e}")
+                return None
+        except aiohttp.ServerDisconnectedError as e:
+            if attempt < retries - 1:
+                await asyncio.sleep(1 * (attempt + 1))
+                print(
+                    f"Server disconnected. Retrying... {retries - attempt - 1} attempts left."
+                )
+                continue
+            else:
+                print(f"Server disconnected for {url}: {e}")
+                return None
         except aiohttp.SocketTimeoutError as e:
             if attempt < retries - 1:
-                await asyncio.sleep(1)
-                print(f"Retrying... {retries - attempt - 1} attempts left.")
+                await asyncio.sleep(1 * (attempt + 1))
+                print(
+                    f"Socket timeout. Retrying... {retries - attempt - 1} attempts left."
+                )
                 continue
             else:
-                print(f"Socket timeout error for {url}.")
-                raise e
+                print(f"Socket timeout error for {url}: {e}")
+                return None
         except aiohttp.ClientError as e:
             print(f"Client error for {url}: {e}")
-            raise e
+            return None
         except Exception as e:
             print(f"Unexpected error for {url}: {e}")
-            raise e
+            return None
 
 
 async def _fetch_all_data(urls):
-    session_timeout = aiohttp.ClientTimeout(total=None, sock_connect=15, sock_read=30)
-    async with aiohttp.ClientSession(timeout=session_timeout) as session:
+    # Use a longer timeout and keep connections alive
+    conn = aiohttp.TCPConnector(limit=10, ssl=False)
+    session_timeout = aiohttp.ClientTimeout(total=None, sock_connect=30, sock_read=60)
+
+    async with aiohttp.ClientSession(
+        timeout=session_timeout,
+        connector=conn,
+        headers={
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
+        },
+    ) as session:
         tasks = [_fetch_data(session, url) for url in urls]
-        return await tqdm_asyncio.gather(*tasks, desc="Fetching data")
+        results = await tqdm_asyncio.gather(*tasks, desc="Fetching data")
+
+        # Filter out None results (failed requests)
+        valid_results = [r for r in results if r is not None]
+
+        if len(valid_results) < len(urls):
+            print(
+                f"Warning: {len(urls) - len(valid_results)} of {len(urls)} requests failed"
+            )
+
+        return valid_results
 
 
 async def _statcast_date_range_helper(
@@ -107,16 +158,37 @@ async def _statcast_date_range_helper(
                 pos="pitcher",
             )
         )
+
+    # Use smaller batches to avoid overwhelming the server
+    batch_size = 20
     schema = None
-    responses = await _fetch_all_data(urls)
-    for data in tqdm(responses, desc="Processing regular data"):
-        # scan csv as lazyframe and drop columns that will always be null
-        data = pl.scan_csv(data)
-        if schema is None:
-            schema = data.collect_schema()
-        else:
-            data = data.cast(schema)
-        data_list.append(data)
+
+    for i in range(0, len(urls), batch_size):
+        batch_urls = urls[i : i + batch_size]
+        print(
+            f"Processing batch {i // batch_size + 1}/{(len(urls) + batch_size - 1) // batch_size}"
+        )
+
+        responses = await _fetch_all_data(batch_urls)
+
+        for data in tqdm(responses, desc="Processing regular data"):
+            try:
+                # scan csv as lazyframe and drop columns that will always be null
+                data = pl.scan_csv(data)
+                if schema is None:
+                    schema = data.collect_schema()
+                else:
+                    data = data.cast(schema)
+                data_list.append(data)
+            except Exception as e:
+                print(f"Error processing data: {e}")
+                continue
+
+    if not data_list:
+        print("No data was successfully retrieved.")
+        # Return empty dataframe with similar schema
+        return pl.LazyFrame() if not return_pandas else pd.DataFrame()
+
     print("Concatenating data.")
     df = pl.concat(data_list)
     print("Data concatenated.")

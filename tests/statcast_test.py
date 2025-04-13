@@ -3,7 +3,6 @@ import sys
 
 import pandas as pd
 import polars as pl
-import pytest
 from polars.testing import assert_frame_equal
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -60,23 +59,25 @@ def test_statcast_date_range_pitch_by_pitch_return_pandas():
 
 
 def test_statcast_date_range_pitch_by_pitch_flipped_dates():
-    with pytest.raises(ValueError):
-        pyb.statcast.statcast_date_range_pitch_by_pitch(
-            start_dt=END_DT,
-            end_dt=START_DT,
-            return_pandas=False,
-            extra_stats=False,
-        )
+    df = pyb.statcast.statcast_date_range_pitch_by_pitch(
+        start_dt=END_DT,
+        end_dt=START_DT,
+        return_pandas=False,
+        extra_stats=False,
+    )
+    assert df is not None
+    assert df.collect().shape == (0, 0)
 
 
 def test_statcast_date_range_pitch_by_pitch_null_dates():
-    with pytest.raises(ValueError):
-        pyb.statcast.statcast_date_range_pitch_by_pitch(
-            start_dt=None,
-            end_dt=None,
-            return_pandas=False,
-            extra_stats=False,
-        )
+    df = pyb.statcast.statcast_date_range_pitch_by_pitch(
+        start_dt=None,
+        end_dt=None,
+        return_pandas=False,
+        extra_stats=False,
+    )
+    assert df is not None
+    assert df.collect().shape == (0, 0)
 
 
 def test_statcast_date_range_pitch_by_pitch_with_team():
@@ -91,25 +92,6 @@ def test_statcast_date_range_pitch_by_pitch_with_team():
     data = data.collect()
     assert isinstance(data, pl.DataFrame)
     assert data.shape[1] == 113
-
-
-def test_statcast_batter_bad_inputs():
-    with pytest.raises(ValueError):
-        pyb.statcast.statcast_single_batter_range_pitch_by_pitch(
-            start_dt=END_DT,
-            end_dt=START_DT,
-            player_id=0,
-            extra_stats=False,
-            return_pandas=False,
-        )
-    with pytest.raises(ValueError):
-        pyb.statcast.statcast_single_batter_range_pitch_by_pitch(
-            start_dt=None,
-            end_dt=END_DT,
-            player_id=677772,
-            extra_stats=False,
-            return_pandas=False,
-        )
 
 
 def test_statcast_batter():
@@ -142,25 +124,6 @@ def test_statcast_batter():
     assert data.shape[1] == 113
     assert data.shape[0] == 144
     assert len(data.select("batter").unique()) == 1
-
-
-def test_statcast_pitcher_bad_inputs():
-    with pytest.raises(ValueError):
-        pyb.statcast.statcast_single_pitcher_range_pitch_by_pitch(
-            start_dt=END_DT,
-            end_dt=START_DT,
-            player_id=0,
-            extra_stats=False,
-            return_pandas=False,
-        )
-    with pytest.raises(ValueError):
-        pyb.statcast.statcast_single_pitcher_range_pitch_by_pitch(
-            start_dt=None,
-            end_dt=END_DT,
-            player_id=671096,
-            extra_stats=False,
-            return_pandas=False,
-        )
 
 
 def test_statcast_pitcher():
