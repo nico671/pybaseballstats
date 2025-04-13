@@ -34,7 +34,7 @@ YEAR_RANGES = {
 STATCAST_DATE_FORMAT = "%Y-%m-%d"
 
 
-async def _fetch_data(session, url, retries=2):
+async def _fetch_data(session, url, retries=3):
     for attempt in range(retries):
         try:
             async with session.get(url) as response:
@@ -47,6 +47,20 @@ async def _fetch_data(session, url, retries=2):
             else:
                 print(f"Failed to fetch data from {url}.")
                 raise e
+        except aiohttp.SocketTimeoutError as e:
+            if attempt < retries - 1:
+                await asyncio.sleep(1)
+                print(f"Retrying... {retries - attempt - 1} attempts left.")
+                continue
+            else:
+                print(f"Socket timeout error for {url}.")
+                raise e
+        except aiohttp.ClientError as e:
+            print(f"Client error for {url}: {e}")
+            raise e
+        except Exception as e:
+            print(f"Unexpected error for {url}: {e}")
+            raise e
 
 
 async def _fetch_all_data(urls):
