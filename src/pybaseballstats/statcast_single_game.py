@@ -1,4 +1,3 @@
-import asyncio
 import datetime
 import io
 from contextlib import contextmanager
@@ -14,7 +13,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
 from pybaseballstats.statcast import statcast_date_range_pitch_by_pitch
-from pybaseballstats.utils.statcast_utils import ROOT_URL, SINGLE_GAME, _add_extra_stats
+from pybaseballstats.utils.statcast_utils import STATCAST_SINGLE_GAME_URL
 
 STATCAST_SINGLE_GAME_EV_PV_WP_URL = "https://baseballsavant.mlb.com/gamefeed?date={game_date}&gamePk={game_pk}&chartType=pitch&legendType=pitchName&playerType=pitcher&inning=&count=&pitchHand=&batSide=&descFilter=&ptFilter=&resultFilter=&hf={stat_type}&sportId=1&liveAb=#{game_pk}"
 
@@ -38,7 +37,7 @@ def get_driver():
 
 
 def statcast_single_game_pitch_by_pitch(
-    game_pk: int, extra_stats: bool = False, return_pandas: bool = False
+    game_pk: int, return_pandas: bool = False
 ) -> pl.DataFrame | pd.DataFrame:
     """Pulls statcast data for a single game.
 
@@ -51,18 +50,10 @@ def statcast_single_game_pitch_by_pitch(
         pl.DataFrame | pd.DataFrame: DataFrame of statcast data for the game
     """
     response = requests.get(
-        ROOT_URL + SINGLE_GAME.format(game_pk=game_pk),
+        STATCAST_SINGLE_GAME_URL.format(game_pk=game_pk),
     )
     statcast_content = response.content
-    if not extra_stats:
-        df = pl.scan_csv(io.StringIO(statcast_content.decode("utf-8"))).collect()
-    else:
-        df = pl.scan_csv(io.StringIO(statcast_content.decode("utf-8")))
-        start_dt = df.select(pl.col("game_date").min())
-        end_dt = df.select(pl.col("game_date").max())
-        df = asyncio.run(
-            _add_extra_stats(df, start_dt, end_dt, return_pandas)
-        ).collect()
+    df = pl.scan_csv(io.StringIO(statcast_content.decode("utf-8"))).collect()
     return df if not return_pandas else df.to_pandas()
 
 
