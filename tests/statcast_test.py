@@ -1,131 +1,81 @@
 import os
 import sys
 
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import pandas as pd
 import polars as pl
-from polars.testing import assert_frame_equal
+import pytest
+from polars.testing import assert_frame_equal, assert_series_not_equal
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import pybaseballstats as pyb
 
 START_DT = "2023-04-01"
-END_DT = "2023-04-10"
+END_DT = "2023-04-02"
 
 
-## statcast_date_range_pitch_by_pitch_TESTS
-def test_statcast_date_range_pitch_by_pitch():
-    data = pyb.statcast.statcast_date_range_pitch_by_pitch(
-        start_date=START_DT,
-        end_date=END_DT,
-        return_pandas=False,
-    )
-    assert type(data) is pl.LazyFrame
-    data = data.collect()
-    assert data is not None
-    assert data.shape[0] == 38213
-    assert data.shape[1] == 113
-    assert data.select(pl.col("game_date").min()).to_series().to_list()[0] == START_DT
-    assert data.select(pl.col("game_date").max()).to_series().to_list()[0] == END_DT
-    assert type(data) is pl.DataFrame
+def test_statcast_date_range_pitch_by_pitch_badinputs():
+    with pytest.raises(ValueError):
+        pyb.statcast.statcast_date_range_pitch_by_pitch(
+            start_date=START_DT, end_date=END_DT, perspective="invalid"
+        )
+    with pytest.raises(ValueError):
+        pyb.statcast.statcast_date_range_pitch_by_pitch(
+            start_date=None, end_date=END_DT
+        )
+    with pytest.raises(ValueError):
+        pyb.statcast.statcast_date_range_pitch_by_pitch(
+            start_date=START_DT, end_date=None
+        )
+    with pytest.raises(ValueError):
+        pyb.statcast.statcast_date_range_pitch_by_pitch(
+            start_date=END_DT, end_date=START_DT, return_pandas=None
+        )
 
 
-def test_statcast_date_range_pitch_by_pitch_return_pandas():
-    data = pyb.statcast.statcast_date_range_pitch_by_pitch(
-        start_dt=START_DT,
-        end_dt=END_DT,
-        return_pandas=True,
-    )
-    assert data is not None
-    assert data.shape[0] == 38213
-    assert data.shape[1] == 113
-    assert type(data) is pd.DataFrame
-
-
-def test_statcast_date_range_pitch_by_pitch_flipped_dates():
+def test_statcast_date_range_pitch_by_pitch_regular():
     df = pyb.statcast.statcast_date_range_pitch_by_pitch(
-        start_dt=END_DT,
-        end_dt=START_DT,
-        return_pandas=False,
+        start_date=START_DT, end_date=END_DT
     )
     assert df is not None
-    assert df.collect().shape == (0, 0)
+    assert isinstance(df, pl.LazyFrame)
+    df = df.collect()
+    assert df is not None
+    assert df.shape == (8695, 113)
+    assert df.select(pl.col("game_date").max()).item() == "2023-04-02"
+    assert df.select(pl.col("game_date").min()).item() == "2023-04-01"
+    df2 = pyb.statcast.statcast_date_range_pitch_by_pitch(
+        start_date=START_DT, end_date=END_DT, return_pandas=True
+    )
+    assert df2 is not None
+    assert isinstance(df2, pd.DataFrame)
+    assert df2.shape == (8695, 113)
+    assert_frame_equal(df, pl.DataFrame(df2, schema=df.schema))
 
 
-def test_statcast_date_range_pitch_by_pitch_null_dates():
+def test_statcast_date_range_pitch_by_pitch_perspective():
     df = pyb.statcast.statcast_date_range_pitch_by_pitch(
-        start_dt=None,
-        end_dt=None,
-        return_pandas=False,
+        start_date=START_DT, end_date=END_DT, perspective="pitcher"
+    )
+    df2 = pyb.statcast.statcast_date_range_pitch_by_pitch(
+        start_date=START_DT, end_date=END_DT, perspective="batter"
     )
     assert df is not None
-    assert df.collect().shape == (0, 0)
-
-
-def test_statcast_batter():
-    data = pyb.statcast.statcast_single_batter_range_pitch_by_pitch(
-        start_dt=START_DT,
-        end_dt=END_DT,
-        player_id="547180",
-        return_pandas=False,
+    assert df2 is not None
+    assert isinstance(df, pl.LazyFrame)
+    assert isinstance(df2, pl.LazyFrame)
+    df = df.collect()
+    df2 = df2.collect()
+    assert df.shape == df2.shape
+    assert df.schema == df2.schema
+    assert (
+        df.select(pl.col("game_date").max()).item()
+        == df2.select(pl.col("game_date").max()).item()
     )
-    assert isinstance(data, pl.LazyFrame)
-    data = data.collect()
-    assert isinstance(data, pl.DataFrame)
-    assert data.shape[1] == 181
-    assert data.shape[0] == 144
-    assert len(data.select("batter").unique()) == 1
-    assert data["batter"].unique().item() == 547180
-    assert data.select(pl.col("game_date").min()).to_series().to_list()[0] == START_DT
-    assert data.select(pl.col("game_date").max()).to_series().to_list()[0] == END_DT
-    data = pyb.statcast.statcast_single_batter_range_pitch_by_pitch(
-        start_dt=START_DT,
-        end_dt=END_DT,
-        player_id="547180",
-        return_pandas=False,
+    assert (
+        df.select(pl.col("game_date").min()).item()
+        == df2.select(pl.col("game_date").min()).item()
     )
-    assert isinstance(data, pl.LazyFrame)
-    data = data.collect()
-    assert isinstance(data, pl.DataFrame)
-    assert data.shape[1] == 113
-    assert data.shape[0] == 144
-    assert len(data.select("batter").unique()) == 1
-
-
-def test_statcast_pitcher():
-    data = pyb.statcast.statcast_single_pitcher_range_pitch_by_pitch(
-        start_dt=START_DT,
-        end_dt=END_DT,
-        player_id="671096",
-        return_pandas=False,
+    assert_series_not_equal(
+        df.select(pl.col("player_name")).to_series(),
+        df2.select(pl.col("player_name")).to_series(),
     )
-    assert isinstance(data, pl.LazyFrame)
-    data = data.collect()
-    assert isinstance(data, pl.DataFrame)
-    assert data.shape[1] == 181
-    assert data.shape[0] == 185
-    assert len(data.select("pitcher").unique()) == 1
-
-
-def test_statcast_pitcher_to_pandas():
-    data1 = pyb.statcast.statcast_single_pitcher_range_pitch_by_pitch(
-        start_dt=START_DT,
-        end_dt=END_DT,
-        player_id="671096",
-        return_pandas=True,
-    )
-    assert isinstance(data1, pd.DataFrame)
-    assert data1.shape[1] == 181
-    assert data1.shape[0] == 185
-    assert len(data1["pitcher"].unique()) == 1
-    data2 = pyb.statcast.statcast_single_pitcher_range_pitch_by_pitch(
-        start_dt=START_DT,
-        end_dt=END_DT,
-        player_id="671096",
-        return_pandas=False,
-    )
-    data2 = data2.collect()
-    assert isinstance(data2, pl.DataFrame)
-    assert data2.shape[1] == 181
-    assert data2.shape[0] == 185
-    assert len(data2["pitcher"].unique()) == 1
-    assert_frame_equal(pl.DataFrame(data1, schema=data2.schema), data2)

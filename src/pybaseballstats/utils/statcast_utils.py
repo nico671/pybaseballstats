@@ -95,10 +95,11 @@ async def _statcast_date_range_helper(
 ) -> pl.DataFrame | pd.DataFrame:
     if start_date is None or end_date is None:
         raise ValueError("start_date and end_date must be provided")
-    if player_type not in ["pitcher", "hitter"]:
-        raise ValueError("player_type must be either 'pitcher' or 'hitter'")
+    if player_type not in ["pitcher", "batter"]:
+        raise ValueError("player_type must be either 'pitcher' or 'batter'")
     start_dt, end_dt = _handle_dates(start_date, end_date)
     print(f"Pulling data for date range: {start_dt} to {end_dt}.")
+    print("Splitting date range into smaller chunks.")
     date_ranges = list(_create_date_ranges(start_dt, end_dt, 1))
 
     data_list = []
@@ -119,7 +120,7 @@ async def _statcast_date_range_helper(
             if not schema:
                 df = pl.scan_csv(response)
                 data_list.append(df)
-                schema = df.schema
+                schema = df.collect_schema()
             else:
                 df = pl.scan_csv(response, schema=schema)
                 data_list.append(df)
@@ -133,7 +134,7 @@ async def _statcast_date_range_helper(
     elif len(data_list) > 0:
         print("Concatenating data.")
         df = pl.concat(data_list)
-        return df if not return_pandas else df.to_pandas()
+        return df if not return_pandas else df.collect().to_pandas()
     else:
         print("No data frames to concatenate.")
         return pl.LazyFrame() if not return_pandas else pd.DataFrame()
