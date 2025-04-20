@@ -12,4 +12,5 @@ src/pybaseballstats/data/__pycache__
 src/pybaseballstats.egg-info/
 htmlcov/
 .vscode/
+tests/rand_results/
 */__pycache__/
