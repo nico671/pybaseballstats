@@ -1,0 +1,326 @@
+{
+  "20250420_142914": {
+    "timestamp": "2025-04-20 14:29:14",
+    "note": "dynamic semaphore",
+    "year": 2024,
+    "ranges": {
+      "1_day": {
+        "start_date": "2024-03-15",
+        "end_date": "2024-03-16",
+        "execution_time": 0.21370530128479004,
+        "success": true,
+        "row_count": 5840,
+        "data_to_time_ratio": 27327.352035209657
+      },
+      "1_week": {
+        "start_date": "2024-03-15",
+        "end_date": "2024-03-22",
+        "execution_time": 0.5983097553253174,
+        "success": true,
+        "row_count": 24622,
+        "data_to_time_ratio": 41152.596595407915
+      },
+      "2_weeks": {
+        "start_date": "2024-03-15",
+        "end_date": "2024-03-29",
+        "execution_time": 0.8769469261169434,
+        "success": true,
+        "row_count": 45979,
+        "data_to_time_ratio": 52430.767051766335
+      },
+      "1_month": {
+        "start_date": "2024-03-15",
+        "end_date": "2024-04-14",
+        "execution_time": 2.212778091430664,
+        "success": true,
+        "row_count": 108604,
+        "data_to_time_ratio": 49080.38470761542
+      },
+      "3_months": {
+        "start_date": "2024-03-15",
+        "end_date": "2024-06-13",
+        "execution_time": 9.076807022094727,
+        "success": true,
+        "row_count": 338851,
+        "data_to_time_ratio": 37331.519682545884
+      },
+      "half_season": {
+        "start_date": "2024-03-15",
+        "end_date": "2024-07-05",
+        "execution_time": 10.741132020950317,
+        "success": true,
+        "row_count": 424448,
+        "data_to_time_ratio": 39516.13285937874
+      },
+      "full_2024_season": {
+        "start_date": "2024-03-15",
+        "end_date": "2024-10-25",
+        "execution_time": 19.184658765792847,
+        "success": true,
+        "row_count": 759848,
+        "data_to_time_ratio": 39607.06360620002
+      },
+      "2023_2024_seasons": {
+        "start_date": "2023-03-15",
+        "end_date": "2024-10-25",
+        "execution_time": 38.79426670074463,
+        "success": true,
+        "row_count": 1531787,
+        "data_to_time_ratio": 39484.880892737645
+      },
+      "3_year_test_2022_to_2024": {
+        "start_date": "2022-03-17",
+        "end_date": "2024-10-25",
+        "execution_time": 56.22767114639282,
+        "success": true,
+        "row_count": 2305704,
+        "data_to_time_ratio": 41006.57119511374
+      },
+      "10_year_test_2015_to_2024": {
+        "start_date": "2015-04-05",
+        "end_date": "2024-10-25",
+        "execution_time": 313.57279324531555,
+        "success": true,
+        "row_count": 7014650,
+        "data_to_time_ratio": 22370.084876949993
+      }
+    }
+  },
+  "20250420_144128": {
+    "timestamp": "2025-04-20 14:41:28",
+    "note": "const semaphore at 20",
+    "year": 2024,
+    "ranges": {
+      "1_day": {
+        "start_date": "2024-03-15",
+        "end_date": "2024-03-16",
+        "execution_time": 0.212799072265625,
+        "success": true,
+        "row_count": 5840,
+        "data_to_time_ratio": 27443.728667718344
+      },
+      "1_week": {
+        "start_date": "2024-03-15",
+        "end_date": "2024-03-22",
+        "execution_time": 0.9762060642242432,
+        "success": true,
+        "row_count": 24622,
+        "data_to_time_ratio": 25222.133832538977
+      },
+      "2_weeks": {
+        "start_date": "2024-03-15",
+        "end_date": "2024-03-29",
+        "execution_time": 1.4563689231872559,
+        "success": true,
+        "row_count": 45979,
+        "data_to_time_ratio": 31570.984019197
+      },
+      "1_month": {
+        "start_date": "2024-03-15",
+        "end_date": "2024-04-14",
+        "execution_time": 3.0304768085479736,
+        "success": true,
+        "row_count": 108604,
+        "data_to_time_ratio": 35837.26484679375
+      },
+      "3_months": {
+        "start_date": "2024-03-15",
+        "end_date": "2024-06-13",
+        "execution_time": 8.954332113265991,
+        "success": true,
+        "row_count": 338851,
+        "data_to_time_ratio": 37842.130011906374
+      },
+      "half_season": {
+        "start_date": "2024-03-15",
+        "end_date": "2024-07-05",
+        "execution_time": 11.355369091033936,
+        "success": true,
+        "row_count": 424448,
+        "data_to_time_ratio": 37378.61769153229
+      },
+      "full_2024_season": {
+        "start_date": "2024-03-15",
+        "end_date": "2024-10-25",
+        "execution_time": 19.782110929489136,
+        "success": true,
+        "row_count": 759848,
+        "data_to_time_ratio": 38410.86538784376
+      },
+      "3_year_test_2022_to_2024": {
+        "start_date": "2022-03-17",
+        "end_date": "2024-10-25",
+        "execution_time": 67.80631804466248,
+        "success": true,
+        "row_count": 2305704,
+        "data_to_time_ratio": 34004.26488990724
+      },
+      "10_year_test_2015_to_2024": {
+        "start_date": "2015-04-05",
+        "end_date": "2024-10-25",
+        "execution_time": 168.31635189056396,
+        "success": true,
+        "row_count": 7014650,
+        "data_to_time_ratio": 41675.39232647337
+      }
+    }
+  },
+  "20250420_145429": {
+    "timestamp": "2025-04-20 14:54:29",
+    "note": "sub30 = 20, sub365 = 15, else 10 for semaphore",
+    "year": 2024,
+    "ranges": {
+      "1_day": {
+        "start_date": "2024-03-15",
+        "end_date": "2024-03-16",
+        "execution_time": 0.2262709140777588,
+        "success": true,
+        "row_count": 5840,
+        "data_to_time_ratio": 25809.76889496749
+      },
+      "1_week": {
+        "start_date": "2024-03-15",
+        "end_date": "2024-03-22",
+        "execution_time": 0.5826208591461182,
+        "success": true,
+        "row_count": 24622,
+        "data_to_time_ratio": 42260.7594861703
+      },
+      "2_weeks": {
+        "start_date": "2024-03-15",
+        "end_date": "2024-03-29",
+        "execution_time": 0.914438009262085,
+        "success": true,
+        "row_count": 45979,
+        "data_to_time_ratio": 50281.15578562096
+      },
+      "1_month": {
+        "start_date": "2024-03-15",
+        "end_date": "2024-04-14",
+        "execution_time": 2.3900299072265625,
+        "success": true,
+        "row_count": 108604,
+        "data_to_time_ratio": 45440.43556594077
+      },
+      "3_months": {
+        "start_date": "2024-03-15",
+        "end_date": "2024-06-13",
+        "execution_time": 8.84982705116272,
+        "success": true,
+        "row_count": 338851,
+        "data_to_time_ratio": 38288.996840393695
+      },
+      "half_season": {
+        "start_date": "2024-03-15",
+        "end_date": "2024-07-05",
+        "execution_time": 10.82277512550354,
+        "success": true,
+        "row_count": 424448,
+        "data_to_time_ratio": 39218.03743291323
+      },
+      "full_2024_season": {
+        "start_date": "2024-03-15",
+        "end_date": "2024-10-25",
+        "execution_time": 20.69947910308838,
+        "success": true,
+        "row_count": 759848,
+        "data_to_time_ratio": 36708.55658810419
+      },
+      "3_year_test_2022_to_2024": {
+        "start_date": "2022-03-17",
+        "end_date": "2024-10-25",
+        "execution_time": 53.93916702270508,
+        "success": true,
+        "row_count": 2305704,
+        "data_to_time_ratio": 42746.37758179395
+      },
+      "10_year_test_2015_to_2024": {
+        "start_date": "2015-04-05",
+        "end_date": "2024-10-25",
+        "execution_time": 172.11428999900818,
+        "success": true,
+        "row_count": 7014650,
+        "data_to_time_ratio": 40755.76757769749
+      }
+    }
+  },
+  "20250420_163946": {
+    "timestamp": "2025-04-20 16:39:46",
+    "note": "stream fetching",
+    "year": 2024,
+    "ranges": {
+      "1_day": {
+        "start_date": "2024-03-15",
+        "end_date": "2024-03-16",
+        "execution_time": 11.511511087417603,
+        "success": true,
+        "row_count": 5840,
+        "data_to_time_ratio": 507.31827955960364
+      },
+      "1_week": {
+        "start_date": "2024-03-15",
+        "end_date": "2024-03-22",
+        "execution_time": 16.91154718399048,
+        "success": true,
+        "row_count": 24622,
+        "data_to_time_ratio": 1455.9282916059103
+      },
+      "2_weeks": {
+        "start_date": "2024-03-15",
+        "end_date": "2024-03-29",
+        "execution_time": 20.125168085098267,
+        "success": true,
+        "row_count": 45979,
+        "data_to_time_ratio": 2284.6517259175225
+      },
+      "1_month": {
+        "start_date": "2024-03-15",
+        "end_date": "2024-04-14",
+        "execution_time": 27.90801167488098,
+        "success": true,
+        "row_count": 108604,
+        "data_to_time_ratio": 3891.4990170278106
+      },
+      "3_months": {
+        "start_date": "2024-03-15",
+        "end_date": "2024-06-13",
+        "execution_time": 35.982544898986816,
+        "success": true,
+        "row_count": 338851,
+        "data_to_time_ratio": 9417.09378675829
+      },
+      "half_season": {
+        "start_date": "2024-03-15",
+        "end_date": "2024-07-05",
+        "execution_time": 41.83686399459839,
+        "success": true,
+        "row_count": 424448,
+        "data_to_time_ratio": 10145.311083899622
+      },
+      "full_2024_season": {
+        "start_date": "2024-03-15",
+        "end_date": "2024-10-25",
+        "execution_time": 78.74024176597595,
+        "success": true,
+        "row_count": 759848,
+        "data_to_time_ratio": 9650.059270307373
+      },
+      "3_year_test_2022_to_2024": {
+        "start_date": "2022-03-17",
+        "end_date": "2024-10-25",
+        "execution_time": 218.1297640800476,
+        "success": true,
+        "row_count": 2305704,
+        "data_to_time_ratio": 10570.331883519895
+      },
+      "10_year_test_2015_to_2024": {
+        "start_date": "2015-04-05",
+        "end_date": "2024-10-25",
+        "execution_time": 664.2131478786469,
+        "success": true,
+        "row_count": 7014650,
+        "data_to_time_ratio": 10560.841835792133
+      }
+    }
+  }
+}
