@@ -68,11 +68,19 @@ async def _fetch_data(session, url, retries=3):
 
 async def _fetch_all_data(urls):
     session_timeout = aiohttp.ClientTimeout(total=None, sock_connect=30, sock_read=60)
+    semaphore = asyncio.Semaphore(10)  # Limit concurrent requests
+
+    async def _fetch_data_with_semaphore(session, url):
+        async with semaphore:
+            return await _fetch_data(session, url)
 
     async with aiohttp.ClientSession(
         timeout=session_timeout,
     ) as session:
-        tasks = [asyncio.create_task(_fetch_data(session, url)) for url in urls]
+        tasks = [
+            asyncio.create_task(_fetch_data_with_semaphore(session, url))
+            for url in urls
+        ]
         results = []
 
         with Progress(
