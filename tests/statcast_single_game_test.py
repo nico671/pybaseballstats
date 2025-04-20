@@ -22,7 +22,7 @@ def test_statcast_single_game_game_pk_not_correct():
 
 def test_statcast_single_game_game_pk_correct():
     data = pyb.statcast_single_game.statcast_single_game_pitch_by_pitch(
-        game_pk=634, return_pandas=False, extra_stats=False
+        game_pk=634, return_pandas=False
     )
     assert data is not None
     assert type(data) is pl.DataFrame
@@ -34,27 +34,13 @@ def test_statcast_single_game_game_pk_correct():
     assert data.select(pl.col("game_date").unique()).item() == "1999-07-21"
 
     df2 = pyb.statcast_single_game.statcast_single_game_pitch_by_pitch(
-        game_pk=634, return_pandas=True, extra_stats=False
+        game_pk=634, return_pandas=True
     )
     assert df2 is not None
     assert type(df2) is pd.DataFrame
     assert df2.shape[0] == 303
     assert df2.shape[1] == 113
     assert_frame_equal(data, pl.DataFrame(df2, schema=data.schema))
-
-
-def test_statcast_single_game_game_pk_correct_extra_stats():
-    df = pyb.statcast_single_game.statcast_single_game_pitch_by_pitch(
-        game_pk=634, return_pandas=False, extra_stats=True
-    )
-    assert df is not None
-    assert type(df) is pl.DataFrame
-    assert df.shape[0] == 303
-    assert df.shape[1] == 249
-    assert df.select(pl.col("game_pk").n_unique()).item() == 1
-    assert df.select(pl.col("game_pk").unique()).item() == 634
-    assert df.select(pl.col("game_date").n_unique()).item() == 1
-    assert df.select(pl.col("game_date").unique()).item() == "1999-07-21"
 
 
 # single game ev test
