@@ -1,6 +1,7 @@
 import json
 from typing import Literal
 
+import dateparser
 import pandas as pd
 import polars as pl
 import requests
@@ -990,5 +991,47 @@ def statcast_park_factors_leaderboard_distance(
                 "extra_distance_hot",
             ]
         ),
+    )
+    return df if not return_pandas else df.to_pandas()
+
+
+STATCAST_ARM_ANGLE_URL = "https://baseballsavant.mlb.com/leaderboard/pitcher-arm-angles?batSide=&dateStart={start_date}&dateEnd={end_date}&gameType=R%7CF%7CD%7CL%7CW&groupBy=&min={min_pitches}&minGroupPitches=1&perspective={perspective}&pitchHand=&pitchType=&season=&size=small&sort=ascending&team=&csv=true"
+
+
+def statcast_arm_angle_leaderboard(
+    start_date: str,
+    end_date: str,
+    min_pitches: int | str = "q",
+    perspective: Literal["front", "back"] = "back",
+    return_pandas: bool = False,
+) -> pl.DataFrame | pd.DataFrame:
+    start_dt = dateparser.parse(start_date)
+    end_dt = dateparser.parse(end_date)
+    if start_dt is None or end_dt is None:
+        raise ValueError("start_date and end_date must be provided")
+    if start_dt > end_dt:
+        raise ValueError("start_date must be before end_date")
+    if start_dt.year < 2025 or end_dt.year < 2025:
+        raise ValueError("start_date and end_date must be after 2025")
+    if isinstance(min_pitches, int):
+        if min_pitches < 1:
+            raise ValueError("min_pitches must be at least 1")
+    elif isinstance(min_pitches, str):
+        if min_pitches != "q":
+            raise ValueError("if min_pitches is a string, it must be 'q' for qualified")
+    else:
+        raise ValueError("min_pitches must be an int or a string")
+    if perspective not in ["front", "back"]:
+        raise ValueError("perspective must be one of 'front' or 'back'")
+    df = pl.read_csv(
+        requests.get(
+            STATCAST_ARM_ANGLE_URL.format(
+                start_date=start_dt.strftime("%Y-%m-%d"),
+                end_date=end_dt.strftime("%Y-%m-%d"),
+                min_pitches=min_pitches,
+                perspective=perspective,
+            )
+        ).content,
+        truncate_ragged_lines=True,
     )
     return df if not return_pandas else df.to_pandas()
