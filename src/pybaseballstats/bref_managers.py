@@ -43,7 +43,7 @@ def managers_basic_data(
                 EC.presence_of_element_located((By.CSS_SELECTOR, "#div_manager_record"))
             )
 
-            soup = BeautifulSoup(draft_table.get_attribute("outerHTML"), "lxml")
+            soup = BeautifulSoup(draft_table.get_attribute("outerHTML"), "html.parser")
         except Exception as e:
             print(f"Error fetching data: {e}")
             return None
@@ -125,7 +125,7 @@ def manager_tendencies_data(
             EC.presence_of_element_located((By.CSS_SELECTOR, "#manager_tendencies"))
         )
 
-        soup = BeautifulSoup(draft_table.get_attribute("outerHTML"), "lxml")
+        soup = BeautifulSoup(draft_table.get_attribute("outerHTML"), "html.parser")
     table = soup.find("table", {"id": "manager_tendencies"})
     thead = soup.find_all("thead")[0]
 
