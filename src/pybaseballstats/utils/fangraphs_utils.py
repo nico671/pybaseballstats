@@ -9,7 +9,7 @@ from pybaseballstats.utils.fangraphs_consts import (
     FangraphsTeams,
 )
 
-FANGRAPHS_BATTING_API_URL = "https://www.fangraphs.com/api/leaders/major-league/data?age=&pos={pos}&stats=bat&lg={league}&qual={min_pa}&season={end_season}&season1={start_season}&startdate={start_date}&enddate={end_date}&month={month}&hand={batting_hand}&team={team}&pageitems=2000000000&pagenum=1&rost={active_roster_only}&players=0&postseason=&sort=21,d"
+FANGRAPHS_BATTING_API_URL = "https://www.fangraphs.com/api/leaders/major-league/data?age=&pos={pos}&stats=bat&lg={league}&qual={min_pa}&ind={split_seasons}&season={end_season}&season1={start_season}&startdate={start_date}&enddate={end_date}&month={month}&hand={batting_hand}&team={team}&pageitems=2000000000&pagenum=1&rost={active_roster_only}&players=0&postseason=&sort=21,d"
 
 
 def fangraphs_validate_dates(
@@ -48,6 +48,7 @@ def fangraphs_batting_input_val(
     min_age: Optional[int] = None,
     max_age: Optional[int] = None,
     batting_hand: Literal["R", "L", "S", ""] = "",
+    split_seasons: bool = False,
 ):
     # start_date, end_date, start_season, end_season validation
     # Ensure that either (start_date & end_date) OR (start_season & end_season) are provided
@@ -152,6 +153,11 @@ def fangraphs_batting_input_val(
             for stat in stat_type.value:
                 stat_cols.add(stat)
     stat_types = list(stat_cols)
+    assert isinstance(split_seasons, bool)
+    if split_seasons:
+        split_seasons = 1
+    else:
+        split_seasons = 0
     return (
         start_date,
         end_date,
@@ -166,6 +172,7 @@ def fangraphs_batting_input_val(
         max_age,
         batting_hand,
         stat_types,
+        split_seasons,
     )
 
 

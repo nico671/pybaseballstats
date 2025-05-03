@@ -70,7 +70,7 @@ def fangraphs_single_game_play_by_play(
     )
     headers = table.thead.find_all("th")
     headers = [header.text for header in headers]
-    headers = headers[:-2]  # remove last two columns
+    headers = headers[:-2]
     row_data = {}
     for header in headers:
         row_data[header] = []

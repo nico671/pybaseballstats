@@ -36,6 +36,7 @@ def fangraphs_batting_range(
     min_age: Optional[int] = None,
     max_age: Optional[int] = None,
     batting_hand: Literal["R", "L", "S", ""] = "",
+    split_seasons: bool = False,
     return_pandas: bool = False,
 ) -> pl.DataFrame | pd.DataFrame:
     (
@@ -52,6 +53,7 @@ def fangraphs_batting_range(
         max_age,
         batting_hand,
         stat_types,
+        split_seasons,
     ) = fangraphs_batting_input_val(
         start_date=start_date,
         end_date=end_date,
@@ -66,6 +68,7 @@ def fangraphs_batting_range(
         min_age=min_age,
         max_age=max_age,
         batting_hand=batting_hand,
+        split_seasons=split_seasons,
     )
     start_date = start_date.strftime("%Y-%m-%d") if start_date else ""
     end_date = end_date.strftime("%Y-%m-%d") if end_date else ""
@@ -85,6 +88,7 @@ def fangraphs_batting_range(
         team=team.value if isinstance(team, FangraphsTeams) else team,
         active_roster_only=active_roster_only,
         month=month,
+        split_seasons=split_seasons,
     )
     data = requests.get(url).json()
     df = pl.DataFrame(data["data"], infer_schema_length=None)
