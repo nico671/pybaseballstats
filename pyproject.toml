@@ -1,6 +1,6 @@
 [project]
 name = "pybaseballstats"
-version = "0.3.7"
+version = "0.3.8"
 description = "A Python package for scraping baseball data."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -56,7 +56,6 @@ dev = [
     "coverage>=7.6.12",
     "hypothesis>=6.127.1",
     "ipykernel>=6.29.5",
-    "pybaseballstats",
     "pytest>=8.3.4",
     "ruff>=0.9.7",
 ]

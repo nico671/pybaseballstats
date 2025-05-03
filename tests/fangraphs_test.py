@@ -515,6 +515,22 @@ def test_fangraphs_pitching_range_starter_reliever():
     assert df1.select(pl.col("G").sum()).item() > 0
 
 
+def test_fangraphs_pitching_range_split_seasons():
+    df = pyb.fangraphs.fangraphs_pitching_range(
+        start_year=2016,
+        end_year=2024,
+        split_seasons=True,
+        min_ip=10,
+    )
+    assert df is not None
+    assert df.shape == (5595, 383)
+    filtered = df.filter(pl.col("Name") == "Aaron Nola").sort("Season")
+    assert filtered.shape == (9, 383)
+    assert filtered.select(pl.col("Season").n_unique()).item() == 9
+    assert filtered.select(pl.col("Season").unique().first()).item() == 2016
+    assert filtered.select(pl.col("Season").unique().last()).item() == 2024
+
+
 def test_fangraphs_fielding_range_bad_inputs():
     with pytest.raises(ValueError):
         pyb.fangraphs.fangraphs_fielding_range(

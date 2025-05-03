@@ -138,6 +138,7 @@ def fangraphs_pitching_range(
     max_age: Optional[int] = None,
     pitching_hand: Literal["R", "L", "S", ""] = "",
     starter_reliever: Literal["sta", "rel", "pit"] = "pit",
+    split_seasons: bool = False,
     return_pandas: bool = False,
 ) -> pl.DataFrame | pd.DataFrame:
     (
@@ -155,6 +156,7 @@ def fangraphs_pitching_range(
         pitching_hand,
         starter_reliever,
         stat_types,
+        split_seasons,
     ) = fangraphs_pitching_range_input_val(
         start_date=start_date,
         end_date=end_date,
@@ -169,6 +171,7 @@ def fangraphs_pitching_range(
         max_age=max_age,
         pitching_hand=pitching_hand,
         starter_reliever=starter_reliever,
+        split_seasons=split_seasons,
     )
 
     url = FANGRAPHS_PITCHING_API_URL.format(
@@ -183,6 +186,7 @@ def fangraphs_pitching_range(
         starter_reliever=starter_reliever,
         month=1000 if start_date else 0,
         active_roster_only=active_roster_only,
+        split_seasons=split_seasons,
     )
     resp = requests.get(url)
     data = resp.json()["data"]

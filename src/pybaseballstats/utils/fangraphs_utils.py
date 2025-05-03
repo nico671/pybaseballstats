@@ -265,7 +265,7 @@ def fangraphs_fielding_input_val(
     )
 
 
-FANGRAPHS_PITCHING_API_URL = "https://www.fangraphs.com/api/leaders/major-league/data?age=&pos=all&lg={league}&qual={min_ip}&season={end_year}&season1={start_year}&startdate={start_date}&enddate={end_date}&month={month}&hand={pitching_hand}&team={team}&pagenum=1&pageitems=2000000000&ind=0&rost={active_roster_only}&stats={starter_reliever}&players=0&type=0&postseason=&sortdir=default&sortstat=SO"
+FANGRAPHS_PITCHING_API_URL = "https://www.fangraphs.com/api/leaders/major-league/data?age=&pos=all&lg={league}&qual={min_ip}&season={end_year}&season1={start_year}&startdate={start_date}&enddate={end_date}&month={month}&ind={split_seasons}&hand={pitching_hand}&team={team}&pagenum=1&pageitems=2000000000&ind=0&rost={active_roster_only}&stats={starter_reliever}&players=0&type=0&postseason=&sortdir=default&sortstat=SO"
 
 
 def fangraphs_pitching_range_input_val(
@@ -282,6 +282,7 @@ def fangraphs_pitching_range_input_val(
     max_age: Optional[int] = None,
     pitching_hand: Literal["R", "L", "S", ""] = "",
     starter_reliever: Literal["sta", "rel", "pit"] = "pit",
+    split_seasons: bool = False,
 ):
     if (start_date and end_date) and (start_year and end_year):
         raise ValueError(
@@ -387,6 +388,11 @@ def fangraphs_pitching_range_input_val(
             for stat in stat_type.value:
                 stat_cols.add(stat)
     stat_types = list(stat_cols)
+    assert isinstance(split_seasons, bool)
+    if split_seasons:
+        split_seasons = 1
+    else:
+        split_seasons = 0
     return (
         start_date,
         end_date,
@@ -402,4 +408,5 @@ def fangraphs_pitching_range_input_val(
         pitching_hand,
         starter_reliever,
         stat_types,
+        split_seasons,
     )
