@@ -1,7 +1,7 @@
 # pybaseballstats
 
 A Python package for scraping baseball statistics from the web. Inspired by the pybaseball package by James LeDoux.
-
+[![PyPI Downloads](https://static.pepy.tech/badge/pybaseballstats)](https://pepy.tech/projects/pybaseballstats)
 ## Available Sources
 
 1. [Baseball Savant](https://baseballsavant.mlb.com/)
