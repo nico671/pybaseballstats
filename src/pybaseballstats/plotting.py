@@ -65,15 +65,12 @@ def scatter_plot_over_stadium(data, team_stadium):
             pl.col("hc_x").cast(pl.Float64).alias("hc_x"),
         ]
     )
-    scatters = []
-    scatters.append(
-        base.scatter(
-            data["hc_x"].to_numpy(),
-            data["hc_y"].to_numpy(),
-            c="red",
-            s=4,
-        )
-    )
+    scatters = [base.scatter(
+        data["hc_x"].to_numpy(),
+        data["hc_y"].to_numpy(),
+        c="red",
+        s=4,
+    )]
     return base
 
 

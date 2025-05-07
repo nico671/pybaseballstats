@@ -14,3 +14,5 @@ htmlcov/
 .vscode/
 tests/rand_results/
 */__pycache__/
+.idea/
+*.egg-info/

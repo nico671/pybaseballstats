@@ -1297,7 +1297,7 @@ wheels = [
 
 [[package]]
 name = "pybaseballstats"
-version = "0.3.7"
+version = "0.3.10"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
@@ -1344,7 +1344,6 @@ dev = [
     { name = "coverage", specifier = ">=7.6.12" },
     { name = "hypothesis", specifier = ">=6.127.1" },
     { name = "ipykernel", specifier = ">=6.29.5" },
-    { name = "pybaseballstats", editable = "." },
     { name = "pytest", specifier = ">=8.3.4" },
     { name = "ruff", specifier = ">=0.9.7" },
 ]
