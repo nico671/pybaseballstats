@@ -45,6 +45,10 @@ class BREFTeams(Enum):
     BLUE_JAYS = "TOR"
     NATIONALS = "WSN"
 
+    @classmethod
+    def show_options(cls):
+        return "\n".join([f"{team.name}: {team.value}" for team in cls])
+
 
 def draft_order_by_round(
     year: int, draft_round: int, return_pandas: bool = False
@@ -204,3 +208,6 @@ def franchise_draft_order(
         ]
     )
     return df if not return_pandas else df.to_pandas()
+
+
+print(BREFTeams.show_options())

@@ -45,6 +45,10 @@ class BREFTeams(Enum):
     BLUE_JAYS = "TOR"
     NATIONALS = "WSN"
 
+    @classmethod
+    def show_options(cls):
+        return "\n".join([f"{team.name}: {team.value}" for team in cls])
+
 
 BREF_TEAM_BATTING_URL = (
     "https://www.baseball-reference.com/teams/{team_code}/{year}-batting.shtml"
