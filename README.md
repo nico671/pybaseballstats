@@ -1,7 +1,12 @@
 # pybaseballstats
 
 A Python package for scraping baseball statistics from the web. Inspired by the pybaseball package by James LeDoux.
+
+---
+
 [![PyPI Downloads](https://static.pepy.tech/badge/pybaseballstats)](https://pepy.tech/projects/pybaseballstats)
+---
+
 ## Available Sources
 
 1. [Baseball Savant](https://baseballsavant.mlb.com/)
@@ -11,7 +16,7 @@ A Python package for scraping baseball statistics from the web. Inspired by the 
 3. [Umpire Scorecard](https://umpscorecards.com/home/)
     - This source provides umpire game logs and statistics for all MLB games since 2008.
 4. [Baseball Reference](https://www.baseball-reference.com/)
-    - This source is currently only used for draft order data but usage will expand to more interesting statistics they have available in the future.
+    - This source provides comprehensive, high detail stats for all MLB players and teams since 1871.
 5. [Retrosheet](https://retrosheet.org/)
     - This source provides play-by-play data for all MLB games since 1871. This data is primarily used for the player_lookup function as well as ejection data. I am considering adding support for the play by play data as well.
 
