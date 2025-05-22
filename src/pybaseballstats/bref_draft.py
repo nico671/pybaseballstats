@@ -8,7 +8,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
 from pybaseballstats.utils.bref_singleton import BREFSingleton
-from pybaseballstats.utils.bref_utils import BREF_DRAFT_URL
+from pybaseballstats.utils.bref_utils import BREF_DRAFT_URL, TEAM_YEAR_DRAFT_URL
 
 bref = BREFSingleton.instance()
 
@@ -124,9 +124,6 @@ def draft_order_by_round(
         ]
     )
     return df if not return_pandas else df.to_pandas()
-
-
-TEAM_YEAR_DRAFT_URL = "https://www.baseball-reference.com/draft/index.fcgi?team_ID={team}&year_ID={year}&draft_type=junreg&query_type=franch_year&from_type_hs=0&from_type_4y=0&from_type_unk=0&from_type_jc=0"
 
 
 def franchise_draft_order(
