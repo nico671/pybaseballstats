@@ -15,6 +15,7 @@ from pybaseballstats.utils.umpire_scorecard_consts import (
 )
 
 
+# TODO: docstrings for all functions
 class UmpireScorecardTeams(Enum):
     ALL = "*"
     DIAMONDBACKS = "AZ"
@@ -46,6 +47,10 @@ class UmpireScorecardTeams(Enum):
     RANGERS = "TEX"
     BLUE_JAYS = "TOR"
     NATIONALS = "WSH"
+
+    @classmethod
+    def show_options(cls):
+        return "\n".join([f"{team.name}: {team.value}" for team in cls])
 
 
 def umpire_scorecard_games_date_range(

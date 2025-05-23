@@ -10,6 +10,7 @@ from pybaseballstats.utils.retrosheet_utils import EJECTIONS_URL, PEOPLES_URL, k
 
 
 # TODO: usage docs
+# TODO: docstrings for all functions
 def _get_people_data() -> pl.DataFrame:
     df_list = []
     for i in range(0, 10):

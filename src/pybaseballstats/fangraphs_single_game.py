@@ -122,4 +122,4 @@ def fangraphs_single_game_play_by_play(
     return df if not return_pandas else df.to_pandas()
 
 
-# print(fangraphs_single_game_play_by_play("2023-10-01", FangraphsSingleGameTeams.Astros))
+# TODO: extra stats from this page
