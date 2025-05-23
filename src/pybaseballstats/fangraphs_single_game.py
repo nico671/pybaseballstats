@@ -45,12 +45,30 @@ class FangraphsSingleGameTeams(Enum):
     White_Sox = "White+Sox"
     Yankees = "Yankees"
 
+    @classmethod
+    def show_options(cls):
+        return "\n".join([f"{team.name}: {team.value}" for team in cls])
+
 
 def fangraphs_single_game_play_by_play(
     date: str,  # date in 'YYYY-MM-DD' format
     team: FangraphsSingleGameTeams,  # team name
     return_pandas: bool = False,
 ) -> pl.DataFrame | pd.DataFrame:
+    """Returns a DataFrame of play-by-play data for a given date and team from Fangraphs.
+
+    Args:
+        date (str): date in 'YYYY-MM-DD' format, dictating which game to pull data from
+        team (FangraphsSingleGameTeams): team name, use the FangraphsSingleGameTeams enum to get the correct team code. Use the show_options() method to see all available teams.
+        return_pandas (bool, optional): Whether or not to return a pandas DataFrame, defaults to a Polars DataFrame if false. Defaults to False.
+    Raises:
+        ValueError: If date is in the future
+        ValueError: If date is before 1977-04-06
+        ValueError: If team is not of type FangraphsSingleGameTeams
+
+    Returns:
+        pl.DataFrame | pd.DataFrame: A DataFrame of play-by-play data for the given date and team. If False, returns a polars DataFrame. If True, returns a pandas DataFrame.
+    """
     # validate date
     date_object = dateparser.parse(date)
     date_string = date_object.strftime("%Y-%m-%d")
@@ -102,3 +120,6 @@ def fangraphs_single_game_play_by_play(
         }
     )
     return df if not return_pandas else df.to_pandas()
+
+
+# print(fangraphs_single_game_play_by_play("2023-10-01", FangraphsSingleGameTeams.Astros))
