@@ -60,6 +60,16 @@ def team_standard_batting(
     year: int,
     return_pandas: bool = False,
 ) -> pl.DataFrame | pd.DataFrame:
+    """Returns a DataFrame of team standard batting data for a given year. NOTE: This function uses Selenium to scrape the data, so it may be slow.
+
+    Args:
+        team (BREFTeams): Which team to pull data from. Use the BREFTeams enum to get the correct team code. You can use the show_options() method to see all available teams.
+        year (int): Which year to pull data from
+        return_pandas (bool, optional): Whether or not to return the DataFrame as a pandas DataFrame. Defaults to False.
+
+    Returns:
+        pl.DataFrame | pd.DataFrame: A DataFrame of team standard batting data for the given year. If False, returns a polars DataFrame. If True, returns a pandas DataFrame.
+    """
     with bref.get_driver() as driver:
         driver.get(BREF_TEAM_BATTING_URL.format(team_code=team.value, year=year))
         wait = WebDriverWait(driver, 15)
@@ -132,6 +142,16 @@ def team_value_batting(
     year: int,
     return_pandas: bool = False,
 ) -> pl.DataFrame | pd.DataFrame:
+    """Return a DataFrame of team value batting data for a given year. NOTE: This function uses Selenium to scrape the data, so it may be slow.
+
+    Args:
+        team (BREFTeams): Which team to pull data from. Use the BREFTeams enum to get the correct team code. You can use the show_options() method to see all available teams.
+        year (int): Which year to pull data from
+        return_pandas (bool, optional): Whether to return a pandas DataFrame or Polars DataFrame. Defaults to False (polars DataFrame).
+
+    Returns:
+        pl.DataFrame | pd.DataFrame: _description_
+    """
     with bref.get_driver() as driver:
         driver.get(
             BREF_TEAM_BATTING_URL.format(team_code=BREFTeams.NATIONALS.value, year=2024)

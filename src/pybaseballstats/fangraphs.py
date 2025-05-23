@@ -123,7 +123,6 @@ def fangraphs_batting_range(
     return df if not return_pandas else df.to_pandas()
 
 
-# TODO: split_seasons
 def fangraphs_pitching_range(
     start_date: Union[str, None] = None,
     end_date: Union[str, None] = None,
