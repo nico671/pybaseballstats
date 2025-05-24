@@ -15,6 +15,7 @@ from pybaseballstats.utils.umpire_scorecard_consts import (
 )
 
 
+# TODO: usage docs
 # TODO: docstrings for all functions
 class UmpireScorecardTeams(Enum):
     ALL = "*"
