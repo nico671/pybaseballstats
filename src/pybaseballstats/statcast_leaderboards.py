@@ -1,5 +1,8 @@
 import json
-from typing import Literal
+import re
+from datetime import date
+from enum import Enum
+from typing import List, Literal
 
 import dateparser
 import pandas as pd
@@ -1035,3 +1038,186 @@ def statcast_arm_angle_leaderboard(
         truncate_ragged_lines=True,
     )
     return df if not return_pandas else df.to_pandas()
+
+
+STATCAST_SWING_DATA_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/bat-tracking/swing-path-attack-angle?attackZone={attack_zone}&batSide={bat_side}&contactType={contact_type}&count={counts}&dateStart={start_date}&dateEnd={end_date}&gameType={game_type}&isHardHit={is_hard_hit}&minSwings={min_swings}&pitchHand={pitch_hand}&pitchType={pitch_types}&seasonStart={start_year}&seasonEnd={end_year}{team_needs_enum}&gameType={game_type}&type={data_type}&csv=true"
+
+
+class StatcastPitchTypes(Enum):
+    FOUR_SEAM_FASTBALL = "FF"
+    SINKER = "SI"
+    CUTTER = "FC"
+    CHANGEUP = "CH"
+    SPLITTER = "FS"
+    FORKBALL = "FO"
+    SCREWBALL = "SC"
+    CURVEBALL = "CU"
+    KNUCKLE_CURVE = "KC"
+    SLOW_CURVE = "CS"
+    SLIDER = "SL"
+    SWEEPER = "ST"
+    SLURVE = "SV"
+    KNUCKLEBALL = "KN"
+
+
+def statcast_swing_data_leaderboard(
+    start_year: int | None,
+    end_year: int | None,
+    start_date: str = None,
+    end_date: str = None,
+    data_type: Literal["league", "batter", "batting-team"] = "batter",
+    game_type: Literal["Any", "Regular", "Postseason", "Exhibition"] = "Any",
+    min_swings: int | str = "q",
+    bat_side: Literal["L", "R"] = None,
+    contact_type: Literal["Any", "In-Play", "Foul", "Whiff"] = "Any",
+    is_hard_hit: bool = None,
+    attack_zone: Literal["Heart", "Shadow-In", "Shadow-Out", "Chase", "Waste"] = None,
+    pitch_hand: Literal["L", "R"] = None,
+    pitch_type: List[StatcastPitchTypes] = None,
+    count: List[str] = None,
+    return_pandas: bool = False,
+) -> pl.DataFrame | pd.DataFrame:
+    if not (start_year and end_year) and not (start_date and end_date):
+        raise ValueError(
+            "Either start_year and end_year or start_date and end_date must be provided"
+        )
+    using_years = False
+    if (start_year and end_year) and (start_date and end_date):
+        print(
+            "Warning: Both start_year/end_year and start_date/end_date provided. Using start_date/end_date."
+        )
+    if not (start_date and end_date):
+        print(
+            "Warning: start_date and end_date not provided. Using start_year and end_year instead."
+        )
+        using_years = True
+    if using_years:
+        if start_year < 2023 or end_year > 2025:
+            raise ValueError(
+                "start_year must be after 2023 and end_year must be before 2025"
+            )
+        if start_year > end_year:
+            print(
+                "Warning: start_year is after end_year. Using start_year as end_year."
+            )
+            end_year = start_year
+        start_date = end_date = ""
+    else:
+        start_year = end_year = ""
+        start_dt = dateparser.parse(start_date)
+        end_dt = dateparser.parse(end_date)
+        if start_dt is None or end_dt is None:
+            raise ValueError("start_date and end_date must be valid dates")
+        if start_dt < date(2023, 7, 14) or end_dt > date.today():
+            raise ValueError(
+                "start_date must be after 2023-07-14 and end_date must be before 2025-05-22"
+            )
+    if data_type not in ["league", "batter", "batting-team"]:
+        raise ValueError(
+            "data_type must be one of 'league', 'batter', or 'batting-team'"
+        )
+    if game_type not in ["Any", "Regular", "Postseason", "Exhibition"]:
+        raise ValueError(
+            "game_type must be one of 'Any', 'Regular', 'Postseason', or 'Exhibition'"
+        )
+    if isinstance(min_swings, int):
+        if min_swings < 1:
+            raise ValueError("min_swings must be at least 1")
+    elif isinstance(min_swings, str):
+        if min_swings != "q":
+            raise ValueError("if min_swings is a string, it must be 'q' for qualified")
+    else:
+        raise ValueError("min_swings must be an int or a string")
+    if bat_side not in ["L", "R", None]:
+        raise ValueError("bat_side must be one of 'L', 'R', or None (for both sides)")
+    if bat_side is None:
+        bat_side = ""
+    if contact_type not in ["Any", "In-Play", "Foul", "Whiff"]:
+        raise ValueError(
+            "contact_type must be one of 'Any', 'In-Play', 'Foul', or 'Whiff'"
+        )
+    match contact_type:
+        case "Any":
+            contact_type = ""
+        case "In-Play":
+            contact_type = 2
+        case "Foul":
+            contact_type = 4
+        case "Whiff":
+            contact_type = 9
+    match is_hard_hit:
+        case True:
+            is_hard_hit = 1
+        case False:
+            is_hard_hit = 0
+        case None:
+            is_hard_hit = ""
+    if attack_zone not in ["Heart", "Shadow-In", "Shadow-Out", "Chase", "Waste", None]:
+        raise ValueError(
+            "attack_zone must be one of 'Heart', 'Shadow-In', 'Shadow-Out', 'Chase', 'Waste', or None (for all zones)"
+        )
+    match attack_zone:
+        case "Heart":
+            attack_zone = 0
+        case "Shadow-In":
+            attack_zone = 1
+        case "Shadow-Out":
+            attack_zone = 1.1
+        case "Chase":
+            attack_zone = 2
+        case "Waste":
+            attack_zone = 3
+        case None:
+            attack_zone = ""
+    if pitch_hand not in ["L", "R", None]:
+        raise ValueError("pitch_hand must be one of 'L', 'R', or None (for both hands)")
+    match pitch_hand:
+        case "L":
+            pitch_hand = "L"
+        case "R":
+            pitch_hand = "R"
+        case None:
+            pitch_hand = ""
+    if pitch_type is not None:
+        if not all(isinstance(pt, StatcastPitchTypes) for pt in pitch_type):
+            raise ValueError(
+                "pitch_type must be a list of StatcastPitchTypes enum values"
+            )
+        pitch_type = [pt.value for pt in pitch_type]
+        pitch_type = "|".join(pitch_type)
+    else:
+        pitch_type = ""
+    if count is not None:
+        if not all(isinstance(c, str) for c in count):
+            raise ValueError("count must be a list of strings")
+        for c in count:
+            if not re.search(r"^[0-3][0-2]$", c):
+                raise ValueError(
+                    "count must be a list of strings in the format 'XY' where X is the number of balls and Y is the number of strikes"
+                )
+    else:
+        count = ""
+    resp = requests.get(
+        STATCAST_SWING_DATA_LEADERBOARD_URL.format(
+            start_year=start_year,
+            end_year=end_year,
+            start_date=start_date,
+            end_date=end_date,
+            data_type=data_type,
+            game_type=game_type,
+            min_swings=min_swings,
+            bat_side=bat_side,
+            contact_type=contact_type,
+            is_hard_hit=is_hard_hit,
+            attack_zone=attack_zone,
+            pitch_hand=pitch_hand,
+            pitch_types=pitch_type,
+            counts=count,
+            team_needs_enum="",
+        )
+    )
+    swing_data_df = pl.read_csv(
+        resp.content,
+        truncate_ragged_lines=True,
+    )
+    return swing_data_df if not return_pandas else swing_data_df.to_pandas()
