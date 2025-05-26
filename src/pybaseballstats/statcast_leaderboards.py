@@ -1,6 +1,6 @@
 import json
 import re
-from datetime import date
+from datetime import datetime
 from enum import Enum
 from typing import List, Literal
 
@@ -1061,10 +1061,10 @@ class StatcastPitchTypes(Enum):
 
 
 def statcast_swing_data_leaderboard(
-    start_year: int | None,
-    end_year: int | None,
-    start_date: str = None,
-    end_date: str = None,
+    start_year: int | None = None,
+    end_year: int | None = None,
+    start_date: str | None = None,
+    end_date: str | None = None,
     data_type: Literal["league", "batter", "batting-team"] = "batter",
     game_type: Literal["Any", "Regular", "Postseason", "Exhibition"] = "Any",
     min_swings: int | str = "q",
@@ -1108,7 +1108,7 @@ def statcast_swing_data_leaderboard(
         end_dt = dateparser.parse(end_date)
         if start_dt is None or end_dt is None:
             raise ValueError("start_date and end_date must be valid dates")
-        if start_dt < date(2023, 7, 14) or end_dt > date.today():
+        if start_dt < datetime(2023, 7, 14) or end_dt > datetime.today():
             raise ValueError(
                 "start_date must be after 2023-07-14 and end_date must be before 2025-05-22"
             )
@@ -1145,6 +1145,9 @@ def statcast_swing_data_leaderboard(
             contact_type = 4
         case "Whiff":
             contact_type = 9
+    assert isinstance(is_hard_hit, (bool, type(None))), (
+        "is_hard_hit must be a boolean or None"
+    )
     match is_hard_hit:
         case True:
             is_hard_hit = 1
@@ -1191,7 +1194,7 @@ def statcast_swing_data_leaderboard(
         if not all(isinstance(c, str) for c in count):
             raise ValueError("count must be a list of strings")
         for c in count:
-            if not re.search(r"^[0-3][0-2]$", c):
+            if not re.match(r"^[0-3][0-2]$", c):
                 raise ValueError(
                     "count must be a list of strings in the format 'XY' where X is the number of balls and Y is the number of strikes"
                 )

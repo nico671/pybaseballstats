@@ -1250,3 +1250,123 @@ def test_statcast_park_factors_leaderboard_distance_regular():
     assert df.select(pl.col("venue_name").n_unique()).item() == 30
     assert df.select(pl.col("elevation_feet").max()).item() == 5190
     assert df.select(pl.col("elevation_feet").min()).item() == 0
+
+
+# swing path / attack angle leaderboards
+def test_statcast_swing_data_leaderboard_years():
+    df = pyb.statcast_leaderboards.statcast_swing_data_leaderboard(
+        start_year=2025, end_year=2025
+    )
+    assert df is not None
+    assert type(df) is pl.DataFrame
+    assert df.shape[0] == 228
+    assert df.shape[1] == 13
+    assert df.select(pl.col("id").n_unique()).item() == 228
+
+    df2 = pyb.statcast_leaderboards.statcast_swing_data_leaderboard(
+        start_year=2025, end_year=2025, return_pandas=True
+    )
+    assert df2 is not None
+    assert type(df2) is pd.DataFrame
+    assert df2.shape[0] == 228
+    assert df2.shape[1] == 13
+    assert_frame_equal(
+        pl.DataFrame(df2, schema=df.schema),
+        df,
+        check_dtypes=False,
+    )
+
+
+def test_statcast_swing_data_leaderboard_dates():
+    df = pyb.statcast_leaderboards.statcast_swing_data_leaderboard(
+        start_date="2025-04-01", end_date="2025-04-30"
+    )
+    assert df is not None
+    assert type(df) is pl.DataFrame
+    assert df.shape[0] == 228
+    assert df.shape[1] == 13
+    assert df.select(pl.col("id").n_unique()).item() == 228
+
+
+def test_statcast_swing_data_leaderboard_dates_min_swings():
+    df = pyb.statcast_leaderboards.statcast_swing_data_leaderboard(
+        start_date="2025-04-01", end_date="2025-04-30", min_swings=50
+    )
+    assert df is not None
+    assert type(df) is pl.DataFrame
+    assert df.shape[0] == 425
+    assert df.shape[1] == 13
+    assert df.select(pl.col("id").n_unique()).item() == 425
+
+
+def test_statcast_swing_data_leaderboard_dates_batting_options():
+    df = pyb.statcast_leaderboards.statcast_swing_data_leaderboard(
+        start_date="2025-04-01", end_date="2025-04-30", contact_type="In-Play"
+    )
+    assert df is not None
+    assert type(df) is pl.DataFrame
+    assert df.shape[0] == 228
+    assert df.shape[1] == 13
+    assert df.select(pl.col("id").n_unique()).item() == 228
+
+    df2 = pyb.statcast_leaderboards.statcast_swing_data_leaderboard(
+        start_date="2025-04-01", end_date="2025-04-30", is_hard_hit=True
+    )
+    assert df2 is not None
+    assert type(df2) is pl.DataFrame
+    assert df2.shape[0] == 228
+    assert df2.shape[1] == 13
+    assert df2.select(pl.col("id").n_unique()).item() == 228
+    assert_frame_not_equal(df, df2)
+
+    df3 = pyb.statcast_leaderboards.statcast_swing_data_leaderboard(
+        start_date="2025-04-01", end_date="2025-04-30", attack_zone="Heart"
+    )
+    assert df3 is not None
+    assert type(df3) is pl.DataFrame
+    assert df3.shape[0] == 228
+    assert df3.shape[1] == 13
+    assert df3.select(pl.col("id").n_unique()).item() == 228
+    assert_frame_not_equal(df, df3)
+
+    df4 = pyb.statcast_leaderboards.statcast_swing_data_leaderboard(
+        start_date="2025-04-01", end_date="2025-04-30", pitch_hand="L"
+    )
+    assert df4 is not None
+    assert type(df4) is pl.DataFrame
+    assert df4.shape[0] == 227
+    assert df4.shape[1] == 13
+    assert df4.select(pl.col("id").n_unique()).item() == 227
+    assert_frame_not_equal(df, df4)
+    df5 = pyb.statcast_leaderboards.statcast_swing_data_leaderboard(
+        start_date="2025-04-01",
+        end_date="2025-04-30",
+        pitch_type=[pyb.statcast_leaderboards.StatcastPitchTypes.FOUR_SEAM_FASTBALL],
+    )
+    assert df5 is not None
+    assert type(df5) is pl.DataFrame
+    assert df5.shape[0] == 228
+    assert df5.shape[1] == 13
+    assert df5.select(pl.col("id").n_unique()).item() == 228
+    assert_frame_not_equal(df, df5)
+
+    df6 = pyb.statcast_leaderboards.statcast_swing_data_leaderboard(
+        start_date="2025-04-01", end_date="2025-04-30", count=["32"]
+    )
+    assert df6 is not None
+    assert type(df6) is pl.DataFrame
+    assert df6.shape[0] == 228
+    assert df6.shape[1] == 13
+    assert df6.select(pl.col("id").n_unique()).item() == 228
+    assert_frame_not_equal(df, df6)
+
+    df = pyb.statcast_leaderboards.statcast_swing_data_leaderboard(
+        start_date="2025-04-01", end_date="2025-04-30", bat_side="R"
+    )
+    assert df is not None
+    assert type(df) is pl.DataFrame
+    assert df.shape[0] == 146
+    assert df.shape[1] == 13
+    assert df.select(pl.col("id").n_unique()).item() == 146
+    assert df.select(pl.col("side").n_unique()).item() == 1
+    assert df.select(pl.col("side").unique()).item() == "R"
