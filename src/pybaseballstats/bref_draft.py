@@ -207,6 +207,3 @@ def franchise_draft_order(
         ]
     )
     return df if not return_pandas else df.to_pandas()
-
-
-print(BREFTeams.show_options())
