@@ -16,7 +16,7 @@ def test_statcast_single_game_game_pk_not_correct():
     )
     assert data is not None
     assert data.shape[0] == 0
-    assert data.shape[1] == 113
+    assert data.shape[1] == 118
     assert type(data) is pl.DataFrame
 
 
@@ -27,7 +27,7 @@ def test_statcast_single_game_game_pk_correct():
     assert data is not None
     assert type(data) is pl.DataFrame
     assert data.shape[0] == 303
-    assert data.shape[1] == 113
+    assert data.shape[1] == 118
     assert data.select(pl.col("game_pk").n_unique()).item() == 1
     assert data.select(pl.col("game_pk").unique()).item() == 634
     assert data.select(pl.col("game_date").n_unique()).item() == 1
@@ -39,7 +39,7 @@ def test_statcast_single_game_game_pk_correct():
     assert df2 is not None
     assert type(df2) is pd.DataFrame
     assert df2.shape[0] == 303
-    assert df2.shape[1] == 113
+    assert df2.shape[1] == 118
     assert_frame_equal(data, pl.DataFrame(df2, schema=data.schema))
 
 
