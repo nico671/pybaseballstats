@@ -32,6 +32,21 @@ The `bref_single_player` module provides comprehensive player statistics across 
 
 - `single_player_salaries`: Player salary history
 
+## Finding Player Codes
+
+Player codes are required for all functions. You can find them using:
+
+```python
+from pybaseballstats.retrosheet import player_lookup
+
+# Search for a player
+results = player_lookup("Mike", "Trout")
+print(results)  # Will show available player codes
+```
+
+The player code format is typically: `{last_name_first5}{first_name_first2}{number}`
+Example: Mike Trout = "troutmi01"
+
 ## Function Details
 
 ### Batting Functions

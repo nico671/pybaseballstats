@@ -56,7 +56,7 @@ The data is pulled from Umpire Scorecard's API endpoints:
 - `opponent_team` (UmpireScorecardTeams): Opponent filter (default: ALL)
 - `umpire_name` (str): Umpire name filter (default: "")
 - `min_games_called` (int): Minimum games called threshold (default: 0)
-- `return_pandas` (bool): Return format (default: False)
+- `return_pandas` (bool): **Return** format (default: False)
 
 **Returns:**
 

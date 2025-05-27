@@ -86,74 +86,6 @@ pbp_data = pyb.fangraphs_single_game.fangraphs_single_game_play_by_play(
 )
 ```
 
-### Working with Different Return Types
-
-```python
-from pybaseballstats.fangraphs_single_game import (
-    fangraphs_single_game_play_by_play,
-    FangraphsSingleGameTeams
-)
-
-# Get data as polars DataFrame (default)
-polars_df = fangraphs_single_game_play_by_play(
-    date="2023-09-15",
-    team=FangraphsSingleGameTeams.Dodgers
-)
-
-# Get data as pandas DataFrame
-pandas_df = fangraphs_single_game_play_by_play(
-    date="2023-09-15",
-    team=FangraphsSingleGameTeams.Dodgers,
-    return_pandas=True
-)
-```
-
-### Analyzing Game Data
-
-```python
-# Get game data
-game_data = fangraphs_single_game_play_by_play(
-    date="2023-10-01",
-    team=FangraphsSingleGameTeams.Braves
-)
-
-# Analyze high leverage situations
-high_leverage = game_data.filter(pl.col("Leverage Index") > 2.0)
-
-# Find plays with biggest win probability swings
-big_wpa = game_data.filter(pl.col("Win Probability Added").abs() > 0.1)
-
-# Game-ending plays
-final_inning = game_data.filter(pl.col("Inning") >= 9)
-```
-
-### Multiple Games Analysis
-
-```python
-from datetime import datetime, timedelta
-
-# Analyze a series between teams
-dates = ["2023-08-15", "2023-08-16", "2023-08-17"]
-teams = [FangraphsSingleGameTeams.Red_Sox, FangraphsSingleGameTeams.Yankees]
-
-all_games = []
-for date in dates:
-    for team in teams:
-        try:
-            game_data = fangraphs_single_game_play_by_play(date, team)
-            game_data = game_data.with_columns(
-                pl.lit(date).alias("game_date"),
-                pl.lit(team.name).alias("team")
-            )
-            all_games.append(game_data)
-        except Exception as e:
-            print(f"No game found for {team.name} on {date}")
-
-# Combine all games
-if all_games:
-    series_data = pl.concat(all_games)
-```
-
 ## Date Format Requirements
 
 - **Format**: Use 'YYYY-MM-DD' format (e.g., "2023-07-15")
@@ -171,7 +103,7 @@ valid_dates = [
 # Invalid dates will raise ValueError
 try:
     game_data = fangraphs_single_game_play_by_play(
-        date="2025-01-01",  # Future date - will fail
+        date="2030-01-01",  # Future date - will fail
         team=FangraphsSingleGameTeams.Yankees
     )
 except ValueError as e:

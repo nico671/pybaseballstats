@@ -129,7 +129,7 @@ from pybaseballstats.utils.fangraphs_utils import FangraphsBattingStatType
 batting_stats = fangraphs_batting_range(
     start_year=2023,
     end_year=2023,
-    stat_types=[FangraphsBattingStatType.AVG, FangraphsBattingStatType.HR, FangraphsBattingStatType.WAR]
+    stat_types=[FangraphsBattingStatType.DASHBOARD, FangraphsBattingStatType.ADVANCED, FangraphsBattingStatType.STATCAST]
 )
 
 # Option 2: Module import  
@@ -148,7 +148,7 @@ pitching_stats = fangraphs_pitching_range(
     start_year=2020,
     end_year=2023,
     min_ip=50,
-    stat_types=[FangraphsPitchingStatType.ERA, FangraphsPitchingStatType.FIP, FangraphsPitchingStatType.WAR],
+    stat_types=[FangraphsBattingStatType.DASHBOARD, FangraphsBattingStatType.ADVANCED, FangraphsBattingStatType.STATCAST]
     split_seasons=True  # Get separate rows for each season
 )
 ```
@@ -200,51 +200,13 @@ young_lefties = fangraphs_batting_range(
 )
 ```
 
-### Advanced Fielding Analysis
+### Stat Type Filtering
+
+For any of the stat type enums, you can find all available options by calling the `__members__` attribute:
 
 ```python
-from pybaseballstats.fangraphs import fangraphs_fielding_range
-from pybaseballstats.utils.fangraphs_consts import FangraphsFieldingStatType
-
-# Get shortstop fielding metrics
-ss_fielding = fangraphs_fielding_range(
-    start_year=2023,
-    end_year=2023,
-    fielding_position=FangraphsBattingPosTypes.SS,
-    stat_types=[FangraphsFieldingStatType.UZR, FangraphsFieldingStatType.DRS],
-    min_inn=500
-)
-```
-
-### Working with Different Return Types
-
-```python
-# Get data as polars DataFrame (default)
-polars_df = fangraphs_batting_range(start_year=2023, end_year=2023)
-
-# Get data as pandas DataFrame
-pandas_df = fangraphs_batting_range(start_year=2023, end_year=2023, return_pandas=True)
-
-# Filter and analyze with polars
-top_performers = polars_df.filter(pl.col("WAR") > 5.0).sort("WAR", descending=True)
-```
-
-### Multi-Season Analysis
-
-```python
-# Compare player performance across multiple seasons
-multi_season = fangraphs_batting_range(
-    start_year=2020,
-    end_year=2023,
-    split_seasons=True,
-    min_pa=400
-)
-
-# Analyze year-over-year changes
-player_trends = multi_season.group_by("fg_player_id").agg([
-    pl.col("WAR").mean().alias("avg_war"),
-    pl.col("Season").count().alias("seasons_played")
-])
+from pybaseballstats.utils.fangraphs_utils import FangraphsBattingStatType
+print(FangraphsBattingStatType.__members__)
 ```
 
 ## Performance Notes
