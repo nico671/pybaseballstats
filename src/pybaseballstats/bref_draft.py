@@ -50,14 +50,16 @@ class BREFTeams(Enum):
         return "\n".join([f"{team.name}: {team.value}" for team in cls])
 
 
+# TODO: use extract table function to reduce code duplication for both functions
 def draft_order_by_round(
     year: int, draft_round: int, return_pandas: bool = False
 ) -> pl.DataFrame | pd.DataFrame:
-    """Returns the draft order for a given round in a given year. NOTE: This function uses Selenium to scrape the data, so it may be slow.
-
+    """Returns the draft order for a given round in a given year.
+    NOTE: This function uses Selenium to scrape the data, so it may be slow.
+    NOTE: Number of rounds may vary by year, so check the data before using it.
     Args:
-        year (int): Which year to pull draft data from
-        draft_round (int): Which round to pull draft data from
+        year (int): Which year to pull draft data from (1965-current year)
+        draft_round (int): Which round to pull draft data from (1-60)
         return_pandas (bool, optional): Whether or not to return the data as a pandas DataFrame. Defaults to False (returning a polars DataFrame).
 
     Raises:

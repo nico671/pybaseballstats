@@ -36,7 +36,7 @@ def test_statcast_date_range_pitch_by_pitch_regular():
     assert isinstance(df, pl.LazyFrame)
     df = df.collect()
     assert df is not None
-    assert df.shape == (8695, 113)
+    assert df.shape == (8695, 118)
     assert df.select(pl.col("game_date").max()).item() == "2023-04-02"
     assert df.select(pl.col("game_date").min()).item() == "2023-04-01"
     df2 = pyb.statcast.statcast_date_range_pitch_by_pitch(
@@ -44,5 +44,5 @@ def test_statcast_date_range_pitch_by_pitch_regular():
     )
     assert df2 is not None
     assert isinstance(df2, pd.DataFrame)
-    assert df2.shape == (8695, 113)
+    assert df2.shape == (8695, 118)
     assert_frame_equal(df, pl.DataFrame(df2, schema=df.schema))

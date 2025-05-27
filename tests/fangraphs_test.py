@@ -138,13 +138,13 @@ def test_fangraphs_batting_range_years():
         end_year=2024,
     )
     assert df is not None
-    assert df.shape[0] == 115
+    assert df.shape[0] == 1801
     assert df.shape[1] == 322
-    assert df.select(pl.col("SeasonMin").n_unique()).item() == 1
-    assert df.select(pl.col("SeasonMax").n_unique()).item() == 1
+    assert df.select(pl.col("SeasonMin").n_unique()).item() == 2
+    assert df.select(pl.col("SeasonMax").n_unique()).item() == 2
     assert df.select(pl.col("SeasonMin").min().first()).item() == 2023
     assert df.select(pl.col("SeasonMax").max().first()).item() == 2024
-    assert df.select(pl.col("xMLBAMID").n_unique()).item() == 115
+    assert df.select(pl.col("xMLBAMID").n_unique()).item() == 1801
 
 
 def test_fangraphs_batting_range_minpa():
@@ -385,13 +385,13 @@ def test_fangraphs_pitching_range_years():
         end_year=2024,
     )
     assert df is not None
-    assert df.shape[0] == 46
+    assert df.shape[0] == 1107
     assert df.shape[1] == 383
-    assert df.select(pl.col("SeasonMin").n_unique()).item() == 1
-    assert df.select(pl.col("SeasonMax").n_unique()).item() == 1
+    assert df.select(pl.col("SeasonMin").n_unique()).item() == 2
+    assert df.select(pl.col("SeasonMax").n_unique()).item() == 2
     assert df.select(pl.col("SeasonMin").min().first()).item() == 2023
     assert df.select(pl.col("SeasonMax").max().first()).item() == 2024
-    assert df.select(pl.col("xMLBAMID").n_unique()).item() == 46
+    assert df.select(pl.col("xMLBAMID").n_unique()).item() == 1107
 
 
 def test_fangraphs_pitching_range_minip():

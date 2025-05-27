@@ -11,6 +11,7 @@ from pybaseballstats.utils.bref_utils import MANAGER_TENDENCY_URL, MANAGERS_URL
 bref = BREFSingleton.instance()
 
 
+# TODO: use extract table function to reduce code duplication for both functions
 def managers_basic_data(
     year: int, return_pandas: bool = False
 ) -> pl.DataFrame | pd.DataFrame:
