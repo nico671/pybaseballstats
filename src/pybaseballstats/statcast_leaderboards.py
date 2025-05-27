@@ -1230,6 +1230,7 @@ def statcast_swing_data_leaderboard(
 STATCAST_BATTING_STANCE_LEADERBOARD_URL = "https://baseballsavant.mlb.com/visuals/batting-stance?batSide={bat_side}&contactType={contact_type}&gameType={game_type}&isHardHit={is_hard_hit}&minSwings={min_swings}&seasonStart={start_year}&seasonEnd={end_year}&csv=true"
 
 
+# TODO: add tests for this function
 # TODO: team functionality here
 def statcast_batting_stance_leaderboard(
     start_year: int = 2025,
