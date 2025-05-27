@@ -1060,6 +1060,7 @@ class StatcastPitchTypes(Enum):
     KNUCKLEBALL = "KN"
 
 
+# TODO: team functionality
 def statcast_swing_data_leaderboard(
     start_year: int | None = None,
     end_year: int | None = None,
@@ -1224,3 +1225,84 @@ def statcast_swing_data_leaderboard(
         truncate_ragged_lines=True,
     )
     return swing_data_df if not return_pandas else swing_data_df.to_pandas()
+
+
+STATCAST_BATTING_STANCE_LEADERBOARD_URL = "https://baseballsavant.mlb.com/visuals/batting-stance?batSide={bat_side}&contactType={contact_type}&gameType={game_type}&isHardHit={is_hard_hit}&minSwings={min_swings}&seasonStart={start_year}&seasonEnd={end_year}&csv=true"
+
+
+# TODO: team functionality here
+def statcast_batting_stance_leaderboard(
+    start_year: int = 2025,
+    end_year: int = 2025,
+    game_type: Literal["Any", "Regular", "Postseason"] = "Any",
+    # team
+    bat_side: Literal["L", "R"] = None,
+    pitch_hand: Literal["L", "R"] = None,
+    min_pitches: int | str = "q",
+    contact_type: Literal["Any", "In-Play", "Foul", "Whiff"] = "Any",
+    is_hard_hit: bool = None,
+    return_pandas: bool = False,
+) -> pl.DataFrame | pd.DataFrame:
+    if start_year < 2023 or end_year < 2023:
+        raise ValueError("start_year and end_year must be after 2023")
+    if start_year > 2025 or end_year > 2025:
+        raise ValueError("start_year and end_year must be before 2025")
+    if start_year > end_year:
+        print("Warning: start_year is after end_year. Using start_year as end_year.")
+        end_year = start_year
+    if game_type not in ["Any", "Regular", "Postseason"]:
+        raise ValueError("game_type must be one of 'Any', 'Regular', or 'Postseason'")
+    if bat_side not in ["L", "R", None]:
+        raise ValueError("bat_side must be one of 'L', 'R', or None (for both sides)")
+    if bat_side is None:
+        bat_side = ""
+    if pitch_hand not in ["L", "R", None]:
+        raise ValueError("pitch_hand must be one of 'L', 'R', or None (for both hands)")
+    if pitch_hand is None:
+        pitch_hand = ""
+    if isinstance(min_pitches, int):
+        if min_pitches < 1:
+            raise ValueError("min_pitches must be at least 1")
+    elif isinstance(min_pitches, str):
+        if min_pitches != "q":
+            raise ValueError("if min_pitches is a string, it must be 'q' for qualified")
+    else:
+        raise ValueError("min_pitches must be an int or a string")
+    if contact_type not in ["Any", "In-Play", "Foul", "Whiff"]:
+        raise ValueError(
+            "contact_type must be one of 'Any', 'In-Play', 'Foul', or 'Whiff'"
+        )
+    match contact_type:
+        case "Any":
+            contact_type = ""
+        case "In-Play":
+            contact_type = 2
+        case "Foul":
+            contact_type = 4
+        case "Whiff":
+            contact_type = 9
+    assert isinstance(is_hard_hit, (bool, type(None))), (
+        "is_hard_hit must be a boolean or None"
+    )
+    match is_hard_hit:
+        case True:
+            is_hard_hit = 1
+        case False:
+            is_hard_hit = 0
+        case None:
+            is_hard_hit = ""
+    df = pl.read_csv(
+        requests.get(
+            STATCAST_BATTING_STANCE_LEADERBOARD_URL.format(
+                start_year=start_year,
+                end_year=end_year,
+                game_type=game_type,
+                bat_side=bat_side,
+                contact_type=contact_type,
+                is_hard_hit=is_hard_hit,
+                min_swings=min_pitches,
+            )
+        ).content,
+        truncate_ragged_lines=True,
+    )
+    return df if not return_pandas else df.to_pandas()
