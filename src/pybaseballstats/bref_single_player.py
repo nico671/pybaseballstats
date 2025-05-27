@@ -15,7 +15,6 @@ from pybaseballstats.utils.bref_utils import (
 bref = BREFSingleton.instance()
 
 
-# TODO: usage documentation for all functions
 def single_player_standard_batting(
     player_code: str, return_pandas: bool = False
 ) -> pl.DataFrame | pd.DataFrame:

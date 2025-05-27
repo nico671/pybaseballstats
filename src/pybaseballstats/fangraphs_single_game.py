@@ -12,7 +12,6 @@ from pybaseballstats.utils.fangraphs_consts import (
 )
 
 
-# TODO: usage docs
 class FangraphsSingleGameTeams(Enum):
     Angels = "Angels"
     Astros = "Astros"
@@ -122,4 +121,4 @@ def fangraphs_single_game_play_by_play(
     return df if not return_pandas else df.to_pandas()
 
 
-# TODO: extra stats from this page
+# TODO: extra stats from this page are available, could add in the future
