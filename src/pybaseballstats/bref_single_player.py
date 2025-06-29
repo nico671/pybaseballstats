@@ -5,10 +5,12 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
-from pybaseballstats.utils.bref_singleton import BREFSingleton
-from pybaseballstats.utils.bref_utils import (
+from pybaseballstats.consts.bref_consts import (
     BREF_SINGLE_PLAYER_SABERMETRIC_FIELDING_URL,
     BREF_SINGLE_PLAYER_URL,
+)
+from pybaseballstats.utils.bref_utils import (
+    BREFSingleton,
     _extract_table,
 )
 

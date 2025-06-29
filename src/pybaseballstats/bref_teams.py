@@ -1,5 +1,3 @@
-from enum import Enum
-
 import pandas as pd
 import polars as pl
 from bs4 import BeautifulSoup
@@ -7,52 +5,10 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
-from pybaseballstats.utils.bref_singleton import BREFSingleton
-from pybaseballstats.utils.bref_utils import _extract_table
+from pybaseballstats.consts.bref_consts import BREF_TEAM_BATTING_URL, BREFTeams
+from pybaseballstats.utils.bref_utils import BREFSingleton, _extract_table
 
 bref = BREFSingleton.instance()
-
-
-class BREFTeams(Enum):
-    ANGELS = "ANA"
-    DIAMONDBACKS = "ARI"
-    BRAVES = "ATL"
-    ORIOLES = "BAL"
-    RED_SOX = "BOS"
-    CUBS = "CHC"
-    WHITE_SOX = "CHW"
-    REDS = "CIN"
-    GUARDIANS = "CLE"
-    ROCKIES = "COL"
-    TIGERS = "DET"
-    MARLINS = "FLA"
-    ASTROS = "HOU"
-    ROYALS = "KCR"
-    DODGERS = "LAD"
-    BREWERS = "MIL"
-    TWINS = "MIN"
-    METS = "NYM"
-    YANKEES = "NYY"
-    ATHLETICS = "OAK"
-    PHILLIES = "PHI"
-    PIRATES = "PIT"
-    PADRES = "SDP"
-    MARINERS = "SEA"
-    GIANTS = "SFG"
-    CARDINALS = "STL"
-    RAYS = "TBD"
-    RANGERS = "TEX"
-    BLUE_JAYS = "TOR"
-    NATIONALS = "WSN"
-
-    @classmethod
-    def show_options(cls):
-        return "\n".join([f"{team.name}: {team.value}" for team in cls])
-
-
-BREF_TEAM_BATTING_URL = (
-    "https://www.baseball-reference.com/teams/{team_code}/{year}-batting.shtml"
-)
 
 
 def team_standard_batting(

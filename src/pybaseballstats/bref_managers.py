@@ -5,8 +5,10 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
-from pybaseballstats.utils.bref_singleton import BREFSingleton
-from pybaseballstats.utils.bref_utils import MANAGER_TENDENCY_URL, MANAGERS_URL
+from pybaseballstats.consts.bref_consts import MANAGER_TENDENCY_URL, MANAGERS_URL
+from pybaseballstats.utils.bref_utils import (
+    BREFSingleton,
+)
 
 bref = BREFSingleton.instance()
 
