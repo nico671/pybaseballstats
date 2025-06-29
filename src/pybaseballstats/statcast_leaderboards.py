@@ -1,7 +1,6 @@
 import json
 import re
 from datetime import datetime
-from enum import Enum
 from typing import List, Literal
 
 import dateparser
@@ -10,9 +9,29 @@ import polars as pl
 import requests
 from bs4 import BeautifulSoup
 
+from pybaseballstats.consts.statcast_leaderboard_consts import (
+    ARM_STRENGTH_URL,
+    ARM_VALUE_URL,
+    BASERUNNING_RV_URL,
+    BASESTEALING_RUN_VALUE_URL,
+    BAT_TRACKING_URL,
+    CATCHER_BLOCKING_URL,
+    CATCHER_FRAMING_URL,
+    CATCHER_POPTIME_URL,
+    EXIT_VELO_BARRELS_URL,
+    EXPECTED_STATS_URL,
+    OOA_URL,
+    OUTFIELD_CATCH_PROB_URL,
+    PARK_FACTORS_BY_YEAR_LEADERBOARD_URL,
+    PARK_FACTORS_DISTANCE_LEADERBOARD_URL,
+    PITCH_ARSENAL_STATS_URL,
+    PITCH_ARSENALS_URL,
+    STATCAST_ARM_ANGLE_URL,
+    STATCAST_BATTING_STANCE_LEADERBOARD_URL,
+    STATCAST_SWING_DATA_LEADERBOARD_URL,
+    StatcastPitchTypes,
+)
 from pybaseballstats.utils.statcast_utils import _handle_dates
-
-BAT_TRACKING_URL = "https://baseballsavant.mlb.com/leaderboard/bat-tracking?attackZone=&batSide=&contactType=&count=&dateStart={start_dt}&dateEnd={end_dt}&gameType=&groupBy=&isHardHit=&minSwings={min_swings}&minGroupSwings=1&pitchHand=&pitchType=&seasonStart={start_season}&seasonEnd={end_season}&team=&type={perspective}&csv=true"
 
 # TODO: usage docs
 
@@ -84,9 +103,6 @@ def statcast_bat_tracking_leaderboard(
     return df if not return_pandas else df.to_pandas()
 
 
-EXIT_VELO_BARRELS_URL = "https://baseballsavant.mlb.com/leaderboard/statcast?type={perspective}&year={year}&position=&team=&min={min_swings}&sort=barrels_per_pa&sortDir=desc&csv=true"
-
-
 def statcast_exit_velo_barrels_leaderboard(
     year: int,
     perspective: str = "batter",
@@ -139,9 +155,6 @@ def statcast_exit_velo_barrels_leaderboard(
     return df if not return_pandas else df.to_pandas()
 
 
-EXPECTED_STATS_URL = "https://baseballsavant.mlb.com/leaderboard/expected_statistics?type={perspective}&year={year}&position=&team=&filterType=bip&min={min_balls_in_play}&csv=true"
-
-
 def statcast_expected_stats_leaderboard(
     year: int,
     perspective: str = "batter",
@@ -184,7 +197,7 @@ def statcast_expected_stats_leaderboard(
         )
     df = pl.read_csv(
         requests.get(
-            EXIT_VELO_BARRELS_URL.format(
+            EXPECTED_STATS_URL.format(
                 year=year,
                 min_swings=min_balls_in_play,
                 perspective=perspective,
@@ -192,9 +205,6 @@ def statcast_expected_stats_leaderboard(
         ).content
     )
     return df if not return_pandas else df.to_pandas()
-
-
-PITCH_ARSENAL_STATS_URL = "https://baseballsavant.mlb.com/leaderboard/pitch-arsenal-stats?type={perspective}&pitchType={pitch_type}&year={year}&team=&min={min_pa}&csv=true"
 
 
 def statcast_pitch_arsenal_stats_leaderboard(
@@ -261,9 +271,6 @@ def statcast_pitch_arsenal_stats_leaderboard(
         ).content
     )
     return df if not return_pandas else df.to_pandas()
-
-
-PITCH_ARSENALS_URL = "https://baseballsavant.mlb.com/leaderboard/pitch-arsenals?year={year}&min={min_pitches}&type={type}&hand={hand}&csv=true"
 
 
 def statcast_pitch_arsenals_leaderboard(
@@ -337,9 +344,6 @@ def statcast_pitch_arsenals_leaderboard(
     return df if not return_pandas else df.to_pandas()
 
 
-ARM_STRENGTH_URL = "https://baseballsavant.mlb.com/leaderboard/arm-strength?type={perspective}&year={year}&minThrows={min_throws}&pos=&team=&csv=true"
-
-
 def statcast_arm_strength_leaderboard(
     year: int,
     perspective: str = "player",
@@ -364,9 +368,6 @@ def statcast_arm_strength_leaderboard(
         ).content
     )
     return df if not return_pandas else df.to_pandas()
-
-
-ARM_VALUE_URL = "https://baseballsavant.mlb.com/leaderboard/baserunning?game_type=All&n={min_oppurtunities}&key_base_out=All&season_end={end_season}&season_start={start_season}&split={split_years}&team=&type={perspective}&with_team_only=1&csv=true"
 
 
 def statcast_arm_value_leaderboard(
@@ -434,9 +435,6 @@ def statcast_arm_value_leaderboard(
     return df if not return_pandas else df.to_pandas()
 
 
-CATCHER_BLOCKING_URL = "https://baseballsavant.mlb.com/leaderboard/catcher-blocking?game_type=All&n={min_pitches}&season_end={end_season}&season_start={start_season}&split={split_years}&team=&type={perspective}&with_team_only=1&sortColumn=diff_runner_pbwp&sortDirection=desc&players=&selected_idx=0&csv=true"
-
-
 def statcast_catcher_blocking_leaderboard(
     start_year: int,
     end_year: int,
@@ -498,9 +496,6 @@ def statcast_catcher_blocking_leaderboard(
     return df if not return_pandas else df.to_pandas()
 
 
-CATCHER_FRAMING_URL = "https://baseballsavant.mlb.com/catcher_framing?year={year}&team=&min={min_pitches_called}&type={perspective}&sort=4%2C1&csv=true"
-
-
 def statcast_catcher_framing_leaderboard(
     year: int,
     min_pitches_called: int | str = "q",
@@ -559,9 +554,6 @@ def statcast_catcher_framing_leaderboard(
     return df if not return_pandas else df.to_pandas()
 
 
-CATCHER_POPTIME_URL = "https://baseballsavant.mlb.com/leaderboard/poptime?year={year}&team=&min2b={min_2b_attempts}&min3b={min_3b_attempts}&csv=true"
-
-
 def statcast_catcher_poptime_leaderboard(
     year: int,
     min_2b_attempts: int = 5,
@@ -607,9 +599,6 @@ def statcast_catcher_poptime_leaderboard(
     return df if not return_pandas else df.to_pandas()
 
 
-OUTFIELD_CATCH_PROB_URL = "https://baseballsavant.mlb.com/leaderboard/catch_probability?type=player&min={min_oppurtunities}&year={year}&total=5&sort=2&sortDir=desc&csv=true"
-
-
 def statcast_outfield_catch_probability_leaderboard(
     year: str | int = None,
     min_opportunities: int | str = "q",
@@ -642,9 +631,6 @@ def statcast_outfield_catch_probability_leaderboard(
         ).content
     )
     return df if not return_pandas else df.to_pandas()
-
-
-OOA_URL = "https://baseballsavant.mlb.com/leaderboard/outs_above_average?type={perspective}&startYear={start_year}&endYear={end_year}&split={split_years}&team=&range=year&min={min_attempts}&pos=&roles=&viz=hide&csv=true"
 
 
 def statcast_outsaboveaverage_leaderboard(
@@ -716,9 +702,6 @@ def statcast_outsaboveaverage_leaderboard(
     return df if not return_pandas else df.to_pandas()
 
 
-BASERUNNING_RV_URL = "https://baseballsavant.mlb.com/leaderboard/baserunning-run-value?game_type=All&season_start={start_year}&season_end={end_year}&sortColumn=runner_runs_XB_swipe&sortDirection=desc&split={split_years}&n={min_oppurtunities}&team=&type={perspective}&with_team_only=1&csv=true"
-
-
 def statcast_baserunning_run_value_leaderboard(
     start_year: int,
     end_year: int,
@@ -780,9 +763,6 @@ def statcast_baserunning_run_value_leaderboard(
         ).content
     )
     return df if not return_pandas else df.to_pandas()
-
-
-BASESTEALING_RUN_VALUE_URL = "https://baseballsavant.mlb.com/leaderboard/basestealing-run-value?game_type=All&n={min_sb_oppurtunities}&pitch_hand={pitch_hand}&runner_moved={runner_movement}&target_base={target_base}&prior_pk=All&season_end={end_year}&season_start={start_year}&sortColumn=simple_stolen_on_running_act&sortDirection=desc&split={split_years}&team=&type={perspective}&with_team_only=1&expanded=0&csv=true"
 
 
 def statcast_basestealing_runvalue_leaderboard(
@@ -872,9 +852,6 @@ def statcast_basestealing_runvalue_leaderboard(
     return df if not return_pandas else df.to_pandas()
 
 
-PARK_FACTORS_BY_YEAR_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/statcast-park-factors?type=year&year={year}&batSide={bat_side}&condition={condition}&rolling={rolling_years}&parks=mlb"
-
-
 def statcast_park_factors_leaderboard_by_years(
     year: int,
     bat_side: Literal["L", "R", ""] = "",
@@ -938,9 +915,6 @@ def statcast_park_factors_leaderboard_by_years(
     return df if not return_pandas else df.to_pandas()
 
 
-PARK_FACTORS_DISTANCE_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/statcast-park-factors?type=distance&year={year}&batSide=&stat=index_wOBA&condition=All&rolling=3&parks=mlb&csv=true"
-
-
 def statcast_park_factors_leaderboard_distance(
     year: int, return_pandas: bool = False
 ) -> pl.DataFrame | pd.DataFrame:
@@ -998,9 +972,6 @@ def statcast_park_factors_leaderboard_distance(
     return df if not return_pandas else df.to_pandas()
 
 
-STATCAST_ARM_ANGLE_URL = "https://baseballsavant.mlb.com/leaderboard/pitcher-arm-angles?batSide=&dateStart={start_date}&dateEnd={end_date}&gameType=R%7CF%7CD%7CL%7CW&groupBy=&min={min_pitches}&minGroupPitches=1&perspective={perspective}&pitchHand=&pitchType=&season=&size=small&sort=ascending&team=&csv=true"
-
-
 def statcast_arm_angle_leaderboard(
     start_date: str,
     end_date: str,
@@ -1038,26 +1009,6 @@ def statcast_arm_angle_leaderboard(
         truncate_ragged_lines=True,
     )
     return df if not return_pandas else df.to_pandas()
-
-
-STATCAST_SWING_DATA_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/bat-tracking/swing-path-attack-angle?attackZone={attack_zone}&batSide={bat_side}&contactType={contact_type}&count={counts}&dateStart={start_date}&dateEnd={end_date}&gameType={game_type}&isHardHit={is_hard_hit}&minSwings={min_swings}&pitchHand={pitch_hand}&pitchType={pitch_types}&seasonStart={start_year}&seasonEnd={end_year}{team_needs_enum}&gameType={game_type}&type={data_type}&csv=true"
-
-
-class StatcastPitchTypes(Enum):
-    FOUR_SEAM_FASTBALL = "FF"
-    SINKER = "SI"
-    CUTTER = "FC"
-    CHANGEUP = "CH"
-    SPLITTER = "FS"
-    FORKBALL = "FO"
-    SCREWBALL = "SC"
-    CURVEBALL = "CU"
-    KNUCKLE_CURVE = "KC"
-    SLOW_CURVE = "CS"
-    SLIDER = "SL"
-    SWEEPER = "ST"
-    SLURVE = "SV"
-    KNUCKLEBALL = "KN"
 
 
 # TODO: team functionality
@@ -1225,9 +1176,6 @@ def statcast_swing_data_leaderboard(
         truncate_ragged_lines=True,
     )
     return swing_data_df if not return_pandas else swing_data_df.to_pandas()
-
-
-STATCAST_BATTING_STANCE_LEADERBOARD_URL = "https://baseballsavant.mlb.com/visuals/batting-stance?batSide={bat_side}&contactType={contact_type}&gameType={game_type}&isHardHit={is_hard_hit}&minSwings={min_swings}&seasonStart={start_year}&seasonEnd={end_year}&csv=true"
 
 
 # TODO: add tests for this function

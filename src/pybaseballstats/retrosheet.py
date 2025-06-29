@@ -6,7 +6,11 @@ import polars as pl
 import requests
 from unidecode import unidecode
 
-from pybaseballstats.utils.retrosheet_utils import EJECTIONS_URL, PEOPLES_URL, keep_cols
+from pybaseballstats.consts.retrosheet_consts import (
+    EJECTIONS_URL,
+    PEOPLES_URL,
+    RETROSHEET_KEEP_COLS,
+)
 
 
 # TODO: usage docs
@@ -16,19 +20,19 @@ def _get_people_data() -> pl.DataFrame:
     for i in range(0, 10):
         data = requests.get(PEOPLES_URL.format(num=i)).content
         df = pl.read_csv(data, truncate_ragged_lines=True)
-        df = df.select(pl.col(keep_cols))
+        df = df.select(pl.col(RETROSHEET_KEEP_COLS))
         df_list.append(df)
 
     for letter in ["a", "b", "c", "d", "f"]:
         data = requests.get(PEOPLES_URL.format(num=letter)).content
         df = pl.read_csv(data, truncate_ragged_lines=True)
-        df = df.select(pl.col(keep_cols))
+        df = df.select(pl.col(RETROSHEET_KEEP_COLS))
         df_list.append(df)
 
     df = df_list[0]
     for i in range(1, len(df_list)):
         df = df.vstack(df_list[i])
-    df = df.drop_nulls(keep_cols)
+    df = df.drop_nulls(RETROSHEET_KEEP_COLS)
     df = df.with_columns(
         [
             pl.col("name_last").str.to_lowercase().alias("name_last"),
@@ -72,12 +76,16 @@ def player_lookup(
         df = (
             full_df.filter(pl.col("name_first") == first_name)
             .filter(pl.col("name_last") == last_name)
-            .select(keep_cols)
+            .select(RETROSHEET_KEEP_COLS)
         )
     elif first_name:
-        df = full_df.filter(pl.col("name_first") == first_name).select(keep_cols)
+        df = full_df.filter(pl.col("name_first") == first_name).select(
+            RETROSHEET_KEEP_COLS
+        )
     else:
-        df = full_df.filter(pl.col("name_last") == last_name).select(keep_cols)
+        df = full_df.filter(pl.col("name_last") == last_name).select(
+            RETROSHEET_KEEP_COLS
+        )
     return df if not return_pandas else df.to_pandas()
 
 

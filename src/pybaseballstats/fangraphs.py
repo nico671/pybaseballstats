@@ -4,15 +4,17 @@ import pandas as pd
 import polars as pl
 import requests
 
-from pybaseballstats.utils.fangraphs_consts import FangraphsFieldingStatType
-from pybaseballstats.utils.fangraphs_utils import (
+from pybaseballstats.consts.fangraphs_consts import (
     FANGRAPHS_BATTING_API_URL,
     FANGRAPHS_FIELDING_API_URL,
     FANGRAPHS_PITCHING_API_URL,
     FangraphsBattingPosTypes,
     FangraphsBattingStatType,
+    FangraphsFieldingStatType,
     FangraphsPitchingStatType,
     FangraphsTeams,
+)
+from pybaseballstats.utils.fangraphs_utils import (
     fangraphs_batting_input_val,
     fangraphs_fielding_input_val,
     fangraphs_pitching_range_input_val,

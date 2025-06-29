@@ -1,6 +1,7 @@
 from enum import Enum
 
 
+# ENUMS
 class FangraphsFieldingStatType(Enum):
     STANDARD = [
         "Name",
@@ -1147,6 +1148,43 @@ class FangraphsBattingStatType(Enum):
     ]
 
 
+class FangraphsSingleGameTeams(Enum):
+    Angels = "Angels"
+    Astros = "Astros"
+    Athletics = "Athletics"
+    Blue_Jays = "Blue+Jays"
+    Braves = "Braves"
+    Brewers = "Brewers"
+    Cardinals = "Cardinals"
+    Cubs = "Cubs"
+    Diamondbacks = "Diamondbacks"
+    Dodgers = "Dodgers"
+    Giants = "Giants"
+    Guardians = "Guardians"
+    Mariners = "Mariners"
+    Marlins = "Marlins"
+    Mets = "Mets"
+    Nationals = "Nationals"
+    Orioles = "Orioles"
+    Padres = "Padres"
+    Phillies = "Phillies"
+    Pirates = "Pirates"
+    Rangers = "Rangers"
+    Rays = "Rays"
+    Red_Sox = "Red+Sox"
+    Reds = "Reds"
+    Rockies = "Rockies"
+    Royals = "Royals"
+    Tigers = "Tigers"
+    Twins = "Twins"
+    White_Sox = "White+Sox"
+    Yankees = "Yankees"
+
+    @classmethod
+    def show_options(cls):
+        return "\n".join([f"{team.name}: {team.value}" for team in cls])
+
+
 class FangraphsBattingPosTypes(Enum):
     CATCHER = "c"
     FIRST_BASE = "1b"
@@ -1166,6 +1204,9 @@ class FangraphsBattingPosTypes(Enum):
         return self.value
 
 
+# URLS
 FG_SINGLE_GAME_URL = (
     "https://www.fangraphs.com/boxscore.aspx?date={date}&team={team}&dh=0"
 )
+
+FANGRAPHS_BATTING_API_URL = "https://www.fangraphs.com/api/leaders/major-league/data?age=&pos={pos}&stats=bat&lg={league}&qual={min_pa}&ind={split_seasons}&season={end_season}&season1={start_season}&startdate={start_date}&enddate={end_date}&month={month}&hand={batting_hand}&team={team}&pageitems=2000000000&pagenum=1&rost={active_roster_only}&players=0&postseason=&sort=21,d"

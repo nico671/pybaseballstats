@@ -1,15 +1,13 @@
 from datetime import datetime
 from typing import List, Literal, Optional, Tuple, Union
 
-from pybaseballstats.utils.fangraphs_consts import (
+from pybaseballstats.consts.fangraphs_consts import (
     FangraphsBattingPosTypes,
     FangraphsBattingStatType,
     FangraphsFieldingStatType,
     FangraphsPitchingStatType,
     FangraphsTeams,
 )
-
-FANGRAPHS_BATTING_API_URL = "https://www.fangraphs.com/api/leaders/major-league/data?age=&pos={pos}&stats=bat&lg={league}&qual={min_pa}&ind={split_seasons}&season={end_season}&season1={start_season}&startdate={start_date}&enddate={end_date}&month={month}&hand={batting_hand}&team={team}&pageitems=2000000000&pagenum=1&rost={active_roster_only}&players=0&postseason=&sort=21,d"
 
 
 def fangraphs_validate_dates(

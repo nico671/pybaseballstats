@@ -1,39 +1,19 @@
 import datetime
 import io
-from contextlib import contextmanager
 
 import pandas as pd
 import polars as pl
 import requests
 from bs4 import BeautifulSoup
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
+from pybaseballstats.consts.statcast_consts import STATCAST_SINGLE_GAME_EV_PV_WP_URL
 from pybaseballstats.statcast import statcast_date_range_pitch_by_pitch
-from pybaseballstats.utils.statcast_utils import STATCAST_SINGLE_GAME_URL
-
-STATCAST_SINGLE_GAME_EV_PV_WP_URL = "https://baseballsavant.mlb.com/gamefeed?date={game_date}&gamePk={game_pk}&chartType=pitch&legendType=pitchName&playerType=pitcher&inning=&count=&pitchHand=&batSide=&descFilter=&ptFilter=&resultFilter=&hf={stat_type}&sportId=1&liveAb=#{game_pk}"
-
+from pybaseballstats.utils.statcast_utils import STATCAST_SINGLE_GAME_URL, get_driver
 
 # TODO: usage docs
-@contextmanager
-def get_driver():
-    """Provides a WebDriver instance that automatically quits on exit."""
-    options = Options()
-    options.add_argument("--headless")
-    options.add_argument("--disable-gpu")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-
-    driver = webdriver.Chrome(options=options)
-
-    try:
-        yield driver  # Hands control back to the calling function
-    finally:
-        driver.quit()  # Ensures WebDriver is always closed
 
 
 def statcast_single_game_pitch_by_pitch(

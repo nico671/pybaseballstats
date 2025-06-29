@@ -1,5 +1,4 @@
 import json
-from enum import Enum
 from typing import Literal
 
 # TODO: usage docs
@@ -8,50 +7,15 @@ import pandas as pd
 import polars as pl
 import requests
 
-from pybaseballstats.utils.umpire_scorecard_consts import (
+from pybaseballstats.consts.umpire_scorecard_consts import (
     UMPIRE_SCORECARD_GAMES_URL,
     UMPIRE_SCORECARD_TEAMS_URL,
     UMPIRE_SCORECARD_UMPIRES_URL,
+    UmpireScorecardTeams,
 )
-
 
 # TODO: usage docs
 # TODO: docstrings for all functions
-class UmpireScorecardTeams(Enum):
-    ALL = "*"
-    DIAMONDBACKS = "AZ"
-    ATHLETICS = "ATH"
-    BRAVES = "ATL"
-    ORIOLES = "BAL"
-    RED_SOX = "BOS"
-    CUBS = "CHC"
-    REDS = "CIN"
-    WHITE_SOX = "CWS"
-    GAURDIANS = "CLE"
-    ROCKIES = "COL"
-    ASTROS = "HOU"
-    ROYALS = "KC"
-    ANGELS = "LAA"
-    DODGERS = "LAD"
-    MARLINS = "MIA"
-    BREWERS = "MIL"
-    TWINS = "MIN"
-    METS = "NYM"
-    YANKEES = "NYY"
-    PHILLIES = "PHI"
-    PIRATES = "PIT"
-    PADRES = "SD"
-    MARINERS = "SEA"
-    GIANTS = "SF"
-    CARDINALS = "STL"
-    RAYS = "TB"
-    RANGERS = "TEX"
-    BLUE_JAYS = "TOR"
-    NATIONALS = "WSH"
-
-    @classmethod
-    def show_options(cls):
-        return "\n".join([f"{team.name}: {team.value}" for team in cls])
 
 
 def umpire_scorecard_games_date_range(
