@@ -5,12 +5,12 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
-from pybaseballstats.consts.bref_consts import BREFTeams
-from pybaseballstats.utils.bref_utils import (
+from pybaseballstats.consts.bref_consts import (
     BREF_DRAFT_URL,
     TEAM_YEAR_DRAFT_URL,
-    BREFSingleton,
+    BREFTeams,
 )
+from pybaseballstats.utils.bref_utils import BREFSingleton
 
 bref = BREFSingleton.instance()
 

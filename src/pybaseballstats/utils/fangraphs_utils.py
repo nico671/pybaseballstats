@@ -174,9 +174,6 @@ def fangraphs_batting_input_val(
     )
 
 
-FANGRAPHS_FIELDING_API_URL = "https://www.fangraphs.com/api/leaders/major-league/data?age=&pos={fielding_position}&stats=fld&lg={league}&qual={min_inn}&season={end_year}&season1={start_year}&startdate=&enddate=&month=0&hand=&team={team}&pageitems=2000000000&pagenum=1&ind=0&rost={active_roster_only}&players=0&type=1&postseason=&sortdir=default&sortstat=Defense"
-
-
 def fangraphs_fielding_input_val(
     start_year: Union[int, None] = None,
     end_year: Union[int, None] = None,
@@ -261,9 +258,6 @@ def fangraphs_fielding_input_val(
         league,
         stat_types,
     )
-
-
-FANGRAPHS_PITCHING_API_URL = "https://www.fangraphs.com/api/leaders/major-league/data?age=&pos=all&lg={league}&qual={min_ip}&season={end_year}&season1={start_year}&startdate={start_date}&enddate={end_date}&month={month}&ind={split_seasons}&hand={pitching_hand}&team={team}&pagenum=1&pageitems=2000000000&ind=0&rost={active_roster_only}&stats={starter_reliever}&players=0&type=0&postseason=&sortdir=default&sortstat=SO"
 
 
 def fangraphs_pitching_range_input_val(

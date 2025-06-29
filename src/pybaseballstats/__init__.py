@@ -67,6 +67,7 @@ from . import (
     bref_draft,  # noqa: F401
     bref_managers,  # noqa: F401
     bref_single_player,  # noqa: F401
+    consts,
     # bref_teams,  # noqa: F401
     fangraphs,  # noqa: F401
     fangraphs_single_game,  # noqa: F401
