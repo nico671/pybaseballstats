@@ -85,6 +85,10 @@ class FangraphsFieldingStatType(Enum):
         "FRP",
     ]
 
+    @classmethod
+    def show_options(cls):
+        return "\n".join([f"{team.name}: {team.value}" for team in cls])
+
 
 class FangraphsPitchingStatType(Enum):
     DASHBOARD = [
@@ -652,6 +656,10 @@ class FangraphsPitchingStatType(Enum):
         "sp_pitching",
     ]
 
+    @classmethod
+    def show_options(cls):
+        return "\n".join([f"{team.name}: {team.value}" for team in cls])
+
 
 class FangraphsTeams(Enum):
     ALL = 0
@@ -685,6 +693,10 @@ class FangraphsTeams(Enum):
     TWINS = 8
     WHITE_SOX = 4
     YANKEES = 9
+
+    @classmethod
+    def show_options(cls):
+        return "\n".join([f"{team.name}: {team.value}" for team in cls])
 
 
 class FangraphsBattingStatType(Enum):
@@ -1147,6 +1159,10 @@ class FangraphsBattingStatType(Enum):
         "piPace",
     ]
 
+    @classmethod
+    def show_options(cls):
+        return "\n".join([f"{team.name}: {team.value}" for team in cls])
+
 
 class FangraphsSingleGameTeams(Enum):
     Angels = "Angels"
@@ -1200,8 +1216,9 @@ class FangraphsBattingPosTypes(Enum):
     NON_PITCHER = "np"
     ALL = "all"
 
-    def __str__(self):
-        return self.value
+    @classmethod
+    def show_options(cls):
+        return "\n".join([f"{team.name}: {team.value}" for team in cls])
 
 
 # URLS

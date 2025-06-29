@@ -18,6 +18,10 @@ class StatcastPitchTypes(Enum):
     SLURVE = "SV"
     KNUCKLEBALL = "KN"
 
+    @classmethod
+    def show_options(cls):
+        return "\n".join([f"{team.name}: {team.value}" for team in cls])
+
 
 # URLS
 BAT_TRACKING_URL = "https://baseballsavant.mlb.com/leaderboard/bat-tracking?attackZone=&batSide=&contactType=&count=&dateStart={start_dt}&dateEnd={end_dt}&gameType=&groupBy=&isHardHit=&minSwings={min_swings}&minGroupSwings=1&pitchHand=&pitchType=&seasonStart={start_season}&seasonEnd={end_season}&team=&type={perspective}&csv=true"
