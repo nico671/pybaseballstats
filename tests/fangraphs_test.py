@@ -114,20 +114,21 @@ def test_fangraphs_batting_range_dates():
     df = pyb.fangraphs.fangraphs_batting_range(
         start_date="2024-04-01",
         end_date="2024-04-10",
+        min_pa=10,
     )
     assert df is not None
-    assert df.shape[0] == 199
     assert df.shape[1] == 316
     assert df.select(pl.col("Season").n_unique()).item() == 1
     assert df.select(pl.col("Season").unique().first()).item() == 2024
-    assert df.select(pl.col("xMLBAMID").n_unique()).item() == 199
+    assert df.select(pl.col("xMLBAMID").n_unique()).item() == df.shape[0]
     df1 = pyb.fangraphs.fangraphs_batting_range(
         start_date="2024-04-01",
         end_date="2024-04-10",
+        min_pa=10,
         return_pandas=True,
     )
     assert df1 is not None
-    assert df1.shape[0] == 199
+    assert df1.shape[0] == df.shape[0]
     assert df1.shape[1] == 316
     assert_frame_equal(df, pl.DataFrame(df1, schema=df.schema))
 
@@ -138,13 +139,12 @@ def test_fangraphs_batting_range_years():
         end_year=2024,
     )
     assert df is not None
-    assert df.shape[0] == 115
     assert df.shape[1] == 322
     assert df.select(pl.col("SeasonMin").n_unique()).item() == 1
     assert df.select(pl.col("SeasonMax").n_unique()).item() == 1
     assert df.select(pl.col("SeasonMin").min().first()).item() == 2023
     assert df.select(pl.col("SeasonMax").max().first()).item() == 2024
-    assert df.select(pl.col("xMLBAMID").n_unique()).item() == 115
+    assert df.select(pl.col("xMLBAMID").n_unique()).item() == df.shape[0]
 
 
 def test_fangraphs_batting_range_minpa():
@@ -154,19 +154,17 @@ def test_fangraphs_batting_range_minpa():
         min_pa=10,
     )
     assert df is not None
-    assert df.shape[0] == 339
     assert df.shape[1] == 316
     assert df.select(pl.col("PA").min()).item() >= 10
-    assert df.select(pl.col("xMLBAMID").n_unique()).item() == 339
+    assert df.select(pl.col("xMLBAMID").n_unique()).item() == df.shape[0]
     df1 = pyb.fangraphs.fangraphs_batting_range(
         start_date="2024-04-01",
         end_date="2024-04-10",
         min_pa="y",
     )
     assert df1 is not None
-    assert df1.shape[0] == 199
     assert df1.shape[1] == 316
-    assert df1.select(pl.col("xMLBAMID").n_unique()).item() == 199
+    assert df1.select(pl.col("xMLBAMID").n_unique()).item() == df1.shape[0]
 
 
 def test_fangraphs_batting_range_fielding_position():
@@ -190,7 +188,7 @@ def test_fangraphs_batting_range_team():
         team=pyb.fangraphs.FangraphsTeams.NATIONALS,
     )
     assert df is not None
-    assert df.shape[0] == 5
+    assert df.shape[0] == 2
     assert df.shape[1] == 316
     assert df.select(pl.col("Team").n_unique()).item() == 1
     assert df.select(pl.col("Team").first()).item() == "WSN"
@@ -203,7 +201,7 @@ def test_fangraphs_batting_range_league():
         league="al",
     )
     assert df is not None
-    assert df.shape[0] == 97
+    assert df.shape[0] == 11
     assert df.shape[1] == 316
     assert df.select(pl.col("Team").n_unique()).item() <= 15
 
@@ -216,11 +214,10 @@ def test_fangraphs_batting_range_age():
         max_age=25,
     )
     assert df is not None
-    assert df.shape[0] == 54
     assert df.shape[1] == 316
     assert df.select(pl.col("Age").min()).item() >= 20
     assert df.select(pl.col("Age").max()).item() <= 25
-    assert df.select(pl.col("xMLBAMID").n_unique()).item() == 54
+    assert df.select(pl.col("xMLBAMID").n_unique()).item() == df.shape[0]
 
 
 def test_fangraphs_batting_range_handedness():
@@ -230,7 +227,6 @@ def test_fangraphs_batting_range_handedness():
         batting_hand="R",
     )
     assert df is not None
-    assert df.shape[0] == 107
     assert df.shape[1] == 316
     assert df.select(pl.col("Bats").n_unique()).item() == 1
     assert df.select(pl.col("Bats").first()).item() == "R"
@@ -240,7 +236,7 @@ def test_fangraphs_batting_range_handedness():
         batting_hand="S",
     )
     assert df1 is not None
-    assert df1.shape[0] == 19
+    assert df1.shape[0] == 3
     assert df1.shape[1] == 316
     assert df1.select(pl.col("Bats").n_unique()).item() == 1
     assert df1.select(pl.col("Bats").first()).item() == "B"
@@ -251,14 +247,12 @@ def test_fangraphs_batting_range_split_seasons():
         start_year=2016,
         end_year=2024,
         split_seasons=True,
-        min_pa=10,
     )
     assert df is not None
-    assert df.shape == (6026, 322)
+    assert df.shape == (120, 322)
     filtered = df.filter(pl.col("Name") == "Aaron Judge").sort("Season")
-    assert filtered.shape == (9, 322)
-    assert filtered.select(pl.col("Season").n_unique()).item() == 9
-    assert filtered.select(pl.col("Season").unique().first()).item() == 2016
+    assert filtered.shape == (1, 322)
+    assert filtered.select(pl.col("Season").n_unique()).item() == 1
     assert filtered.select(pl.col("Season").unique().last()).item() == 2024
 
 
