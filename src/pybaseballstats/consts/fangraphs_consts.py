@@ -1226,6 +1226,9 @@ FG_SINGLE_GAME_URL = (
     "https://www.fangraphs.com/boxscore.aspx?date={date}&team={team}&dh=0"
 )
 
-FANGRAPHS_BATTING_API_URL = "https://www.fangraphs.com/api/leaders/major-league/data?age=&pos={pos}&stats=bat&lg={league}&qual={min_pa}&ind={split_seasons}&season={end_season}&season1={start_season}&startdate={start_date}&enddate={end_date}&month={month}&hand={batting_hand}&team={team}&pageitems=2000000000&pagenum=1&rost={active_roster_only}&players=0&postseason=&sort=21,d"
+FANGRAPHS_BATTING_LEADERS_URL = (
+    "https://www.fangraphs.com/api/leaders/major-league/data"
+)
+
 FANGRAPHS_FIELDING_API_URL = "https://www.fangraphs.com/api/leaders/major-league/data?age=&pos={fielding_position}&stats=fld&lg={league}&qual={min_inn}&season={end_year}&season1={start_year}&startdate=&enddate=&month=0&hand=&team={team}&pageitems=2000000000&pagenum=1&ind=0&rost={active_roster_only}&players=0&type=1&postseason=&sortdir=default&sortstat=Defense"
 FANGRAPHS_PITCHING_API_URL = "https://www.fangraphs.com/api/leaders/major-league/data?age=&pos=all&lg={league}&qual={min_ip}&season={end_year}&season1={start_year}&startdate={start_date}&enddate={end_date}&month={month}&ind={split_seasons}&hand={pitching_hand}&team={team}&pagenum=1&pageitems=2000000000&ind=0&rost={active_roster_only}&stats={starter_reliever}&players=0&type=0&postseason=&sortdir=default&sortstat=SO"

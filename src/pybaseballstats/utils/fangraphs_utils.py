@@ -1,404 +1,410 @@
 from datetime import datetime
-from typing import List, Literal, Optional, Tuple, Union
+from typing import Literal, Tuple, Union
+
+import dateparser
 
 from pybaseballstats.consts.fangraphs_consts import (
     FangraphsBattingPosTypes,
-    FangraphsBattingStatType,
-    FangraphsFieldingStatType,
-    FangraphsPitchingStatType,
     FangraphsTeams,
 )
 
 
-def fangraphs_validate_dates(
-    start_date: str, end_date: str
-) -> Tuple[datetime.date, datetime.date]:
-    """Validate and convert date strings (YYYY-MM-DD) to datetime.date objects."""
-    date_format = "%Y-%m-%d"
-
-    try:
-        start_dt = datetime.strptime(start_date, date_format).date()
-        end_dt = datetime.strptime(end_date, date_format).date()
-    except ValueError:
-        raise ValueError(
-            f"Dates must be in YYYY-MM-DD format. Got start_date='{start_date}', end_date='{end_date}'"
-        )
-
-    if start_dt > end_dt:
-        raise ValueError(
-            f"start_date ({start_dt}) cannot be after end_date ({end_dt})."
-        )
-
-    return start_dt, end_dt
-
-
-def fangraphs_batting_input_val(
-    start_date: Union[str, None] = None,
-    end_date: Union[str, None] = None,
-    start_season: Union[int, None] = None,
-    end_season: Union[int, None] = None,
-    min_pa: Union[str, int] = "y",
-    stat_types: List[FangraphsBattingStatType] = None,
-    fielding_position: FangraphsBattingPosTypes = FangraphsBattingPosTypes.ALL,
-    active_roster_only: bool = False,
-    team: FangraphsTeams = FangraphsTeams.ALL,
-    league: Literal["nl", "al", ""] = "",
-    min_age: Optional[int] = None,
-    max_age: Optional[int] = None,
-    batting_hand: Literal["R", "L", "S", ""] = "",
-    split_seasons: bool = False,
-):
-    # start_date, end_date, start_season, end_season validation
-    # Ensure that either (start_date & end_date) OR (start_season & end_season) are provided
-    if (start_date and end_date) and (start_season and end_season):
-        raise ValueError(
-            "Specify either (start_date, end_date) OR (start_season, end_season), but not both."
-        )
-
-    if not (start_date and end_date) and not (start_season and end_season):
-        raise ValueError(
-            "You must provide either (start_date, end_date) OR (start_season, end_season)."
-        )
-
-    # Validate and convert dates if provided
-    if start_date and end_date:
-        start_date, end_date = fangraphs_validate_dates(start_date, end_date)
-        start_season = None
-        end_season = None
-        print(f"Using date range: {start_date} to {end_date}")
-
-    # Validate seasons if provided
-    if start_season and end_season:
-        if start_season > end_season:
-            raise ValueError(
-                f"start_season ({start_season}) cannot be after end_season ({end_season})."
-            )
-        print(f"Using season range: {start_season} to {end_season}")
-        start_date = None
-        end_date = None
-
-    # min_pa validation
-    if isinstance(min_pa, str):
-        if min_pa not in ["y"]:
-            raise ValueError("If min_pa is a string, it must be 'y' (qualified).")
-    elif isinstance(min_pa, int):
+def validate_min_pa_param(min_pa: Union[int, str]) -> str:
+    if isinstance(min_pa, int):
         if min_pa < 0:
-            raise ValueError("min_pa must be a positive integer.")
+            raise ValueError("min_pa must be a non-negative integer or 'y'")
+        return str(min_pa)
+    elif isinstance(min_pa, str):
+        if min_pa.lower() != "y":
+            raise ValueError("min_pa string value must be 'y'")
+        return "y"
     else:
-        raise ValueError("min_pa must be a string or integer.")
+        raise ValueError("min_pa must be either a non-negative integer or 'y'")
 
-    # fielding_position validation
-    if not isinstance(fielding_position, FangraphsBattingPosTypes):
-        raise ValueError(
-            "fielding_position must be a valid FangraphsBattingPosTypes value"
-        )
 
-    # active_roster_only validation
-    if not isinstance(active_roster_only, bool):
-        raise ValueError("active_roster_only must be a boolean value.")
-    if active_roster_only:
-        print("Only active roster players will be included.")
-        active_roster_only = 1
+def validate_pos_param(pos: FangraphsBattingPosTypes) -> str:
+    if type(pos) is not FangraphsBattingPosTypes:
+        raise ValueError("pos must be a FangraphsBattingPosTypes enum value")
+    elif pos is None:
+        return FangraphsBattingPosTypes.ALL.value
     else:
-        print("All players will be included.")
-        active_roster_only = 0
+        return pos.value
 
-    # team validation
-    if not isinstance(team, FangraphsTeams):
-        raise ValueError("team must be a valid FangraphsTeams value")
+
+def validate_hand_param(handedness: Literal["L", "R", "S", None]) -> str:
+    if handedness not in ["L", "R", "S", None]:
+        raise ValueError("handedness must be one of ['L', 'R', 'S', None]")
+    elif handedness is None:
+        return ""
     else:
-        print(f"Filtering by team: {team}")
-        team = team.value
-    # league validation
-    if league not in ["nl", "al", ""]:
-        raise ValueError("league must be 'nl', 'al', or an empty string.")
-    if league:
-        print(f"Filtering by league: {league}")
+        return handedness
 
-    if (min_age is not None and max_age is None) or (
-        min_age is None and max_age is not None
-    ):
-        raise ValueError("Both min_age and max_age must be provided or neither")
-    if min_age is None:
-        min_age = 14
-    if max_age is None:
-        max_age = 56
+
+def validate_age_params(min_age: int, max_age: int) -> str:
+    if not (14 <= min_age <= 56):
+        raise ValueError("min_age must be between 14 and 56")
+    if not (14 <= max_age <= 56):
+        raise ValueError("max_age must be between 14 and 56")
     if min_age > max_age:
-        raise ValueError(
-            f"min_age ({min_age}) cannot be greater than max_age ({max_age})"
-        )
-    if min_age < 14:
-        raise ValueError("min_age must be at least 14")
-    if max_age > 56:
-        raise ValueError("max_age must be at most 56")
+        raise ValueError("min_age cannot be greater than max_age")
+    return f"{min_age},{max_age}"
 
-    # batting_hand validation
-    if batting_hand not in ["R", "L", "S", ""]:
-        raise ValueError("batting_hand must be 'R', 'L', 'S', or an empty string.")
 
-    stat_cols = set()
-    # stat_types validation
-    if stat_types is None:
-        for stat_type in FangraphsBattingStatType:
-            for stat in stat_type.value:
-                stat_cols.add(stat)
-    else:
-        for stat_type in stat_types:
-            if not isinstance(stat_type, FangraphsBattingStatType):
-                raise ValueError(
-                    "stat_types must be a list of valid FangraphsBattingStatType values"
-                )
-            for stat in stat_type.value:
-                stat_cols.add(stat)
-    stat_types = list(stat_cols)
-    assert isinstance(split_seasons, bool)
+def validate_ind_param(split_seasons: bool) -> str:
     if split_seasons:
-        split_seasons = 1
+        return "1"
     else:
-        split_seasons = 0
-    return (
-        start_date,
-        end_date,
-        start_season,
-        end_season,
-        min_pa,
-        fielding_position,
-        active_roster_only,
-        team,
-        league,
-        min_age,
-        max_age,
-        batting_hand,
-        stat_types,
-        split_seasons,
-    )
+        return "0"
 
 
-def fangraphs_fielding_input_val(
-    start_year: Union[int, None] = None,
-    end_year: Union[int, None] = None,
-    min_inn: Union[str, int] = "y",
-    stat_types: List[FangraphsFieldingStatType] = None,
-    active_roster_only: bool = False,
-    team: FangraphsTeams = FangraphsTeams.ALL,
-    league: Literal["nl", "al", ""] = "",
-    fielding_position: FangraphsBattingPosTypes = FangraphsBattingPosTypes.ALL,
-):
-    if not (start_year and end_year):
-        raise ValueError("You must provide (start_year, end_year).")
+def validate_seasons(start_season: int, end_season: int) -> Tuple[int, int]:
+    current_year = datetime.now().year
 
-    # Validate seasons if provided
-    if start_year and end_year:
-        if start_year > end_year:
-            raise ValueError(
-                f"start_year ({start_year}) cannot be after end_year ({end_year})."
-            )
-        print(f"Using season range: {start_year} to {end_year}")
-
-    # min_pa validation
-    if isinstance(min_inn, str):
-        if min_inn not in ["y"]:
-            raise ValueError("If min_inn is a string, it must be 'y' (qualified).")
-    elif isinstance(min_inn, int):
-        if min_inn < 0:
-            raise ValueError("min_inn must be a positive integer.")
-    else:
-        raise ValueError("min_inn must be a string or integer.")
-
-    # fielding_position validation
-    if not isinstance(fielding_position, FangraphsBattingPosTypes):
-        raise ValueError(
-            "fielding_position must be a valid FangraphsBattingPosTypes value"
+    # Check if only one parameter is provided for single season
+    if start_season is not None and end_season is None:
+        if start_season < 1871 or start_season > current_year:
+            raise ValueError(f"start_season must be between 1871 and {current_year}")
+        print(
+            "End season not provided, doing a single year search using the start season param."
         )
+        return start_season, start_season
+    elif start_season is None and end_season is not None:
+        if end_season < 1871 or end_season > current_year:
+            raise ValueError(f"end_season must be between 1871 and {current_year}")
+        print(
+            "Start season not provided, doing a single year search using the end season param."
+        )
+        return end_season, end_season
+    elif start_season is None and end_season is None:
+        raise ValueError("At least one season must be provided")
 
-    # active_roster_only validation
-    if not isinstance(active_roster_only, bool):
-        raise ValueError("active_roster_only must be a boolean value.")
-    if active_roster_only:
-        print("Only active roster players will be included.")
-        active_roster_only = 1
-    else:
-        print("All players will be included.")
-        active_roster_only = 0
+    # Both parameters provided - validate range
+    if start_season < 1871 or start_season > current_year:
+        raise ValueError(f"start_season must be between 1871 and {current_year}")
+    if end_season < 1871 or end_season > current_year:
+        raise ValueError(f"end_season must be between 1871 and {current_year}")
+    if start_season > end_season:
+        print("start_season is greater than end_season, switching them")
+        start_season, end_season = end_season, start_season
+    return start_season, end_season
 
-    # team validation
-    if not isinstance(team, FangraphsTeams):
-        raise ValueError("team must be a valid FangraphsTeams value")
-    else:
-        print(f"Filtering by team: {team}")
+
+def validate_team_stat_split(team: FangraphsTeams, stat_split: str) -> str:
+    # handle team and stat_split together
+    if stat_split and stat_split not in ["player", "team", "league"]:
+        raise ValueError("stat_split must be one of 'player', 'team', or 'league'")
+    if stat_split == "player":
+        stat_split = ""
+    elif stat_split is None:
+        print("No stat_split provided, defaulting to player stats")
+        stat_split = ""
+    elif stat_split == "team":
+        stat_split = "ts"
+    elif stat_split == "league":
+        stat_split = "ss"
+    if team:
         team = team.value
-    # league validation
-    if league not in ["nl", "al", ""]:
-        raise ValueError("league must be 'nl', 'al', or an empty string.")
-    if league:
-        print(f"Filtering by league: {league}")
-
-    stat_cols = set()
-    # stat_types validation
-    if stat_types is None:
-        for stat_type in FangraphsFieldingStatType:
-            for stat in stat_type.value:
-                stat_cols.add(stat)
     else:
-        for stat_type in stat_types:
-            if not isinstance(stat_type, FangraphsFieldingStatType):
-                raise ValueError(
-                    "stat_types must be a list of valid FangraphsFieldingStatType values"
-                )
-            for stat in stat_type.value:
-                stat_cols.add(stat)
-    stat_types = list(stat_cols)
-    return (
-        start_year,
-        end_year,
-        min_inn,
-        fielding_position,
-        active_roster_only,
-        team,
-        league,
-        stat_types,
-    )
-
-
-def fangraphs_pitching_range_input_val(
-    start_date: Union[str, None] = None,
-    end_date: Union[str, None] = None,
-    start_year: Union[int, None] = None,
-    end_year: Union[int, None] = None,
-    min_ip: Union[str, int] = "y",
-    stat_types: List[FangraphsPitchingStatType] = None,
-    active_roster_only: bool = False,
-    team: FangraphsTeams = FangraphsTeams.ALL,
-    league: Literal["nl", "al", ""] = "",
-    min_age: Optional[int] = None,
-    max_age: Optional[int] = None,
-    pitching_hand: Literal["R", "L", "S", ""] = "",
-    starter_reliever: Literal["sta", "rel", "pit"] = "pit",
-    split_seasons: bool = False,
-):
-    if (start_date and end_date) and (start_year and end_year):
-        raise ValueError(
-            "Specify either (start_date, end_date) OR (start_year, end_year), but not both."
-        )
-
-    if not (start_date and end_date) and not (start_year and end_year):
-        raise ValueError(
-            "You must provide either (start_date, end_date) OR (start_year, end_year)."
-        )
-
-    # Validate and convert dates if provided
-    if start_date and end_date:
-        start_date, end_date = fangraphs_validate_dates(start_date, end_date)
-        start_year = None
-        end_year = None
-        print(f"Using date range: {start_date} to {end_date}")
-
-    # Validate seasons if provided
-    if start_year and end_year:
-        if start_year > end_year:
-            raise ValueError(
-                f"start_season ({start_year}) cannot be after end_season ({end_year})."
-            )
-        print(f"Using season range: {start_year} to {end_year}")
-        start_date = None
-        end_date = None
-
-    if isinstance(min_ip, str):
-        if min_ip not in ["y"]:
-            raise ValueError("If min_ip is a string, it must be 'y' (qualified).")
-    elif isinstance(min_ip, int):
-        if min_ip < 0:
-            raise ValueError("min_ip must be a positive integer.")
+        team = ""
+    team_together = ""
+    if stat_split == "":
+        team_together = team
     else:
-        raise ValueError("min_ip must be a string or integer.")
+        team_together = f"{team},{stat_split}"
+    return team_together
 
-    if stat_types is None:
-        stat_types = [stat for stat in list(FangraphsPitchingStatType)]
-    else:
-        if not stat_types:
-            raise ValueError("stat_types must not be an empty list.")
-        for stat in stat_types:
-            if stat not in list(FangraphsPitchingStatType):
-                raise ValueError(f"Invalid stat type: {stat}")
 
-    # active_roster_only validation
-    if not isinstance(active_roster_only, bool):
-        raise ValueError("active_roster_only must be a boolean value.")
+def validate_active_roster(active_roster_only: bool) -> str:
     if active_roster_only:
-        print("Only active roster players will be included.")
-        active_roster_only = 1
-    else:
-        print("All players will be included.")
-        active_roster_only = 0
+        return "1"
 
-    # team validation
-    if not isinstance(team, FangraphsTeams):
-        raise ValueError("team must be a valid FangraphsTeams value")
     else:
-        print(f"Filtering by team: {team}")
-        team = team.value
-    # league validation
-    if league not in ["nl", "al", ""]:
-        raise ValueError("league must be 'nl', 'al', or an empty string.")
-    if league:
-        print(f"Filtering by league: {league}")
+        return "0"
 
-    if (min_age is not None and max_age is None) or (
-        min_age is None and max_age is not None
-    ):
-        raise ValueError("Both min_age and max_age must be provided or neither")
-    if min_age is None:
-        min_age = 14
-    if max_age is None:
-        max_age = 56
-    if min_age > max_age:
-        raise ValueError(
-            f"min_age ({min_age}) cannot be greater than max_age ({max_age})"
-        )
-    if min_age < 14:
-        raise ValueError("min_age must be at least 14")
-    if max_age > 56:
-        raise ValueError("max_age must be at most 56")
 
-    if pitching_hand not in ["R", "L", "S", ""]:
-        raise ValueError("pitching_hand must be 'R', 'L', 'S', or an empty string.")
+def validate_season_type(season_type: str) -> str:
+    if not season_type:
+        print("No season_type provided, defaulting to regular season stats")
+        return ""
+    if season_type not in [
+        "regular",
+        "all_postseason",
+        "world_series",
+        "championship_series",
+        "division_series",
+        "wild_card",
+    ]:
+        raise ValueError("Invalid season_type")
 
-    if starter_reliever not in ["sta", "rel", "pit"]:
-        raise ValueError("starter_reliever must be 'sta', 'rel', or 'pit'.")
-    stat_cols = set()
-    # stat_types validation
-    if stat_types is None:
-        for stat_type in FangraphsPitchingStatType:
-            for stat in stat_type.value:
-                stat_cols.add(stat)
+    match season_type:
+        case "regular":
+            return ""
+        case "all_postseason":
+            return "Y"
+        case "world_series":
+            return "W"
+        case "championship_series":
+            return "L"
+        case "division_series":
+            return "D"
+        case "wild_card":
+            return "F"
+
+
+def pick_season_or_dates(
+    start_date: str, end_date: str, start_season: int, end_season: int
+) -> bool:
+    date_non_null_counts = sum(x is not None for x in [start_date, end_date])
+    season_non_null_counts = sum(x is not None for x in [start_season, end_season])
+
+    if date_non_null_counts == 0 and season_non_null_counts == 0:
+        raise ValueError("Must provide either date range or season range")
+    elif date_non_null_counts == season_non_null_counts:
+        raise ValueError("Must provide either date range or season range, not both")
+    if date_non_null_counts > season_non_null_counts:
+        return True
     else:
-        for stat_type in stat_types:
-            if not isinstance(stat_type, FangraphsPitchingStatType):
-                raise ValueError(
-                    "stat_types must be a list of valid FangraphsPitchingStatType values"
-                )
-            for stat in stat_type.value:
-                stat_cols.add(stat)
-    stat_types = list(stat_cols)
-    assert isinstance(split_seasons, bool)
-    if split_seasons:
-        split_seasons = 1
-    else:
-        split_seasons = 0
-    return (
-        start_date,
-        end_date,
-        start_year,
-        end_year,
-        min_ip,
-        stat_types,
-        active_roster_only,
-        team,
-        league,
-        min_age,
-        max_age,
-        pitching_hand,
-        starter_reliever,
-        stat_types,
-        split_seasons,
+        return False
+
+
+def validate_dates(start_date: str, end_date: str) -> Tuple[str, str]:
+    if not start_date:
+        raise ValueError("start_date must be provided")
+    if not end_date:
+        print("No end date provided, defaulting to today's date")
+        end_date = datetime.today().strftime("%Y-%m-%d")
+    start_date_parsed, end_date_parsed = (
+        dateparser.parse(start_date),
+        dateparser.parse(end_date),
     )
+    return start_date_parsed.strftime("%Y-%m-%d"), end_date_parsed.strftime("%Y-%m-%d")
+
+
+# def fangraphs_fielding_input_val(
+#     start_year: Union[int, None] = None,
+#     end_year: Union[int, None] = None,
+#     min_inn: Union[str, int] = "y",
+#     stat_types: List[FangraphsFieldingStatType] = None,
+#     active_roster_only: bool = False,
+#     team: FangraphsTeams = FangraphsTeams.ALL,
+#     league: Literal["nl", "al", ""] = "",
+#     fielding_position: FangraphsBattingPosTypes = FangraphsBattingPosTypes.ALL,
+# ):
+#     if not (start_year and end_year):
+#         raise ValueError("You must provide (start_year, end_year).")
+
+#     # Validate seasons if provided
+#     if start_year and end_year:
+#         if start_year > end_year:
+#             raise ValueError(
+#                 f"start_year ({start_year}) cannot be after end_year ({end_year})."
+#             )
+#         print(f"Using season range: {start_year} to {end_year}")
+
+#     # min_pa validation
+#     if isinstance(min_inn, str):
+#         if min_inn not in ["y"]:
+#             raise ValueError("If min_inn is a string, it must be 'y' (qualified).")
+#     elif isinstance(min_inn, int):
+#         if min_inn < 0:
+#             raise ValueError("min_inn must be a positive integer.")
+#     else:
+#         raise ValueError("min_inn must be a string or integer.")
+
+#     # fielding_position validation
+#     if not isinstance(fielding_position, FangraphsBattingPosTypes):
+#         raise ValueError(
+#             "fielding_position must be a valid FangraphsBattingPosTypes value"
+#         )
+
+#     # active_roster_only validation
+#     if not isinstance(active_roster_only, bool):
+#         raise ValueError("active_roster_only must be a boolean value.")
+#     if active_roster_only:
+#         print("Only active roster players will be included.")
+#         active_roster_only = 1
+#     else:
+#         print("All players will be included.")
+#         active_roster_only = 0
+
+#     # team validation
+#     if not isinstance(team, FangraphsTeams):
+#         raise ValueError("team must be a valid FangraphsTeams value")
+#     else:
+#         print(f"Filtering by team: {team}")
+#         team = team.value
+#     # league validation
+#     if league not in ["nl", "al", ""]:
+#         raise ValueError("league must be 'nl', 'al', or an empty string.")
+#     if league:
+#         print(f"Filtering by league: {league}")
+
+#     stat_cols = set()
+#     # stat_types validation
+#     if stat_types is None:
+#         for stat_type in FangraphsFieldingStatType:
+#             for stat in stat_type.value:
+#                 stat_cols.add(stat)
+#     else:
+#         for stat_type in stat_types:
+#             if not isinstance(stat_type, FangraphsFieldingStatType):
+#                 raise ValueError(
+#                     "stat_types must be a list of valid FangraphsFieldingStatType values"
+#                 )
+#             for stat in stat_type.value:
+#                 stat_cols.add(stat)
+#     stat_types = list(stat_cols)
+#     return (
+#         start_year,
+#         end_year,
+#         min_inn,
+#         fielding_position,
+#         active_roster_only,
+#         team,
+#         league,
+#         stat_types,
+#     )
+
+
+# def fangraphs_pitching_range_input_val(
+#     start_date: Union[str, None] = None,
+#     end_date: Union[str, None] = None,
+#     start_year: Union[int, None] = None,
+#     end_year: Union[int, None] = None,
+#     min_ip: Union[str, int] = "y",
+#     stat_types: List[FangraphsPitchingStatType] = None,
+#     active_roster_only: bool = False,
+#     team: FangraphsTeams = FangraphsTeams.ALL,
+#     league: Literal["nl", "al", ""] = "",
+#     min_age: Optional[int] = None,
+#     max_age: Optional[int] = None,
+#     pitching_hand: Literal["R", "L", "S", ""] = "",
+#     starter_reliever: Literal["sta", "rel", "pit"] = "pit",
+#     split_seasons: bool = False,
+# ):
+#     if (start_date and end_date) and (start_year and end_year):
+#         raise ValueError(
+#             "Specify either (start_date, end_date) OR (start_year, end_year), but not both."
+#         )
+
+#     if not (start_date and end_date) and not (start_year and end_year):
+#         raise ValueError(
+#             "You must provide either (start_date, end_date) OR (start_year, end_year)."
+#         )
+
+#     # Validate and convert dates if provided
+#     if start_date and end_date:
+#         start_date, end_date = fangraphs_validate_dates(start_date, end_date)
+#         start_year = None
+#         end_year = None
+#         print(f"Using date range: {start_date} to {end_date}")
+
+#     # Validate seasons if provided
+#     if start_year and end_year:
+#         if start_year > end_year:
+#             raise ValueError(
+#                 f"start_season ({start_year}) cannot be after end_season ({end_year})."
+#             )
+#         print(f"Using season range: {start_year} to {end_year}")
+#         start_date = None
+#         end_date = None
+
+#     if isinstance(min_ip, str):
+#         if min_ip not in ["y"]:
+#             raise ValueError("If min_ip is a string, it must be 'y' (qualified).")
+#     elif isinstance(min_ip, int):
+#         if min_ip < 0:
+#             raise ValueError("min_ip must be a positive integer.")
+#     else:
+#         raise ValueError("min_ip must be a string or integer.")
+
+#     if stat_types is None:
+#         stat_types = [stat for stat in list(FangraphsPitchingStatType)]
+#     else:
+#         if not stat_types:
+#             raise ValueError("stat_types must not be an empty list.")
+#         for stat in stat_types:
+#             if stat not in list(FangraphsPitchingStatType):
+#                 raise ValueError(f"Invalid stat type: {stat}")
+
+#     # active_roster_only validation
+#     if not isinstance(active_roster_only, bool):
+#         raise ValueError("active_roster_only must be a boolean value.")
+#     if active_roster_only:
+#         print("Only active roster players will be included.")
+#         active_roster_only = 1
+#     else:
+#         print("All players will be included.")
+#         active_roster_only = 0
+
+#     # team validation
+#     if not isinstance(team, FangraphsTeams):
+#         raise ValueError("team must be a valid FangraphsTeams value")
+#     else:
+#         print(f"Filtering by team: {team}")
+#         team = team.value
+#     # league validation
+#     if league not in ["nl", "al", ""]:
+#         raise ValueError("league must be 'nl', 'al', or an empty string.")
+#     if league:
+#         print(f"Filtering by league: {league}")
+
+#     if (min_age is not None and max_age is None) or (
+#         min_age is None and max_age is not None
+#     ):
+#         raise ValueError("Both min_age and max_age must be provided or neither")
+#     if min_age is None:
+#         min_age = 14
+#     if max_age is None:
+#         max_age = 56
+#     if min_age > max_age:
+#         raise ValueError(
+#             f"min_age ({min_age}) cannot be greater than max_age ({max_age})"
+#         )
+#     if min_age < 14:
+#         raise ValueError("min_age must be at least 14")
+#     if max_age > 56:
+#         raise ValueError("max_age must be at most 56")
+
+#     if pitching_hand not in ["R", "L", "S", ""]:
+#         raise ValueError("pitching_hand must be 'R', 'L', 'S', or an empty string.")
+
+#     if starter_reliever not in ["sta", "rel", "pit"]:
+#         raise ValueError("starter_reliever must be 'sta', 'rel', or 'pit'.")
+#     stat_cols = set()
+#     # stat_types validation
+#     if stat_types is None:
+#         for stat_type in FangraphsPitchingStatType:
+#             for stat in stat_type.value:
+#                 stat_cols.add(stat)
+#     else:
+#         for stat_type in stat_types:
+#             if not isinstance(stat_type, FangraphsPitchingStatType):
+#                 raise ValueError(
+#                     "stat_types must be a list of valid FangraphsPitchingStatType values"
+#                 )
+#             for stat in stat_type.value:
+#                 stat_cols.add(stat)
+#     stat_types = list(stat_cols)
+#     assert isinstance(split_seasons, bool)
+#     if split_seasons:
+#         split_seasons = 1
+#     else:
+#         split_seasons = 0
+#     return (
+#         start_date,
+#         end_date,
+#         start_year,
+#         end_year,
+#         min_ip,
+#         stat_types,
+#         active_roster_only,
+#         team,
+#         league,
+#         min_age,
+#         max_age,
+#         pitching_hand,
+#         starter_reliever,
+#         stat_types,
+#         split_seasons,
+#     )
