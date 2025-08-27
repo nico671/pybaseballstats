@@ -133,6 +133,7 @@ def _extract_table(table):
         if tr.has_attr("class") and "thead" in tr["class"]:
             continue
         tds = tr.find_all("td")
+        tds.extend(tr.find_all("th"))
         if len(tds) == 0:
             continue
         for td in tds:
