@@ -5,8 +5,16 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
-from pybaseballstats.consts.bref_consts import BREF_TEAM_BATTING_URL, BREFTeams
-from pybaseballstats.utils.bref_utils import BREFSingleton, _extract_table
+from pybaseballstats.consts.bref_consts import (
+    BREF_TEAM_BATTING_URL,
+    BREF_TEAM_RECORD_URL,
+    BREFTeams,
+)
+from pybaseballstats.utils.bref_utils import (
+    BREFSingleton,
+    _extract_table,
+    fetch_page_html,
+)
 
 bref = BREFSingleton.instance()
 
@@ -156,3 +164,48 @@ def team_value_batting(
         if not return_pandas
         else team_value_batting_df.to_pandas()
     )
+
+
+def bref_teams_yearly_history(
+    team: BREFTeams,
+    start_season: int = None,
+    end_season: int = None,
+    return_pandas: bool = False,
+) -> pl.DataFrame | pd.DataFrame:
+    if team is None:
+        raise ValueError("Must provide a team")
+    html = fetch_page_html(BREF_TEAM_RECORD_URL.format(team_code=team.value))
+    soup = BeautifulSoup(html, "html.parser")
+    franch_history_table = soup.find("table", {"id": "franchise_years"})
+    df = pl.DataFrame(_extract_table(franch_history_table))
+    df = df.with_columns(
+        [
+            pl.col(
+                [
+                    "G",
+                    "W",
+                    "L",
+                    "ties",
+                    "R",
+                    "RA",
+                    "batters_used",
+                    "pitchers_used",
+                    "year_ID",
+                ]
+            ).cast(pl.Int16),
+            pl.col(
+                [
+                    "win_loss_perc",
+                    "win_loss_perc_pythag",
+                    "age_bat",
+                    "age_pit",
+                ]
+            ).cast(pl.Float32),
+        ]
+    )
+    df = df.with_columns(pl.col("games_back").str.replace("--", "0").cast(pl.Float32))
+    if start_season:
+        df = df.filter(pl.col("year_ID") >= start_season)
+    if end_season:
+        df = df.filter(pl.col("year_ID") <= end_season)
+    return df if not return_pandas else df.to_pandas()

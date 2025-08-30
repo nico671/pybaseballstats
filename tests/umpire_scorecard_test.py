@@ -7,7 +7,7 @@ from polars.testing import assert_frame_equal
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import pybaseballstats as pyb
-from pybaseballstats.umpire_scorecard import UmpireScorecardTeams
+from pybaseballstats.consts.umpire_scorecard_consts import UmpireScorecardTeams
 
 
 # Test umpire_scorecard_games_date_range

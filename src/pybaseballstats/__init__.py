@@ -64,18 +64,18 @@
 # # Import utility modules first
 # # Then import modules that depend on utils but don't depend on each other
 from . import (
-    bref_draft,  # noqa: F401
-    bref_managers,  # noqa: F401
-    bref_single_player,  # noqa: F401
+    bref_draft,
+    bref_managers,
+    bref_single_player,
+    bref_teams,
     consts,
-    # bref_teams,  # noqa: F401
-    fangraphs,  # noqa: F401
-    fangraphs_single_game,  # noqa: F401
-    plotting,  # noqa: F401
-    retrosheet,  # noqa: F401
-    statcast,  # noqa: F401
-    statcast_leaderboards,  # noqa: F401
-    statcast_single_game,  # noqa: F401
-    umpire_scorecard,  # noqa: F401
-    utils,  # noqa: F401
+    fangraphs,
+    fangraphs_single_game,
+    plotting,
+    retrosheet,
+    statcast,
+    statcast_leaderboards,
+    statcast_single_game,
+    umpire_scorecard,
+    utils,
 )

@@ -57,7 +57,7 @@ def validate_ind_param(split_seasons: bool) -> str:
         return "0"
 
 
-def validate_seasons(start_season: int, end_season: int) -> Tuple[int, int]:
+def validate_seasons_param(start_season: int, end_season: int) -> Tuple[int, int]:
     current_year = datetime.now().year
 
     # Check if only one parameter is provided for single season
@@ -89,7 +89,7 @@ def validate_seasons(start_season: int, end_season: int) -> Tuple[int, int]:
     return start_season, end_season
 
 
-def validate_team_stat_split(team: FangraphsTeams, stat_split: str) -> str:
+def validate_team_stat_split_param(team: FangraphsTeams, stat_split: str) -> str:
     # handle team and stat_split together
     if stat_split and stat_split not in ["player", "team", "league"]:
         raise ValueError("stat_split must be one of 'player', 'team', or 'league'")
@@ -114,7 +114,7 @@ def validate_team_stat_split(team: FangraphsTeams, stat_split: str) -> str:
     return team_together
 
 
-def validate_active_roster(active_roster_only: bool) -> str:
+def validate_active_roster_param(active_roster_only: bool) -> str:
     if active_roster_only:
         return "1"
 

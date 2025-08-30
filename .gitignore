@@ -17,3 +17,4 @@ tests/rand_results/
 .idea/
 *.egg-info/
 .coverage
+src/pybaseballstats/consts/__pycache__/

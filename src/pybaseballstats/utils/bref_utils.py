@@ -3,6 +3,7 @@ from contextlib import contextmanager
 from datetime import datetime
 from typing import Optional
 
+from playwright.sync_api import sync_playwright
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 
@@ -132,8 +133,8 @@ def _extract_table(table):
     for tr in trs:
         if tr.has_attr("class") and "thead" in tr["class"]:
             continue
-        tds = tr.find_all("td")
-        tds.extend(tr.find_all("th"))
+        tds = tr.find_all("th")
+        tds.extend(tr.find_all("td"))
         if len(tds) == 0:
             continue
         for td in tds:
@@ -141,7 +142,7 @@ def _extract_table(table):
             if data_stat not in row_data:
                 row_data[data_stat] = []
             if td.find("a"):
-                row_data[data_stat].append(td.find("a").string)
+                row_data[data_stat].append(td.find("a").text)
             elif td.find("span"):
                 row_data[data_stat].append(td.find("span").string)
             elif td.find("strong"):
@@ -149,3 +150,19 @@ def _extract_table(table):
             else:
                 row_data[data_stat].append(td.string)
     return row_data
+
+
+def fetch_page_html(url: str) -> str:
+    """
+    Fetches the full HTML of a Baseball Reference page using Playwright
+    (bypasses Cloudflare JavaScript challenge).
+    """
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page()
+        page.goto(url)
+        # Wait until network is idle (all JS/XHRs done)
+        page.wait_for_load_state("networkidle")
+        html = page.content()
+        browser.close()
+        return html

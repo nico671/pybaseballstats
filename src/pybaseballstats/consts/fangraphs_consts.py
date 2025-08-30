@@ -1229,6 +1229,6 @@ FG_SINGLE_GAME_URL = (
 FANGRAPHS_BATTING_LEADERS_URL = (
     "https://www.fangraphs.com/api/leaders/major-league/data"
 )
-
+FANGRAPHS_WAR_LEADERBOARD_URL = "https://www.fangraphs.com/leaders/war?wartype={war_type}&teamid={team_id}&lg={league}&season={season}"
 FANGRAPHS_FIELDING_API_URL = "https://www.fangraphs.com/api/leaders/major-league/data?age=&pos={fielding_position}&stats=fld&lg={league}&qual={min_inn}&season={end_year}&season1={start_year}&startdate=&enddate=&month=0&hand=&team={team}&pageitems=2000000000&pagenum=1&ind=0&rost={active_roster_only}&players=0&type=1&postseason=&sortdir=default&sortstat=Defense"
 FANGRAPHS_PITCHING_API_URL = "https://www.fangraphs.com/api/leaders/major-league/data?age=&pos=all&lg={league}&qual={min_ip}&season={end_year}&season1={start_year}&startdate={start_date}&enddate={end_date}&month={month}&ind={split_seasons}&hand={pitching_hand}&team={team}&pagenum=1&pageitems=2000000000&ind=0&rost={active_roster_only}&stats={starter_reliever}&players=0&type=0&postseason=&sortdir=default&sortstat=SO"

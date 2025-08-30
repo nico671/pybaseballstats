@@ -60,3 +60,5 @@ BREF_SINGLE_PLAYER_SABERMETRIC_FIELDING_URL = (
 BREF_TEAM_BATTING_URL = (
     "https://www.baseball-reference.com/teams/{team_code}/{year}-batting.shtml"
 )
+
+BREF_TEAM_RECORD_URL = "https://www.baseball-reference.com/teams/{team_code}/"
