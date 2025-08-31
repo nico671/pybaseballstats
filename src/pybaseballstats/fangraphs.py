@@ -28,6 +28,7 @@ from pybaseballstats.utils.fangraphs_utils import (
 )
 
 
+# TODO: tests for all functions
 # #TODO: docstrings for all functions
 # TODO: REDO all funcs (batting leaderboard new done now just need to write tests for all 3 and redo the other 2)
 def fangraphs_batting_leaderboard(
@@ -345,7 +346,7 @@ def fangraphs_war_leaderboard(
     if league not in ["AL", "NL", ""]:
         raise ValueError('league must be one of "AL", "NL", or ""')
     if team not in FangraphsTeams:
-        raise ValueError(f"team must be one of {list(FangraphsTeams)}")
+        raise ValueError(f"team must be one of {FangraphsTeams.show_options()}")
     if season > 2025 or season < 1871:
         raise ValueError("season must be between 1871 and 2025")
     if team != FangraphsTeams.ALL:
