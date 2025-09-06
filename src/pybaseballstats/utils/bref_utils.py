@@ -127,6 +127,23 @@ class BREFSingleton:
         self.last_request_time = datetime.now()
 
 
+# @contextmanager
+# def get_driver():
+#     """Provides a WebDriver instance that automatically quits on exit."""
+#     options = Options()
+#     options.add_argument("--headless")
+#     options.add_argument("--disable-gpu")
+#     options.add_argument("--no-sandbox")
+#     options.add_argument("--disable-dev-shm-usage")
+
+#     driver = webdriver.Chrome(options=options)
+
+#     try:
+#         yield driver  # Hands control back to the calling function
+#     finally:
+#         driver.quit()  # Ensures WebDriver is always closed
+
+
 def _extract_table(table):
     trs = table.tbody.find_all("tr")
     row_data = {}
