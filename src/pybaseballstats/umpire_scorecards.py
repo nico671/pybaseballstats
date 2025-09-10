@@ -14,7 +14,6 @@ from .consts.umpire_scorecard_consts import (
 
 # TODO: usage docs
 __all__ = [
-    "available_teams",
     "game_type_options",
     "game_data",
     "umpire_data",

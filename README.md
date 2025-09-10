@@ -13,7 +13,7 @@ A Python package for scraping baseball statistics from the web. Inspired by the 
     - This source provides high quality pitch-by-pitch data for all MLB games since 2015 as well as interesting leaderboards for various categories.
 2. [Fangraphs](https://www.fangraphs.com/)
     - This source provides leaderboards for pitching, batting and fielding statistics for all MLB players since 1871.
-3. [Umpire Scorecard](https://umpscorecards.com/home/)
+3. [Umpire Scorecards](https://umpscorecards.com/home/)
     - This source provides umpire game logs and statistics for all MLB games since 2008.
 4. [Baseball Reference](https://www.baseball-reference.com/)
     - This source provides comprehensive, high detail stats for all MLB players and teams since 1871.
