@@ -1,4 +1,3 @@
-import pandas as pd
 import polars as pl
 from bs4 import BeautifulSoup
 from selenium.webdriver.common.by import By
@@ -92,14 +91,11 @@ def managers_basic_data(year: int) -> pl.DataFrame:
     return df
 
 
-def manager_tendencies_data(
-    year: int, return_pandas: bool = False
-) -> pl.DataFrame | pd.DataFrame:
+def manager_tendencies_data(year: int) -> pl.DataFrame:
     """Returns a DataFrame of manager tendencies data for a given year. NOTE: This function uses Selenium to scrape the data, so it may be slow.
 
     Args:
         year (int): Which year to pull manager tendencies data from
-        return_pandas (bool, optional): Whether or not to return the data as a pandas DataFrame. Defaults to False (returning a polars DataFrame).
 
     Raises:
         ValueError: If year is None
@@ -108,7 +104,7 @@ def manager_tendencies_data(
 
 
     Returns:
-        pl.DataFrame | pd.DataFrame: A DataFrame of manager tendencies data for the given year. If False, returns a polars DataFrame. If True, returns a pandas DataFrame.
+        pl.DataFrame: A DataFrame of manager tendencies data for the given year.
     """
     if not year:
         raise ValueError("Year must be provided")
@@ -188,4 +184,4 @@ def manager_tendencies_data(
             ]
         ).str.replace("0", "")
     )
-    return df if not return_pandas else df.to_pandas()
+    return df

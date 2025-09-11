@@ -27,20 +27,23 @@ pybaseballstats can be installed using pip or any other package manager (I use [
 Examples:
 
 ```bash
-pip install pybaseballstats
+uv add pybaseballstats
 ```
 
 or:
 
 ```bash
-uv add pybaseballstats
+pip install pybaseballstats
 ```
 
 ## Documentation
 
 Usage documentation can be found in this [folder](usage_docs/). This documentation is a work in progress and will be updated as I add more functionality to the package.
 
-One quick note that I do want to make here is that this project uses Polars internally. This means that all data returned from functions in this package will be in the form of a Polars DataFrame. If you want to convert the data to a Pandas DataFrame, you can do so by using the `.to_pandas()` method on the Polars DataFrame. For example:
+### General Documentation (Things of Note)
+
+1. This project uses Polars internally. This means that all data returned from functions in this package will be in the form of a Polars DataFrame. If you want to convert the data to a Pandas DataFrame, you can do so by using the `.to_pandas()` method on the Polars DataFrame. For example:
+2. The BREF functions use a singleton pattern to guarantee that you won't exceed rate limits and face a longer timeout. So: don't be surprised if when you are making multiple calls to BREF functions that these calls may be a little slower than expected. This is to be expected as the singleton pattern is used to ensure that only one instance of the BREF scraper is created and used throughout the lifetime of your program. This is done to avoid exceeding rate limits and being blocked by BREF.
 
 ```python
 import pybaseballstats.umpire_scorecards as us

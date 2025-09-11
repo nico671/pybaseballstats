@@ -158,8 +158,10 @@ def _extract_table(table):
             data_stat = td.attrs["data-stat"]
             if data_stat not in row_data:
                 row_data[data_stat] = []
-            if td.find("a"):
+            if td.find("a") and data_stat != "player":  # special case for bref_draft
                 row_data[data_stat].append(td.find("a").text)
+            elif td.find("a") and data_stat == "player":
+                row_data[data_stat].append(td.text)
             elif td.find("span"):
                 row_data[data_stat].append(td.find("span").string)
             elif td.find("strong"):
