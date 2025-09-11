@@ -1,4 +1,3 @@
-import pandas as pd
 import polars as pl
 from bs4 import BeautifulSoup
 from selenium.webdriver.common.by import By
@@ -15,17 +14,14 @@ from pybaseballstats.utils.bref_utils import BREFSingleton
 bref = BREFSingleton.instance()
 
 
-# TODO: use extract table function to reduce code duplication for both functions
-def draft_order_by_round(
-    year: int, draft_round: int, return_pandas: bool = False
-) -> pl.DataFrame | pd.DataFrame:
+# TODO: visit this url: https://www.baseball-reference.com/draft/index.fcgi and expand to all available search types
+def draft_order_by_round(year: int, draft_round: int) -> pl.DataFrame:
     """Returns the draft order for a given round in a given year.
     NOTE: This function uses Selenium to scrape the data, so it may be slow.
     NOTE: Number of rounds may vary by year, so check the data before using it.
     Args:
         year (int): Which year to pull draft data from (1965-current year)
         draft_round (int): Which round to pull draft data from (1-60)
-        return_pandas (bool, optional): Whether or not to return the data as a pandas DataFrame. Defaults to False (returning a polars DataFrame).
 
     Raises:
         ValueError: If the year is before 1965
@@ -90,12 +86,12 @@ def draft_order_by_round(
             ).cast(pl.Float32),
         ]
     )
-    return df if not return_pandas else df.to_pandas()
+    return df
 
 
 def franchise_draft_order(
     team: BREFTeams, year: int, return_pandas: bool = False
-) -> pl.DataFrame | pd.DataFrame:
+) -> pl.DataFrame:
     """Returns a Dataframe of draft data for a given team and year. NOTE: This function uses Selenium to scrape the data, so it may be slow.
 
     Args:
@@ -171,4 +167,4 @@ def franchise_draft_order(
             ).cast(pl.Float32),
         ]
     )
-    return df if not return_pandas else df.to_pandas()
+    return df

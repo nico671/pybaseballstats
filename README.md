@@ -40,6 +40,15 @@ uv add pybaseballstats
 
 Usage documentation can be found in this [folder](usage_docs/). This documentation is a work in progress and will be updated as I add more functionality to the package.
 
+One quick note that I do want to make here is that this project uses Polars internally. This means that all data returned from functions in this package will be in the form of a Polars DataFrame. If you want to convert the data to a Pandas DataFrame, you can do so by using the `.to_pandas()` method on the Polars DataFrame. For example:
+
+```python
+import pybaseballstats.umpire_scorecards as us
+df_polars = us.game_data(start_date="2023-04-01", end_date="2023-04-30")
+# Convert to Pandas DataFrame
+df_pandas = df_polars.to_pandas()
+```
+
 ## Contributing
 
 Improvements and bug fixes are welcome! Please open an issue or submit a pull request. If you are opening an issue please keep in mind that I am enrolled in university full-time and may not be able to respond immediately. I work on this in my free time, but I will do my best to fix any issues that are opened. To submit a pull request, please fork the repository and make your changes on a new branch. Make your changes and please create new tests if you are adding new functionality (updates to my own tests are more than welcome as well). Make sure all tests pass and once you are finished, submit a pull request and I will review your changes. Please include a detailed description of the changes you made and why you made them as a part of your pull request.

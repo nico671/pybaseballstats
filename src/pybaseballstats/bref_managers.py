@@ -14,14 +14,11 @@ bref = BREFSingleton.instance()
 
 
 # TODO: use extract table function to reduce code duplication for both functions
-def managers_basic_data(
-    year: int, return_pandas: bool = False
-) -> pl.DataFrame | pd.DataFrame:
+def managers_basic_data(year: int) -> pl.DataFrame:
     """Returns a DataFrame of manager data for a given year. NOTE: This function uses Selenium to scrape the data, so it may be slow.
 
     Args:
         year (int): Which year to pull manager data from
-        return_pandas (bool, optional): Whether or not to return the data as a pandas DataFrame. Defaults to False (returning a polars DataFrame).
 
     Raises:
         ValueError: If year is None
@@ -29,7 +26,7 @@ def managers_basic_data(
         TypeError: If year is not an integer
 
     Returns:
-        pl.DataFrame | pd.DataFrame: A DataFrame of manager data for the given year. If False, returns a polars DataFrame. If True, returns a pandas DataFrame.
+        pl.DataFrame: A DataFrame of manager data for the given year. Returns a polars DataFrame.
     """
     if not year:
         raise ValueError("Year must be provided")
@@ -92,7 +89,7 @@ def managers_basic_data(
             pl.col("L_post").cast(pl.Int32).alias("postseason_losses"),
         ]
     ).drop(["W_post", "L_post"])
-    return df if not return_pandas else df.to_pandas()
+    return df
 
 
 def manager_tendencies_data(
