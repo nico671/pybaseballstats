@@ -3,12 +3,11 @@ from bs4 import BeautifulSoup
 
 from pybaseballstats.consts.bref_consts import (
     BREF_DRAFT_YEAR_ROUND_URL,
-    TEAM_YEAR_DRAFT_URL,
     BREFTeams,
 )
-from pybaseballstats.utils.bref_utils import BREFSingleton, _extract_table
+from pybaseballstats.utils.bref_utils import BREFSession, _extract_table
 
-bref = BREFSingleton.instance()
+session = BREFSession()
 
 __all__ = ["BREFTeams", "draft_order_by_year_round", "franchise_draft_order"]
 
@@ -30,11 +29,8 @@ def draft_order_by_year_round(year: int, draft_round: int) -> pl.DataFrame:
         raise ValueError("Draft data is only available from 1965 onwards")
     if draft_round < 1 or draft_round > 60:
         raise ValueError("Draft round must be between 1 and 60")
-    with bref.get_driver() as driver:
-        driver.get(BREF_DRAFT_YEAR_ROUND_URL.format(year=year, round=draft_round))
-
-        soup = BeautifulSoup(driver.page_source, "html.parser")
-
+    resp = session.get(BREF_DRAFT_YEAR_ROUND_URL.format(year=year, round=draft_round))
+    soup = BeautifulSoup(resp.content, "html.parser")
     table = soup.find("table", {"id": "draft_stats"})
     df = pl.DataFrame(_extract_table(table))
     df = df.with_columns(
@@ -67,10 +63,8 @@ def franchise_draft_order(team: BREFTeams, year: int) -> pl.DataFrame:
     elif not team:
         raise ValueError("Team must be provided")
 
-    with bref.get_driver() as driver:
-        driver.get(TEAM_YEAR_DRAFT_URL.format(year=year, team=team.value))
-
-        soup = BeautifulSoup(driver.page_source, "html.parser")
+    resp = session.get(BREF_DRAFT_YEAR_ROUND_URL.format(year=year, team=team.value))
+    soup = BeautifulSoup(resp.content, "html.parser")
 
     table = soup.find("table", id="draft_stats")
 

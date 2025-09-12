@@ -12,6 +12,7 @@ from pybaseballstats.utils.bref_utils import (
 bref = BREFSingleton.instance()
 
 
+# TODO: switch to new session management setup
 # TODO: use extract table function to reduce code duplication for both functions
 def managers_basic_data(year: int) -> pl.DataFrame:
     """Returns a DataFrame of manager data for a given year. NOTE: This function uses Selenium to scrape the data, so it may be slow.
