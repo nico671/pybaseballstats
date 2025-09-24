@@ -12,7 +12,6 @@ session = BREFSession()
 __all__ = ["BREFTeams", "draft_order_by_year_round", "franchise_draft_order"]
 
 
-# TODO: visit this url: https://www.baseball-reference.com/draft/index.fcgi and expand to all available search types
 def draft_order_by_year_round(year: int, draft_round: int) -> pl.DataFrame:
     """Returns a DataFrame of draft data for a given year and round.
 
