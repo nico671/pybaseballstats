@@ -1,9 +1,11 @@
 import time
+from contextlib import contextmanager
 from datetime import datetime
 from typing import Any, Optional
 
 from curl_cffi import requests
-from playwright.sync_api import sync_playwright
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 
 
 # https://stackoverflow.com/questions/31875/is-there-a-simple-elegant-way-to-define-singletons
@@ -50,22 +52,30 @@ class Singleton:
 @Singleton
 class BREFSession:
     """
-    A singleton class to manage the BREF instance.
+    A singleton class to manage both requests and Selenium driver instances with rate limiting.
     """
 
     def __init__(self, max_req_per_minute=10):
         self.max_req_per_minute = max_req_per_minute
         self.last_request_time: Optional[datetime] = None
         self.session = requests.Session()
+        self._driver: Optional[webdriver.Chrome] = None
 
-    def get(self, url: str, **kwargs: Any) -> requests.Response:
+    def _rate_limit(self):
+        """Apply rate limiting before any request."""
         if self.last_request_time:
             difference = datetime.now() - self.last_request_time
             wait_time = 60 / self.max_req_per_minute - difference.total_seconds()
             if wait_time > 0:
+                print(
+                    f"Sleeping for {wait_time:.2f} seconds to avoid being rate limited"
+                )
                 time.sleep(wait_time)
-
         self.last_request_time = datetime.now()
+
+    def get(self, url: str, **kwargs: Any) -> requests.Response:
+        """Make an HTTP request with rate limiting."""
+        self._rate_limit()
         try:
             resp = self.session.get(url, impersonate="chrome", **kwargs)
             resp.raise_for_status()
@@ -73,6 +83,41 @@ class BREFSession:
         except requests.RequestException as e:
             print(f"Error fetching {url}: {e}")
         return None
+
+    def _create_driver(self) -> webdriver.Chrome:
+        """Create a new Chrome driver with default options."""
+        options = Options()
+        options.add_argument("--headless")
+        options.add_argument("--disable-gpu")
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
+        return webdriver.Chrome(options=options)
+
+    @contextmanager
+    def get_driver(self):
+        """Context manager for getting a driver with rate limiting.
+        Creates a new driver each time to prevent memory leaks."""
+        self._rate_limit()
+        driver = self._create_driver()
+        try:
+            yield driver
+        finally:
+            driver.quit()
+
+    def get_persistent_driver(self) -> webdriver.Chrome:
+        """Get a persistent driver instance (reused across calls).
+        Use this only if you need to maintain state between requests.
+        Remember to call quit_driver() when done."""
+        if self._driver is None:
+            self._driver = self._create_driver()
+        self._rate_limit()
+        return self._driver
+
+    def quit_driver(self):
+        """Quit the persistent driver if it exists."""
+        if self._driver:
+            self._driver.quit()
+            self._driver = None
 
 
 def _extract_table(table):
@@ -100,19 +145,3 @@ def _extract_table(table):
             else:
                 row_data[data_stat].append(td.string)
     return row_data
-
-
-def fetch_page_html(url: str) -> str:
-    """
-    Fetches the full HTML of a Baseball Reference page using Playwright
-    (bypasses Cloudflare JavaScript challenge).
-    """
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page()
-        page.goto(url)
-        # Wait until network is idle (all JS/XHRs done)
-        page.wait_for_load_state("networkidle")
-        html = page.content()
-        browser.close()
-        return html
