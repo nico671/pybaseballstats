@@ -3,11 +3,12 @@ from bs4 import BeautifulSoup
 
 from pybaseballstats.consts.bref_consts import (
     BREF_DRAFT_YEAR_ROUND_URL,
+    TEAM_YEAR_DRAFT_URL,
     BREFTeams,
 )
 from pybaseballstats.utils.bref_utils import BREFSession, _extract_table
 
-session = BREFSession()
+session = BREFSession.instance()
 
 __all__ = ["BREFTeams", "draft_order_by_year_round", "franchise_draft_order"]
 
@@ -62,7 +63,7 @@ def franchise_draft_order(team: BREFTeams, year: int) -> pl.DataFrame:
     elif not team:
         raise ValueError("Team must be provided")
 
-    resp = session.get(BREF_DRAFT_YEAR_ROUND_URL.format(year=year, team=team.value))
+    resp = session.get(TEAM_YEAR_DRAFT_URL.format(year=year, team=team.value))
     soup = BeautifulSoup(resp.content, "html.parser")
 
     table = soup.find("table", id="draft_stats")
