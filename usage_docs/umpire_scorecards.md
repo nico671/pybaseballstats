@@ -157,11 +157,20 @@ print(df)
 
 If you want aggregated team data over a specific date range, you can use the `team_data` function. This function allows you to filter by date range, umpire, team, game type, and minimum games called.
 
-#### Understanding the team data function parameters
+### Understanding the team data function parameters
 
 The `team_data` function's parameters are all repeats of those in the other functions, please review those sections for an explanation of each parameter.
 
 #### Example 1: Fetch all team data for a specific date range
+
+```python
+import pybaseballstats.umpire_scorecards as us
+# 1. Fetch all team data for a specific date range
+df = us.team_data(start_date="2023-04-01", end_date="2023-04-30")
+print(df)
+```
+
+#### Example 2: Fetch team data for a specific umpire and team
 
 ```python
 import pybaseballstats.umpire_scorecards as us
@@ -174,3 +183,4 @@ print(df)
 
 1. Please note that some of the restrictions you can enable through the parameters may result in no data being returned. For example, if you try to filter by an umpire name that does not exist in the data for the specified date range, a warning will be printed and all umpires will be returned instead. In other cases, this may not be caught and an empty DataFrame will be returned. Please ensure that your filters are valid for the date range you are querying. I recommend starting with a broader query and then narrowing down your filters as needed.
 2. Please refer to the [Umpire Scorecard glossary](https://umpscorecards.com/page/info/glossary) provided by Umpire Scorecards for definitions of the columns in the returned DataFrame. There will be some extra columns that are not in the glossary, as they aren't available publicly on the website rather they are present in the API response. These columns are left in because they do have some value in understanding the data.
+3. This package uses the `polars` library for data manipulation. If you wish to convert the returned DataFrame to a pandas DataFrame, you can use the `.to_pandas()` method on the returned DataFrame to convert it.
