@@ -17,6 +17,7 @@ from pybaseballstats.consts.statcast_consts import (
 )
 
 
+# region statcast_single_game helpers
 @contextmanager
 def get_driver():
     """Provides a WebDriver instance that automatically quits on exit."""
@@ -34,6 +35,10 @@ def get_driver():
         driver.quit()  # Ensures WebDriver is always closed
 
 
+# endregion statcast_single_game helpers
+
+
+# region statcast_date_range helpers
 async def _fetch_data(session, url, retries=3):
     for attempt in range(retries):
         try:
@@ -117,30 +122,8 @@ async def _fetch_all_data(urls, date_range_total_days):
         return valid_results
 
 
-async def _statcast_date_range_helper(
-    start_date: str,
-    end_date: str,
-    return_pandas: bool = False,
-) -> pl.DataFrame | pd.DataFrame:
-    if start_date is None or end_date is None:
-        raise ValueError("start_date and end_date must be provided")
-    start_dt, end_dt = _handle_dates(start_date, end_date)
-    print(f"Pulling data for date range: {start_dt} to {end_dt}.")
-    print("Splitting date range into smaller chunks.")
-    date_ranges = list(_create_date_ranges(start_dt, end_dt, step=3))
-    assert len(date_ranges) > 0, "No date ranges generated. Check your input dates."
+def _load_all_data(responses):
     data_list = []
-
-    urls = []
-    for start_dt, end_dt in date_ranges:
-        urls.append(
-            STATCAST_DATE_RANGE_URL.format(
-                start_date=start_dt,
-                end_date=end_dt,
-            )
-        )
-    date_range_total_days = (end_dt - start_dt).days
-    responses = await _fetch_all_data(urls, date_range_total_days)
     schema = None
     with Progress(
         SpinnerColumn(),
@@ -164,6 +147,33 @@ async def _statcast_date_range_helper(
                 continue
             finally:
                 progress.update(process_task, advance=1)
+    return data_list
+
+
+async def _statcast_date_range_helper(
+    start_date: str,
+    end_date: str,
+    return_pandas: bool = False,
+) -> pl.DataFrame | pd.DataFrame:
+    if start_date is None or end_date is None:
+        raise ValueError("start_date and end_date must be provided")
+    start_dt, end_dt = _handle_dates(start_date, end_date)
+    print(f"Pulling data for date range: {start_dt} to {end_dt}.")
+    print("Splitting date range into smaller chunks.")
+    date_ranges = list(_create_date_ranges(start_dt, end_dt, step=3))
+    assert len(date_ranges) > 0, "No date ranges generated. Check your input dates."
+
+    urls = []
+    for start_dt, end_dt in date_ranges:
+        urls.append(
+            STATCAST_DATE_RANGE_URL.format(
+                start_date=start_dt,
+                end_date=end_dt,
+            )
+        )
+    date_range_total_days = (end_dt - start_dt).days
+    responses = await _fetch_all_data(urls, date_range_total_days)
+    data_list = _load_all_data(responses)
     if not data_list:
         print("No data was successfully retrieved.")
         return pl.LazyFrame() if not return_pandas else pd.DataFrame()
@@ -177,7 +187,7 @@ async def _statcast_date_range_helper(
         return pl.LazyFrame() if not return_pandas else pd.DataFrame()
 
 
-def _handle_dates(start_dt: str, end_dt: str) -> Tuple[date, date]:
+def _handle_dates(start_date_str: str, end_date_str: str) -> Tuple[date, date]:
     """
     Helper function to handle date inputs.
 
@@ -189,19 +199,16 @@ def _handle_dates(start_dt: str, end_dt: str) -> Tuple[date, date]:
     A tuple of datetime.date objects for the start and end dates.
     """
     try:
-        start_dt_date = dateparser.parse(start_dt).date()
-        end_dt_date = dateparser.parse(end_dt).date()
-    except ValueError:
-        raise ValueError("Invalid date format. Please use 'YYYY-MM-DD'.")
-    if start_dt_date > end_dt_date:
-        raise ValueError("start_dt must be before end_")
-    return start_dt_date, end_dt_date
+        start_dt = dateparser.parse(start_date_str).date()
+        end_dt = dateparser.parse(end_date_str).date()
+    except Exception as e:
+        raise ValueError(f"Error parsing dates: {e}")
+    if start_dt > end_dt:
+        raise ValueError("Start date must be before end date.")
+    return start_dt, end_dt
 
 
 # this function comes from https://github.com/jldbc/pybaseball/blob/master/pybaseball/statcast.py
-# this function comes from https://github.com/jldbc/pybaseball/blob/master/pybaseball/statcast.py
-
-
 def _create_date_ranges(
     start: date, stop: date, step: int, verbose: bool = True
 ) -> Iterator[Tuple[date, date]]:
@@ -231,3 +238,6 @@ def _create_date_ranges(
         high = min(low + timedelta(step - 1), stop)
         yield low, high
         low += timedelta(days=step)
+
+
+# endregion statcast_date_range helpers
