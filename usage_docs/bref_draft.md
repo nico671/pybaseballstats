@@ -73,3 +73,4 @@ print(bd.draft_picks_by_franchise_year(bd.BREFTeams.ANGELS, 2020))  # will print
 
 1. Please note that some of the restrictions you can enable through the parameters may result in no data being returned.
 2. This package uses the `polars` library for data manipulation. If you wish to convert the returned DataFrame to a pandas DataFrame, you can use the `.to_pandas()` method on the returned DataFrame to convert it.
+3. All functions will automatically handle Baseball Reference's rate limiting (max of 10 requests per minute) by waiting and retrying as needed, please be patient.

@@ -45,8 +45,7 @@ BREF_DRAFT_YEAR_ROUND_URL = "https://www.baseball-reference.com/draft/index.fcgi
 TEAM_YEAR_DRAFT_URL = "https://www.baseball-reference.com/draft/index.fcgi?team_ID={team}&year_ID={year}&draft_type=junreg&query_type=franch_year&from_type_hs=0&from_type_4y=0&from_type_unk=0&from_type_jc=0"
 
 # MANAGER URLS
-MANAGERS_URL = "https://www.baseball-reference.com/leagues/majors/{year}-managers.shtml#manager_record"
-MANAGER_TENDENCY_URL = "https://www.baseball-reference.com/leagues/majors/{year}-managers.shtml#manager_tendencies"
+MANAGERS_URL = "https://www.baseball-reference.com/leagues/majors/{year}-managers.shtml"
 
 # SINGLE PLAYER URLS
 BREF_SINGLE_PLAYER_URL = (

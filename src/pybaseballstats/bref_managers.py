@@ -4,16 +4,16 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
-from pybaseballstats.consts.bref_consts import MANAGER_TENDENCY_URL, MANAGERS_URL
+from pybaseballstats.consts.bref_consts import MANAGERS_URL
 from pybaseballstats.utils.bref_utils import (
-    BREFSingleton,
+    BREFSession,
+    _extract_table,
 )
 
-bref = BREFSingleton.instance()
+session = BREFSession.instance()
+__all__ = ["managers_basic_data", "manager_tendencies_data"]
 
 
-# TODO: switch to new session management setup
-# TODO: use extract table function to reduce code duplication for both functions
 def managers_basic_data(year: int) -> pl.DataFrame:
     """Returns a DataFrame of manager data for a given year. NOTE: This function uses Selenium to scrape the data, so it may be slow.
 
@@ -34,7 +34,7 @@ def managers_basic_data(year: int) -> pl.DataFrame:
         raise TypeError("Year must be an integer")
     if year < 1871:
         raise ValueError("Year must be greater than 1871")
-    with bref.get_driver() as driver:
+    with session.get_driver() as driver:
         try:
             driver.get(MANAGERS_URL.format(year=year))
             wait = WebDriverWait(driver, 15)
@@ -47,26 +47,9 @@ def managers_basic_data(year: int) -> pl.DataFrame:
             print(f"Error fetching data: {e}")
             return None
     table = soup.find("table", {"id": "manager_record"})
-
-    thead = soup.find_all("thead")[0]
-    thead_rows = thead.find_all("tr")
-    headers = []
-    row = thead_rows[0]
-    for th in row.find_all("th"):
-        headers.append(th.attrs["data-stat"])
-    headers.remove("ranker")
-
-    tbody = table.find_all("tbody")[0]
-    row_data = {}
-
-    for h in headers:
-        row_data[h] = []
-    body_rows = tbody.find_all("tr")
-    for tr in body_rows:
-        for td in tr.find_all("td"):
-            row_data[td.attrs["data-stat"]].append(td.get_text(strip=True))
-    df = pl.DataFrame(row_data)
+    df = pl.DataFrame(_extract_table(table))
     df = df.select(pl.all().replace("", "0"))
+    df = df.drop("ranker")
     df = df.with_columns(
         [
             pl.col("mgr_replay_success_rate")
@@ -114,8 +97,8 @@ def manager_tendencies_data(year: int) -> pl.DataFrame:
     if year < 1871:
         raise ValueError("Year must be greater than 1871")
 
-    with bref.get_driver() as driver:
-        driver.get(MANAGER_TENDENCY_URL.format(year=year))
+    with session.get_driver() as driver:
+        driver.get(MANAGERS_URL.format(year=year))
         wait = WebDriverWait(driver, 15)
         draft_table = wait.until(
             EC.presence_of_element_located((By.CSS_SELECTOR, "#manager_tendencies"))
@@ -123,26 +106,9 @@ def manager_tendencies_data(year: int) -> pl.DataFrame:
 
         soup = BeautifulSoup(draft_table.get_attribute("outerHTML"), "html.parser")
     table = soup.find("table", {"id": "manager_tendencies"})
-    thead = soup.find_all("thead")[0]
-
-    thead_rows = thead.find_all("tr")
-    thead_rows = thead_rows[1]
-    headers = []
-    for th in thead_rows.find_all("th"):
-        headers.append(th.attrs["data-stat"])
-    headers.remove("ranker")
-    headers = list(set(headers))
-    tbody = table.find_all("tbody")[0]
-    row_data = {}
-
-    body_rows = tbody.find_all("tr")
-    for tr in body_rows:
-        for td in tr.find_all("td"):
-            if td.attrs["data-stat"] not in row_data:
-                row_data[td.attrs["data-stat"]] = []
-            row_data[td.attrs["data-stat"]].append(td.get_text(strip=True))
-    df = pl.DataFrame(row_data)
+    df = pl.DataFrame(_extract_table(table))
     df = df.select(pl.all().str.replace("", "0").str.replace("%", ""))
+    df = df.drop("ranker")
     df = df.with_columns(
         pl.col(
             [
