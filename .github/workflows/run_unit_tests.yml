@@ -8,15 +8,43 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
+
       - name: Install uv
         uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
+
       - name: Set up Python
         run: uv python install
+
       - name: Install dependencies
         run: uv sync --locked --all-extras --dev
+
       - name: Run tests
         run: uv run coverage run --source=src/pybaseballstats -m pytest tests/
+
+      - name: Generate coverage report
+        run: uv run coverage json -o coverage.json
+
       - name: Report coverage
         run: uv run coverage report -m
+
+      # Generate the badge (only on main branch)
+      - name: Generate coverage badge
+        if: github.ref == 'refs/heads/main'
+        uses: jaywcjlove/coverage-badges-cli@main
+        with:
+          output: ./badges/coverage.svg
+          source: ./coverage.json
+
+      # Commit and push the badge (only on main branch)
+      - name: Commit coverage badge
+        if: github.ref == 'refs/heads/main' # Only run on main branch
+        run: |
+          git config --local user.email "actions@github.com"
+          git config --local user.name "github-actions"
+          git add badges/coverage.svg
+          git diff --cached --quiet || git commit -m "Update coverage badge [skip ci]"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
