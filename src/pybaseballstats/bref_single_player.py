@@ -9,11 +9,11 @@ from pybaseballstats.consts.bref_consts import (
     BREF_SINGLE_PLAYER_URL,
 )
 from pybaseballstats.utils.bref_utils import (
-    BREFSingleton,
+    BREFSession,
     _extract_table,
 )
 
-bref = BREFSingleton.instance()
+session = BREFSession.instance()
 
 
 def single_player_standard_batting(player_code: str) -> pl.DataFrame:
@@ -26,7 +26,7 @@ def single_player_standard_batting(player_code: str) -> pl.DataFrame:
         pl.DataFrame: A Polars dataframe containing the player's standard batting statistics.
     """
     last_name_initial = player_code[0].lower()
-    with bref.get_driver() as driver:
+    with session.get_driver() as driver:
         driver.get(
             BREF_SINGLE_PLAYER_URL.format(
                 initial=last_name_initial, player_code=player_code
@@ -103,7 +103,7 @@ def single_player_value_batting(player_code: str) -> pl.DataFrame:
         pl.DataFrame: A Polars dataframe containing the player's value batting statistics.
     """
     last_name_initial = player_code[0].lower()
-    with bref.get_driver() as driver:
+    with session.get_driver() as driver:
         driver.get(
             BREF_SINGLE_PLAYER_URL.format(
                 initial=last_name_initial, player_code=player_code
@@ -169,7 +169,7 @@ def single_player_advanced_batting(player_code: str) -> pl.DataFrame:
         pl.DataFrame: A Polars dataframe containing the player's advanced batting statistics.
     """
     last_name_initial = player_code[0].lower()
-    with bref.get_driver() as driver:
+    with session.get_driver() as driver:
         driver.get(
             BREF_SINGLE_PLAYER_URL.format(
                 initial=last_name_initial, player_code=player_code
@@ -245,7 +245,7 @@ def single_player_standard_fielding(player_code: str) -> pl.DataFrame:
         pl.DataFrame: A Polars dataframe containing the player's standard fielding statistics.
     """
     last_name_initial = player_code[0].lower()
-    with bref.get_driver() as driver:
+    with session.get_driver() as driver:
         driver.get(
             BREF_SINGLE_PLAYER_URL.format(
                 initial=last_name_initial, player_code=player_code
@@ -312,7 +312,7 @@ def single_player_sabermetric_fielding(player_code: str) -> pl.DataFrame:
         pl.DataFrame: A Polars dataframe containing the player's advanced fielding statistics.
     """
     last_name_initial = player_code[0].lower()
-    with bref.get_driver() as driver:
+    with session.get_driver() as driver:
         driver.get(
             BREF_SINGLE_PLAYER_SABERMETRIC_FIELDING_URL.format(
                 initial=last_name_initial, player_code=player_code
@@ -348,7 +348,7 @@ def single_player_salaries(player_code: str) -> pl.DataFrame:
         pl.DataFrame: A Polars DataFrame containing the player's salary history.
     """
     last_name_initial = player_code[0].lower()
-    with bref.get_driver() as driver:
+    with session.get_driver() as driver:
         driver.get(
             BREF_SINGLE_PLAYER_URL.format(
                 initial=last_name_initial, player_code=player_code
@@ -383,7 +383,7 @@ def single_player_standard_pitching(player_code: str) -> pl.DataFrame:
         pl.DataFrame: A Polars DataFrame containing the player's standard pitching statistics.
     """
     last_name_initial = player_code[0].lower()
-    with bref.get_driver() as driver:
+    with session.get_driver() as driver:
         driver.get(
             BREF_SINGLE_PLAYER_URL.format(
                 initial=last_name_initial, player_code=player_code
@@ -460,7 +460,7 @@ def single_player_value_pitching(player_code: str) -> pl.DataFrame:
         pl.DataFrame : A Polars DataFrame containing the player's value pitching statistics.
     """
     last_name_initial = player_code[0].lower()
-    with bref.get_driver() as driver:
+    with session.get_driver() as driver:
         driver.get(
             BREF_SINGLE_PLAYER_URL.format(
                 initial=last_name_initial, player_code=player_code
@@ -516,7 +516,7 @@ def single_player_advanced_pitching(player_code: str) -> pl.DataFrame:
         pl.DataFrame: A polars DataFrame containing the player's advanced pitching statistics.
     """
     last_name_initial = player_code[0].lower()
-    with bref.get_driver() as driver:
+    with session.get_driver() as driver:
         driver.get(
             BREF_SINGLE_PLAYER_URL.format(
                 initial=last_name_initial, player_code=player_code
