@@ -1,14 +1,18 @@
 name: Run Unit Tests
 
 on: [push, pull_request]
+
 permissions:
   contents: write
+
 jobs:
   test:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # needed to push branches
 
       - name: Install uv
         uses: astral-sh/setup-uv@v6
@@ -41,13 +45,19 @@ jobs:
           output: ./badges/coverage.svg
           source: ./coverage-summary.json
 
-      - name: Commit coverage badge
+      - name: Push coverage badge to dedicated branch
         if: github.ref == 'refs/heads/main'
         run: |
           git config --local user.email "actions@github.com"
           git config --local user.name "github-actions"
+
+          # Create coverage-badge branch if it doesn't exist
+          git fetch origin coverage-badge || true
+          git checkout -B coverage-badge
+
           git add badges/coverage.svg
           git diff --cached --quiet || git commit -m "Update coverage badge [skip ci]"
-          git push
+
+          git push -u origin coverage-badge --force
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
