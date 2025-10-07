@@ -1,7 +1,6 @@
 from datetime import datetime
 from typing import Optional
 
-import pandas as pd
 import polars as pl
 import requests
 from unidecode import unidecode
@@ -12,9 +11,9 @@ from pybaseballstats.consts.retrosheet_consts import (
     RETROSHEET_KEEP_COLS,
 )
 
+__all__ = ["player_lookup", "ejections_data"]
 
-# TODO: usage docs
-# TODO: docstrings for all functions
+
 def _get_people_data() -> pl.DataFrame:
     df_list = []
     for i in range(0, 10):
@@ -46,8 +45,21 @@ def player_lookup(
     first_name: str = None,
     last_name: str = None,
     strip_accents: bool = False,
-    return_pandas: bool = False,
-) -> pl.DataFrame | pd.DataFrame:
+) -> pl.DataFrame:
+    """A function to look up players by first and/or last name from Retrosheet's player registry.
+
+    Args:
+        first_name (str, optional): The first name of the player. Defaults to None.
+        last_name (str, optional): The last name of the player. Defaults to None.
+        strip_accents (bool, optional): Whether to strip accents from the names. Defaults to False.
+        return_pandas (bool, optional): Whether to return a pandas DataFrame instead of a polars DataFrame. Defaults to False.
+
+    Raises:
+        ValueError: If both first_name and last_name are None.
+
+    Returns:
+        pl.DataFrame: A Polars DataFrame containing the player information.
+    """
     if not first_name and not last_name:
         raise ValueError("At least one of first_name or last_name must be provided")
     full_df = _get_people_data()
@@ -86,21 +98,42 @@ def player_lookup(
         df = full_df.filter(pl.col("name_last") == last_name).select(
             RETROSHEET_KEEP_COLS
         )
-    return df if not return_pandas else df.to_pandas()
+    return df
 
 
-def retrosheet_ejections_data(
+def ejections_data(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     ejectee_name: Optional[str] = None,
     umpire_name: Optional[str] = None,
     inning: Optional[int] = None,
     ejectee_job: Optional[str] = None,
-    return_pandas: bool = False,
-) -> pl.DataFrame | pd.DataFrame:
+) -> pl.DataFrame:
+    """Returns a DataFrame of MLB ejections from Retrosheet's ejections data.
+
+    Args:
+        start_date (Optional[str], optional): The start date for the ejections data. Defaults to None.
+        end_date (Optional[str], optional): The end date for the ejections data. Defaults to None.
+        ejectee_name (Optional[str], optional): The name of the ejectee. Defaults to None.
+        umpire_name (Optional[str], optional): The name of the ejecting umpire. Defaults to None.
+        inning (Optional[int], optional): The inning number. Defaults to None.
+        ejectee_job (Optional[str], optional): The job of the ejectee. Defaults to None.
+
+    Raises:
+        ValueError: If start_date is not in 'MM/DD/YYYY' format.
+        ValueError: If end_date is not in 'MM/DD/YYYY' format.
+        ValueError: If inning is not between -1 and 20.
+
+    Returns:
+        pl.DataFrame: A DataFrame containing the ejections data.
+    """
     df = pl.read_csv(
         requests.get(EJECTIONS_URL).content,
+        infer_schema_length=None,
+        truncate_ragged_lines=True,
     )
+    # for col in df.columns:
+    #     print(f"Column: {col}, Type: {df[col].dtype}")
     df = df.with_columns(
         pl.col("DATE").str.to_date("%m/%d/%Y").alias("DATE"),
     )
@@ -142,4 +175,4 @@ def retrosheet_ejections_data(
         if df.shape[0] == 0:
             print("Warning: No ejections found for the given ejectee job.")
             return df
-    return df if not return_pandas else df.to_pandas()
+    return df
