@@ -27,20 +27,22 @@ jobs:
       - name: Generate coverage report
         run: uv run coverage json -o coverage.json
 
-      - name: Report coverage
-        run: uv run coverage report -m
+      - name: Convert coverage.json to badge-compatible format
+        if: github.ref == 'refs/heads/main'
+        run: |
+          percent=$(jq '.totals.percent_covered' coverage.json)
+          mkdir -p badges
+          echo "{\"total\":{\"lines\":{\"pct\":$percent}}}" > coverage-summary.json
 
-      # Generate the badge (only on main branch)
       - name: Generate coverage badge
-        # if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main'
         uses: jaywcjlove/coverage-badges-cli@main
         with:
           output: ./badges/coverage.svg
-          source: ./coverage.json
+          source: ./coverage-summary.json
 
-      # Commit and push the badge (only on main branch)
       - name: Commit coverage badge
-        # if: github.ref == 'refs/heads/main' # Only run on main branch
+        if: github.ref == 'refs/heads/main'
         run: |
           git config --local user.email "actions@github.com"
           git config --local user.name "github-actions"
