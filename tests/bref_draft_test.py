@@ -25,6 +25,8 @@ def test_franchise_draft_order():
         bd.franchise_draft_order(team="XXX", year=2023)
     with pytest.raises(ValueError):
         bd.franchise_draft_order(team=bd.BREFTeams.ANGELS, year=1964)
+    with pytest.raises(ValueError):
+        bd.franchise_draft_order(team=None, year=2025)
     df = bd.franchise_draft_order(team=bd.BREFTeams.ANGELS, year=2023)
     assert df.shape[0] == 19
     assert df.shape[1] == 23
