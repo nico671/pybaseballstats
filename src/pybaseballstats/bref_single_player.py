@@ -1,4 +1,3 @@
-import pandas as pd
 import polars as pl
 from bs4 import BeautifulSoup
 from selenium.webdriver.common.by import By
@@ -17,17 +16,14 @@ from pybaseballstats.utils.bref_utils import (
 bref = BREFSingleton.instance()
 
 
-def single_player_standard_batting(
-    player_code: str, return_pandas: bool = False
-) -> pl.DataFrame | pd.DataFrame:
+def single_player_standard_batting(player_code: str) -> pl.DataFrame:
     """Returns a DataFrame of a player's standard batting statistics.
 
     Args:
         player_code (str): The player's code from Baseball Reference. This can be found using the pybaseballstats.retrosheet.player_lookup function.
-        return_pandas (bool, optional): If True, returns a pandas DataFrame. If False, returns a polars DataFrame. Defaults to False.
 
     Returns:
-        pl.DataFrame | pd.DataFrame: Either a polars DataFrame or a pandas DataFrame containing the player's standard batting statistics.
+        pl.DataFrame: A Polars dataframe containing the player's standard batting statistics.
     """
     last_name_initial = player_code[0].lower()
     with bref.get_driver() as driver:
@@ -93,21 +89,18 @@ def single_player_standard_batting(
     standard_stats_df = standard_stats_df.with_columns(
         pl.lit(player_code).alias("key_bbref")
     )
-    return standard_stats_df if not return_pandas else standard_stats_df.to_pandas()
+    return standard_stats_df
 
 
-def single_player_value_batting(
-    player_code: str, return_pandas: bool = False
-) -> pl.DataFrame | pd.DataFrame:
+def single_player_value_batting(player_code: str) -> pl.DataFrame:
     """Returns a DataFrame of a player's value batting statistics.
 
     Args:
         player_code (str): The player's code from Baseball Reference. This can be found using the pybaseballstats.retrosheet.player_lookup function.
-        return_pandas (bool, optional): If True, returns a pandas DataFrame. If False, returns a polars DataFrame. Defaults to False.
 
 
     Returns:
-        pl.DataFrame | pd.DataFrame: Either a polars DataFrame or a pandas DataFrame containing the player's value batting statistics.
+        pl.DataFrame: A Polars dataframe containing the player's value batting statistics.
     """
     last_name_initial = player_code[0].lower()
     with bref.get_driver() as driver:
@@ -163,22 +156,17 @@ def single_player_value_batting(
     value_batting_df = value_batting_df.with_columns(
         pl.lit(player_code).alias("key_bbref")
     )
-    return value_batting_df if not return_pandas else value_batting_df.to_pandas()
+    return value_batting_df
 
 
-def single_player_advanced_batting(
-    player_code: str, return_pandas: bool = False
-) -> pl.DataFrame | pd.DataFrame:
+def single_player_advanced_batting(player_code: str) -> pl.DataFrame:
     """Returns a DataFrame of a player's advanced batting statistics.
 
     Args:
         player_code (str): The player's code from Baseball Reference. This can be found using the pybaseballstats.retrosheet.player_lookup function.
-        return_pandas (bool, optional): If True, returns a pandas DataFrame. If False, returns a polars DataFrame. Defaults to False.
-
 
     Returns:
-        pl.DataFrame | pd.DataFrame: Either a polars DataFrame or a pandas DataFrame containing the player's advanced batting statistics.
-        This includes statistics such as stolen base percentage, extra bases taken percentage, run scoring percentage, and more.
+        pl.DataFrame: A Polars dataframe containing the player's advanced batting statistics.
     """
     last_name_initial = player_code[0].lower()
     with bref.get_driver() as driver:
@@ -244,22 +232,17 @@ def single_player_advanced_batting(
     advanced_batting_df = advanced_batting_df.with_columns(
         pl.lit(player_code).alias("key_bbref")
     )
-    return advanced_batting_df if not return_pandas else advanced_batting_df.to_pandas()
+    return advanced_batting_df
 
 
-def single_player_standard_fielding(
-    player_code: str, return_pandas: bool = False
-) -> pl.DataFrame | pd.DataFrame:
+def single_player_standard_fielding(player_code: str) -> pl.DataFrame:
     """Returns a DataFrame of a player's standard fielding statistics.
 
     Args:
         player_code (str): The player's code from Baseball Reference. This can be found using the pybaseballstats.retrosheet.player_lookup function.
-        return_pandas (bool, optional): If True, returns a pandas DataFrame. If False, returns a polars DataFrame. Defaults to False.
-
 
     Returns:
-        pl.DataFrame | pd.DataFrame: Either a polars DataFrame or a pandas DataFrame containing the player's standard fielding statistics.
-        This includes statistics such as fielding percentage, innings played, and total chances.
+        pl.DataFrame: A Polars dataframe containing the player's standard fielding statistics.
     """
     last_name_initial = player_code[0].lower()
     with bref.get_driver() as driver:
@@ -317,21 +300,16 @@ def single_player_standard_fielding(
     standard_fielding_df = standard_fielding_df.with_columns(
         pl.lit(player_code).alias("key_bbref")
     )
-    return (
-        standard_fielding_df if not return_pandas else standard_fielding_df.to_pandas()
-    )
+    return standard_fielding_df
 
 
-def single_player_sabermetric_fielding(
-    player_code: str, return_pandas: bool = False
-) -> pl.DataFrame | pd.DataFrame:
+def single_player_sabermetric_fielding(player_code: str) -> pl.DataFrame:
     """Returns a DataFrame of a player's advanced fielding statistics.
 
     Args:
         player_code (str): The player's code from Baseball Reference. This can be found using the pybaseballstats.retrosheet.player_lookup function.
-        return_pandas (bool, optional): If True, returns a pandas DataFrame. If False, returns a polars DataFrame. Defaults to False.
     Returns:
-        pl.DataFrame | pd.DataFrame: Either a polars DataFrame or a pandas DataFrame containing the player's advanced fielding statistics.
+        pl.DataFrame: A Polars dataframe containing the player's advanced fielding statistics.
     """
     last_name_initial = player_code[0].lower()
     with bref.get_driver() as driver:
@@ -357,25 +335,17 @@ def single_player_sabermetric_fielding(
     sabermetric_fielding_df = sabermetric_fielding_df.with_columns(
         pl.lit(player_code).alias("key_bbref")
     )
-    return (
-        sabermetric_fielding_df
-        if not return_pandas
-        else sabermetric_fielding_df.to_pandas()
-    )
+    return sabermetric_fielding_df
 
 
-def single_player_salaries(
-    player_code: str, return_pandas: bool = False
-) -> pl.DataFrame | pd.DataFrame:
+def single_player_salaries(player_code: str) -> pl.DataFrame:
     """Returns a DataFrame of a player's salary history.
 
     Args:
         player_code (str): The player's code from Baseball Reference. This can be found using the pybaseballstats.retrosheet.player_lookup function.
-        return_pandas (bool, optional): If True, returns a pandas DataFrame. If False, returns a polars DataFrame. Defaults to False.
 
     Returns:
-        pl.DataFrame | pd.DataFrame: A DataFrame containing the player's salary history.
-        This includes the year, team, league, and salary.
+        pl.DataFrame: A Polars DataFrame containing the player's salary history.
     """
     last_name_initial = player_code[0].lower()
     with bref.get_driver() as driver:
@@ -400,12 +370,18 @@ def single_player_salaries(
     )
 
     salaries_df = salaries_df.rename({"Salary": "salary ($)"})
-    return salaries_df if not return_pandas else salaries_df.to_pandas()
+    return salaries_df
 
 
-def single_player_standard_pitching(
-    player_code: str, return_pandas: bool = False
-) -> pl.DataFrame | pd.DataFrame:
+def single_player_standard_pitching(player_code: str) -> pl.DataFrame:
+    """Returns a DataFrame of a player's standard pitching statistics.
+
+    Args:
+        player_code (str): The player's code from Baseball Reference. This can be found using the pybaseballstats.retrosheet.player_lookup function.
+
+    Returns:
+        pl.DataFrame: A Polars DataFrame containing the player's standard pitching statistics.
+    """
     last_name_initial = player_code[0].lower()
     with bref.get_driver() as driver:
         driver.get(
@@ -413,20 +389,14 @@ def single_player_standard_pitching(
                 initial=last_name_initial, player_code=player_code
             )
         )
-        with bref.get_driver() as driver:
-            driver.get(
-                BREF_SINGLE_PLAYER_URL.format(
-                    initial=last_name_initial, player_code=player_code
-                )
-            )
-            wait = WebDriverWait(driver, 15)
-            standard_pitching_table_wrapper = wait.until(
-                EC.presence_of_element_located((By.ID, "div_players_standard_pitching"))
-            )
-            soup = BeautifulSoup(
-                standard_pitching_table_wrapper.get_attribute("outerHTML"),
-                "html.parser",
-            )
+        wait = WebDriverWait(driver, 15)
+        standard_pitching_table_wrapper = wait.until(
+            EC.presence_of_element_located((By.ID, "div_players_standard_pitching"))
+        )
+        soup = BeautifulSoup(
+            standard_pitching_table_wrapper.get_attribute("outerHTML"),
+            "html.parser",
+        )
     standard_pitching_table = soup.find("table")
     standard_pitching_df = pl.DataFrame(_extract_table(standard_pitching_table))
     standard_pitching_df = standard_pitching_df.select(
@@ -477,22 +447,17 @@ def single_player_standard_pitching(
             ]
         ).cast(pl.Float32),
     )
-    return (
-        standard_pitching_df if not return_pandas else standard_pitching_df.to_pandas()
-    )
+    return standard_pitching_df
 
 
-def single_player_value_pitching(
-    player_code: str, return_pandas: bool = False
-) -> pl.DataFrame | pd.DataFrame:
+def single_player_value_pitching(player_code: str) -> pl.DataFrame:
     """Returns a DataFrame of a player's value pitching statistics.
 
     Args:
         player_code (str): The player's code from Baseball Reference. This can be found using the pybaseballstats.retrosheet.player_lookup function.
-        return_pandas (bool, optional): If True, returns a pandas DataFrame. If False, returns a polars DataFrame. Defaults to False.
 
     Returns:
-        pl.DataFrame | pd.DataFrame: Either a polars DataFrame or a pandas DataFrame containing the player's value pitching statistics.
+        pl.DataFrame : A Polars DataFrame containing the player's value pitching statistics.
     """
     last_name_initial = player_code[0].lower()
     with bref.get_driver() as driver:
@@ -536,22 +501,19 @@ def single_player_value_pitching(
             ]
         ).cast(pl.Float32),
     )
-    return value_pitching_df if not return_pandas else value_pitching_df.to_pandas()
+    return value_pitching_df
 
 
-def single_player_advanced_pitching(
-    player_code: str, return_pandas: bool = False
-) -> pl.DataFrame | pd.DataFrame:
+def single_player_advanced_pitching(player_code: str) -> pl.DataFrame:
     """Returns a DataFrame of a player's advanced pitching statistics.
     This includes statistics such as batting average on balls in play, home run percentage, strikeout percentage, and more.
     The statistics are extracted from the player's Baseball Reference page.
 
     Args:
         player_code (str): The player's code from Baseball Reference. This can be found using the pybaseballstats.retrosheet.player_lookup function.
-        return_pandas (bool, optional): If True, returns a pandas DataFrame. If False, returns a polars DataFrame. Defaults to False.
 
     Returns:
-        pl.DataFrame | pd.DataFrame: Either a polars DataFrame or a pandas DataFrame containing the player's advanced pitching statistics. If return_pandas is True, a pandas DataFrame is returned, if False, a polars DataFrame is returned.
+        pl.DataFrame: A polars DataFrame containing the player's advanced pitching statistics.
     """
     last_name_initial = player_code[0].lower()
     with bref.get_driver() as driver:
@@ -609,6 +571,4 @@ def single_player_advanced_pitching(
             ]
         ).cast(pl.Float32),
     )
-    return (
-        advanced_pitching_df if not return_pandas else advanced_pitching_df.to_pandas()
-    )
+    return advanced_pitching_df
