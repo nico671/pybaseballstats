@@ -1,4 +1,5 @@
 import polars as pl
+import pytest
 
 import pybaseballstats.umpire_scorecards as us
 
@@ -6,6 +7,43 @@ import pybaseballstats.umpire_scorecards as us
 
 
 def test_game_data_general():
+    with pytest.raises(ValueError):
+        us.game_data(start_date=None, end_date="2023-07-07")
+    with pytest.raises(ValueError):
+        us.game_data(start_date="2023-07-01", end_date=None)
+    with pytest.raises(ValueError):
+        us.game_data(start_date="2023-07-07", end_date="2023-07-01")
+    with pytest.raises(ValueError):
+        us.game_data(start_date="2023-07-01", end_date="2023-07-07", game_type="X")
+    with pytest.raises(ValueError):
+        us.game_data(
+            start_date="2023-07-01",
+            end_date="2023-07-07",
+            focus_team=us.UmpireScorecardTeams.ANGELS,
+            focus_team_home_away="x",
+        )
+    with pytest.raises(AssertionError):
+        us.game_data(
+            start_date="2023-07-01",
+            end_date="2023-07-07",
+            focus_team=None,
+            focus_team_home_away="h",
+        )
+    with pytest.raises(AssertionError):
+        us.game_data(
+            start_date="2023-07-01",
+            end_date="2023-07-07",
+            focus_team=us.UmpireScorecardTeams.ANGELS,
+            opponent_team=None,
+        )
+    with pytest.raises(ValueError):
+        us.game_data(
+            start_date="2023-07-01",
+            end_date="2023-07-07",
+            focus_team=us.UmpireScorecardTeams.ANGELS,
+            focus_team_home_away="h",
+            opponent_team=us.UmpireScorecardTeams.ANGELS,
+        )
     # general test
     df = us.game_data(start_date="2023-07-01", end_date="2023-07-07")
     assert df.shape[0] == 98

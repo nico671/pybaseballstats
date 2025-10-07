@@ -11,7 +11,7 @@ from pybaseballstats.utils.bref_utils import (
 )
 
 session = BREFSession.instance()
-__all__ = ["managers_basic_data", "manager_tendencies_data"]
+__all__ = ["managers_basic_data", "managers_tendencies_data"]
 
 
 def managers_basic_data(year: int) -> pl.DataFrame:
@@ -75,7 +75,7 @@ def managers_basic_data(year: int) -> pl.DataFrame:
     return df
 
 
-def manager_tendencies_data(year: int) -> pl.DataFrame:
+def managers_tendencies_data(year: int) -> pl.DataFrame:
     """Returns a DataFrame of manager tendencies data for a given year. NOTE: This function uses Selenium to scrape the data, so it may be slow.
 
     Args:
