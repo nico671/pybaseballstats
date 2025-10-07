@@ -13,7 +13,7 @@ from pybaseballstats.utils.bref_utils import (
     _extract_table,
 )
 
-session = BREFSession.instance()
+session = BREFSession.instance()  # type: ignore[attr-defined]
 
 
 def single_player_standard_batting(player_code: str) -> pl.DataFrame:
@@ -36,12 +36,16 @@ def single_player_standard_batting(player_code: str) -> pl.DataFrame:
         standard_stats_table = wait.until(
             EC.presence_of_element_located((By.CSS_SELECTOR, "#content"))
         )
-        soup = BeautifulSoup(
-            standard_stats_table.get_attribute("outerHTML"), "html.parser"
-        )
-    standard_stats_table = soup.find("div", {"id": "all_players_standard_batting"})
-    standard_stats_table = standard_stats_table.find("table")
-    standard_stats_df = pl.DataFrame(_extract_table(standard_stats_table))
+        html = standard_stats_table.get_attribute("outerHTML")
+        assert html is not None, "Failed to retrieve HTML content"
+        soup = BeautifulSoup(html, "html.parser")
+    assert soup is not None, "Failed to retrieve page content"
+    standard_stats_table_div = soup.find("div", {"id": "all_players_standard_batting"})
+    assert standard_stats_table_div is not None, (
+        "Failed to retrieve standard stats table"
+    )
+    standard_stats_table_actual = standard_stats_table_div.find("table")
+    standard_stats_df = pl.DataFrame(_extract_table(standard_stats_table_actual))
     standard_stats_df = standard_stats_df.with_columns(
         pl.col(
             [
@@ -113,10 +117,11 @@ def single_player_value_batting(player_code: str) -> pl.DataFrame:
         standard_stats_table = wait.until(
             EC.presence_of_element_located((By.CSS_SELECTOR, "#content"))
         )
-        soup = BeautifulSoup(
-            standard_stats_table.get_attribute("outerHTML"), "html.parser"
-        )
+        html = standard_stats_table.get_attribute("outerHTML")
+        assert html is not None, "Failed to retrieve HTML content"
+        soup = BeautifulSoup(html, "html.parser")
     value_batting_table = soup.find("div", {"id": "all_players_value_batting"})
+    assert value_batting_table is not None, "Failed to retrieve value batting table"
     value_batting_table = value_batting_table.find("table")
     value_batting_df = pl.DataFrame(_extract_table(value_batting_table))
     value_batting_df = value_batting_df.select(
@@ -179,11 +184,13 @@ def single_player_advanced_batting(player_code: str) -> pl.DataFrame:
         standard_stats_table = wait.until(
             EC.presence_of_element_located((By.CSS_SELECTOR, "#content"))
         )
-        soup = BeautifulSoup(
-            standard_stats_table.get_attribute("outerHTML"), "html.parser"
-        )
+        html = standard_stats_table.get_attribute("outerHTML")
+        assert html is not None, "Failed to retrieve HTML content"
+        soup = BeautifulSoup(html, "html.parser")
     advanced_batting_table = soup.find("div", {"id": "all_players_advanced_batting"})
-
+    assert advanced_batting_table is not None, (
+        "Failed to retrieve advanced batting table"
+    )
     advanced_batting_table = advanced_batting_table.find("table")
     advanced_batting_df = pl.DataFrame(_extract_table(advanced_batting_table))
     advanced_batting_df = advanced_batting_df.select(
@@ -255,10 +262,11 @@ def single_player_standard_fielding(player_code: str) -> pl.DataFrame:
         standard_stats_table = wait.until(
             EC.presence_of_element_located((By.CSS_SELECTOR, "#content"))
         )
-        soup = BeautifulSoup(
-            standard_stats_table.get_attribute("outerHTML"), "html.parser"
-        )
+        html = standard_stats_table.get_attribute("outerHTML")
+        assert html is not None, "Failed to retrieve HTML content"
+        soup = BeautifulSoup(html, "html.parser")
     table_wrapper = soup.find("div", {"id": "div_players_standard_fielding"})
+    assert table_wrapper is not None, "Failed to retrieve standard fielding table"
     table = table_wrapper.find("table")
     standard_fielding_df = pl.DataFrame(_extract_table(table))
     standard_fielding_df = standard_fielding_df.select(
@@ -322,10 +330,13 @@ def single_player_sabermetric_fielding(player_code: str) -> pl.DataFrame:
         standard_stats_table = wait.until(
             EC.presence_of_element_located((By.CSS_SELECTOR, "#content"))
         )
-        soup = BeautifulSoup(
-            standard_stats_table.get_attribute("outerHTML"), "html.parser"
-        )
+        html = standard_stats_table.get_attribute("outerHTML")
+        assert html is not None, "Failed to retrieve HTML content"
+        soup = BeautifulSoup(html, "html.parser")
     sabermetric_fielding_table = soup.find("div", {"id": "div_advanced_fielding"})
+    assert sabermetric_fielding_table is not None, (
+        "Failed to retrieve sabermetric fielding table"
+    )
     sabermetric_fielding_table = sabermetric_fielding_table.find("table")
     sabermetric_fielding_df = pl.DataFrame(_extract_table(sabermetric_fielding_table))
     sabermetric_fielding_df = sabermetric_fielding_df.fill_null(0)
@@ -358,9 +369,11 @@ def single_player_salaries(player_code: str) -> pl.DataFrame:
         salaries_table = wait.until(
             EC.presence_of_element_located((By.ID, "all_br-salaries"))
         )
-        soup = BeautifulSoup(salaries_table.get_attribute("outerHTML"), "html.parser")
-        salaries_table = soup.find("table")
-    salaries_df = pl.DataFrame(_extract_table(salaries_table))
+        html = salaries_table.get_attribute("outerHTML")
+        assert html is not None, "Failed to retrieve HTML content"
+        soup = BeautifulSoup(html, "html.parser")
+    salaries_table_actual = soup.find("table")
+    salaries_df = pl.DataFrame(_extract_table(salaries_table_actual))
     salaries_df = salaries_df.with_columns(
         pl.col("Salary")
         .str.replace("\\$", "")
@@ -393,10 +406,9 @@ def single_player_standard_pitching(player_code: str) -> pl.DataFrame:
         standard_pitching_table_wrapper = wait.until(
             EC.presence_of_element_located((By.ID, "div_players_standard_pitching"))
         )
-        soup = BeautifulSoup(
-            standard_pitching_table_wrapper.get_attribute("outerHTML"),
-            "html.parser",
-        )
+        html = standard_pitching_table_wrapper.get_attribute("outerHTML")
+        assert html is not None, "Failed to retrieve HTML content"
+        soup = BeautifulSoup(html, "html.parser")
     standard_pitching_table = soup.find("table")
     standard_pitching_df = pl.DataFrame(_extract_table(standard_pitching_table))
     standard_pitching_df = standard_pitching_df.select(
@@ -470,9 +482,9 @@ def single_player_value_pitching(player_code: str) -> pl.DataFrame:
         value_pitching_table_wrapper = wait.until(
             EC.presence_of_element_located((By.ID, "div_players_value_pitching"))
         )
-        soup = BeautifulSoup(
-            value_pitching_table_wrapper.get_attribute("outerHTML"), "html.parser"
-        )
+        html = value_pitching_table_wrapper.get_attribute("outerHTML")
+        assert html is not None, "Failed to retrieve HTML content"
+        soup = BeautifulSoup(html, "html.parser")
     value_pitching_table = soup.find("table")
     value_pitching_df = pl.DataFrame(_extract_table(value_pitching_table))
     value_pitching_df = value_pitching_df.select(
@@ -506,8 +518,6 @@ def single_player_value_pitching(player_code: str) -> pl.DataFrame:
 
 def single_player_advanced_pitching(player_code: str) -> pl.DataFrame:
     """Returns a DataFrame of a player's advanced pitching statistics.
-    This includes statistics such as batting average on balls in play, home run percentage, strikeout percentage, and more.
-    The statistics are extracted from the player's Baseball Reference page.
 
     Args:
         player_code (str): The player's code from Baseball Reference. This can be found using the pybaseballstats.retrosheet.player_lookup function.
@@ -526,9 +536,9 @@ def single_player_advanced_pitching(player_code: str) -> pl.DataFrame:
         advanced_pitching_table_wrapper = wait.until(
             EC.presence_of_element_located((By.ID, "div_players_advanced_pitching"))
         )
-        soup = BeautifulSoup(
-            advanced_pitching_table_wrapper.get_attribute("outerHTML"), "html.parser"
-        )
+        html = advanced_pitching_table_wrapper.get_attribute("outerHTML")
+        assert html is not None, "Failed to retrieve HTML content"
+        soup = BeautifulSoup(html, "html.parser")
     advanced_pitching_table = soup.find("table")
     advanced_pitching_df = pl.DataFrame(_extract_table(advanced_pitching_table))
 
