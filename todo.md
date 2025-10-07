@@ -3,3 +3,5 @@
 - [ ] finish bref_draft tests
 - [ ] finish bref_managers tests
 - [ ] finish bref_managers usage docs
+- [ ] finish statcast tests
+- [ ] finish statcast usage docs

@@ -2,15 +2,16 @@ import asyncio
 
 import nest_asyncio
 import polars as pl
-from consts.statcast_consts import STATCAST_DATE_RANGE_URL
-from utils.statcast_utils import (
+
+from pybaseballstats.consts.statcast_consts import STATCAST_DATE_RANGE_URL
+from pybaseballstats.utils.statcast_utils import (
     _create_date_ranges,
     _fetch_all_data,
     _handle_dates,
     _load_all_data,
 )
 
-__all__ = ["statcast_date_range_pitch_by_pitch"]
+__all__ = ["pitch_by_pitch_data"]
 
 # Apply nest_asyncio to allow nested event loops
 nest_asyncio.apply()
@@ -58,15 +59,19 @@ def pitch_by_pitch_data(
     start_date: str,
     end_date: str,
     force_collect: bool = False,
-) -> pl.LazyFrame:
-    # async def async_statcast():
-    #     return await _statcast_date_range_helper(start_date, end_date, return_pandas)
+) -> pl.LazyFrame | pl.DataFrame | None:
+    """Returns pitch-by-pitch data from Statcast for a given date range.
 
+    Args:
+        start_date (str): The start date in 'YYYY-MM-DD' format.
+        end_date (str): The end date in 'YYYY-MM-DD' format.
+        force_collect (bool, optional): Whether to force collection of the data. Defaults to False.
+
+    Returns:
+        pl.LazyFrame | pl.DataFrame | None: The pitch-by-pitch data as a Polars LazyFrame if force_collect is False, a Polars DataFrame if force_collect is True, or None if no data is found.
+    """
     return asyncio.run(
         async_statcast_date_range_pitch_by_pitch(
             start_date=start_date, end_date=end_date, force_collect=force_collect
         )
     )
-
-
-# TODO: SINGLEPLAYER function
