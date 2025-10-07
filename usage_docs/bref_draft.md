@@ -5,7 +5,7 @@ This module provides functionality to retrieve data from the [Baseball Reference
 ## Available Functions
 
 - `draft_picks_by_year_round(...)`: Fetches draft pick data for a specific year and round, with optional filters for team and position.
-- `draft_picks_by_franchise_year(...)`: Fetches draft pick data for a specific franchise and year, with optional filters for round and position.
+- `franchise_draft_order(...)`: Fetches draft pick data for a specific franchise and year, with optional filters for round and position.
 - `BREFTeams.show_options()`: Returns a list of all MLB teams that can be used as filters in other functions.
 
 ## Example Usage
@@ -66,7 +66,7 @@ print(bd.draft_picks_by_year_round(2020, 1))  # will print all draft picks for t
 import pybaseballstats.bref_draft as bd
 
 # Fetch draft picks for a specific franchise and year
-print(bd.draft_picks_by_franchise_year(bd.BREFTeams.ANGELS, 2020))  # will print all draft picks for the 2020 Angels
+print(bd.franchise_draft_order(bd.BREFTeams.ANGELS, 2020))  # will print all draft picks for the 2020 Angels
 ```
 
 ## Final Notes

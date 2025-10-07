@@ -42,8 +42,8 @@ def _get_people_data() -> pl.DataFrame:
 
 
 def player_lookup(
-    first_name: str = None,
-    last_name: str = None,
+    first_name: Optional[str] = None,
+    last_name: Optional[str] = None,
     strip_accents: bool = False,
 ) -> pl.DataFrame:
     """A function to look up players by first and/or last name from Retrosheet's player registry.
@@ -132,8 +132,6 @@ def ejections_data(
         infer_schema_length=None,
         truncate_ragged_lines=True,
     )
-    # for col in df.columns:
-    #     print(f"Column: {col}, Type: {df[col].dtype}")
     df = df.with_columns(
         pl.col("DATE").str.to_date("%m/%d/%Y").alias("DATE"),
     )

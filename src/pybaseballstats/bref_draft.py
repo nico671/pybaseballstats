@@ -8,7 +8,8 @@ from pybaseballstats.consts.bref_consts import (
 )
 from pybaseballstats.utils.bref_utils import BREFSession, _extract_table
 
-session = BREFSession.instance()
+session = BREFSession.instance()  # type: ignore[attr-defined]
+
 
 __all__ = ["BREFTeams", "draft_order_by_year_round", "franchise_draft_order"]
 

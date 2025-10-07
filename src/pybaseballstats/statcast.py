@@ -1,6 +1,6 @@
 import asyncio
 
-import nest_asyncio
+import nest_asyncio  # type: ignore[import]
 import polars as pl
 
 from pybaseballstats.consts.statcast_consts import STATCAST_DATE_RANGE_URL
@@ -21,7 +21,7 @@ async def async_statcast_date_range_pitch_by_pitch(
     start_date: str,
     end_date: str,
     force_collect: bool = False,
-) -> pl.LazyFrame:
+) -> pl.LazyFrame | pl.DataFrame | None:
     if start_date is None or end_date is None:
         raise ValueError("Both start_date and end_date must be provided")
     start_dt, end_dt = _handle_dates(start_date, end_date)

@@ -75,7 +75,8 @@ def game_data(
         raise ValueError("Both start_date and end_date must be provided.")
     start_dt = dateparser.parse(start_date)
     end_dt = dateparser.parse(end_date)
-
+    assert start_dt is not None, "Failed to parse start_date"
+    assert end_dt is not None, "Failed to parse end_date"
     if start_dt > end_dt:
         raise ValueError("start_date must be before end_date.")
     if start_dt.year < 2015 or end_dt.year < 2015:
@@ -178,7 +179,8 @@ def umpire_data(
         raise ValueError("Both start_date and end_date must be provided.")
     start_dt = dateparser.parse(start_date)
     end_dt = dateparser.parse(end_date)
-
+    assert start_dt is not None, "Failed to parse start_date"
+    assert end_dt is not None, "Failed to parse end_date"
     if start_dt > end_dt:
         raise ValueError("start_date must be before end_date.")
     if start_dt.year < 2015 or end_dt.year < 2015:
@@ -270,7 +272,8 @@ def team_data(
         raise ValueError("Both start_date and end_date must be provided.")
     start_dt = dateparser.parse(start_date)
     end_dt = dateparser.parse(end_date)
-
+    assert start_dt is not None, "Failed to parse start_date"
+    assert end_dt is not None, "Failed to parse end_date"
     if start_dt > end_dt:
         raise ValueError("start_date must be before end_date.")
     if start_dt.year < 2015 or end_dt.year < 2015:

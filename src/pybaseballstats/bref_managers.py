@@ -10,7 +10,7 @@ from pybaseballstats.utils.bref_utils import (
     _extract_table,
 )
 
-session = BREFSession.instance()
+session = BREFSession.instance()  # type: ignore[attr-defined]
 __all__ = ["managers_basic_data", "managers_tendencies_data"]
 
 
@@ -26,7 +26,7 @@ def managers_basic_data(year: int) -> pl.DataFrame:
         TypeError: If year is not an integer
 
     Returns:
-        pl.DataFrame: A DataFrame of manager data for the given year. Returns a polars DataFrame.
+        pl.DataFrame: A Polars DataFrame of manager data for the given year.
     """
     if not year:
         raise ValueError("Year must be provided")
@@ -35,17 +35,14 @@ def managers_basic_data(year: int) -> pl.DataFrame:
     if year < 1871:
         raise ValueError("Year must be greater than 1871")
     with session.get_driver() as driver:
-        try:
-            driver.get(MANAGERS_URL.format(year=year))
-            wait = WebDriverWait(driver, 15)
-            draft_table = wait.until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, "#div_manager_record"))
-            )
-
-            soup = BeautifulSoup(draft_table.get_attribute("outerHTML"), "html.parser")
-        except Exception as e:
-            print(f"Error fetching data: {e}")
-            return None
+        driver.get(MANAGERS_URL.format(year=year))
+        wait = WebDriverWait(driver, 15)
+        draft_table = wait.until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "#div_manager_record"))
+        )
+        html = draft_table.get_attribute("outerHTML")
+        assert html is not None, "Failed to retrieve HTML content"
+        soup = BeautifulSoup(html, "html.parser")
     table = soup.find("table", {"id": "manager_record"})
     df = pl.DataFrame(_extract_table(table))
     df = df.select(pl.all().replace("", "0"))
@@ -103,8 +100,9 @@ def managers_tendencies_data(year: int) -> pl.DataFrame:
         draft_table = wait.until(
             EC.presence_of_element_located((By.CSS_SELECTOR, "#manager_tendencies"))
         )
-
-        soup = BeautifulSoup(draft_table.get_attribute("outerHTML"), "html.parser")
+        html = draft_table.get_attribute("outerHTML")
+        assert html is not None, "Failed to retrieve HTML content"
+        soup = BeautifulSoup(html, "html.parser")
     table = soup.find("table", {"id": "manager_tendencies"})
     df = pl.DataFrame(_extract_table(table))
     df = df.select(pl.all().str.replace("", "0").str.replace("%", ""))
