@@ -9,3 +9,7 @@
 - [ ] finish statcast usage docs
 - [ ] retrosheet tests
 - [ ] retrosheet usage docs
+- [ ] redo bref_teams completely
+- [ ] fangraphs_single_game mypy / rewrite
+- [ ] fangraphs_single_game tests
+- [ ] fangraphs_single_game usage docs

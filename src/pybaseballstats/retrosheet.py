@@ -44,7 +44,7 @@ def _get_people_data() -> pl.DataFrame:
 def player_lookup(
     first_name: Optional[str] = None,
     last_name: Optional[str] = None,
-    strip_accents: bool = False,
+    strip_accents: Optional[bool] = False,
 ) -> pl.DataFrame:
     """A function to look up players by first and/or last name from Retrosheet's player registry.
 
@@ -56,12 +56,18 @@ def player_lookup(
 
     Raises:
         ValueError: If both first_name and last_name are None.
+        TypeError: If first_name is not a string.
+        TypeError: If last_name is not a string.
 
     Returns:
         pl.DataFrame: A Polars DataFrame containing the player information.
     """
     if not first_name and not last_name:
         raise ValueError("At least one of first_name or last_name must be provided")
+    if first_name and not isinstance(first_name, str):
+        raise TypeError("first_name must be a string")
+    if last_name and not isinstance(last_name, str):
+        raise TypeError("last_name must be a string")
     full_df = _get_people_data()
     if first_name:
         first_name = first_name.lower()
@@ -107,7 +113,6 @@ def ejections_data(
     ejectee_name: Optional[str] = None,
     umpire_name: Optional[str] = None,
     inning: Optional[int] = None,
-    ejectee_job: Optional[str] = None,
 ) -> pl.DataFrame:
     """Returns a DataFrame of MLB ejections from Retrosheet's ejections data.
 
@@ -116,8 +121,7 @@ def ejections_data(
         end_date (Optional[str], optional): The end date for the ejections data. Defaults to None.
         ejectee_name (Optional[str], optional): The name of the ejectee. Defaults to None.
         umpire_name (Optional[str], optional): The name of the ejecting umpire. Defaults to None.
-        inning (Optional[int], optional): The inning number. Defaults to None.
-        ejectee_job (Optional[str], optional): The job of the ejectee. Defaults to None.
+        inning (Optional[int], optional): The inning number, between -1 and 20 (not 0). Defaults to None.
 
     Raises:
         ValueError: If start_date is not in 'MM/DD/YYYY' format.
@@ -135,17 +139,27 @@ def ejections_data(
     df = df.with_columns(
         pl.col("DATE").str.to_date("%m/%d/%Y").alias("DATE"),
     )
+    df = df.filter(pl.col("INNING") != "Cy Rigler")  # remove bad data row
+    df = df.with_columns(pl.col("INNING").cast(pl.Int8))
+    start_dt = None
     if start_date:
         try:
             start_dt = datetime.strptime(start_date, "%m/%d/%Y")
         except ValueError:
             raise ValueError("start_date must be in 'MM/DD/YYYY' format")
-        df = df.filter(pl.col("DATE") >= start_dt)
+        except Exception as e:
+            raise e
+    end_dt = None
     if end_date:
         try:
             end_dt = datetime.strptime(end_date, "%m/%d/%Y")
         except ValueError:
             raise ValueError("end_date must be in 'MM/DD/YYYY' format")
+    if start_dt and end_dt and start_dt > end_dt:
+        raise ValueError("start_date must be before end_date")
+    if start_dt:
+        df = df.filter(pl.col("DATE") >= start_dt)
+    if end_dt:
         df = df.filter(pl.col("DATE") <= end_dt)
     if df.shape[0] == 0:
         print("Warning: No ejections found for the given date range.")
@@ -168,9 +182,14 @@ def ejections_data(
                 return df
         else:
             raise ValueError("Inning must be between -1 and 20")
-    if ejectee_job:
-        df = df.filter(pl.col("JOB") == ejectee_job)
-        if df.shape[0] == 0:
-            print("Warning: No ejections found for the given ejectee job.")
-            return df
     return df
+
+
+if __name__ == "__main__":
+    print(
+        ejections_data(
+            start_date="04/01/2016",
+            end_date="10/01/2025",
+            inning=7,
+        )
+    )
