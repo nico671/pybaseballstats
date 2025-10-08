@@ -1,4 +1,3 @@
-import pandas as pd
 import polars as pl
 from bs4 import BeautifulSoup
 from selenium.webdriver.common.by import By
@@ -11,30 +10,28 @@ from pybaseballstats.consts.bref_consts import (
     BREFTeams,
 )
 from pybaseballstats.utils.bref_utils import (
-    BREFSingleton,
+    BREFSession,
     _extract_table,
     fetch_page_html,
 )
 
-bref = BREFSingleton.instance()
+session = BREFSession.instance()
 
 
 def team_standard_batting(
     team: BREFTeams,
     year: int,
-    return_pandas: bool = False,
-) -> pl.DataFrame | pd.DataFrame:
+) -> pl.DataFrame:
     """Returns a DataFrame of team standard batting data for a given year. NOTE: This function uses Selenium to scrape the data, so it may be slow.
 
     Args:
         team (BREFTeams): Which team to pull data from. Use the BREFTeams enum to get the correct team code. You can use the show_options() method to see all available teams.
         year (int): Which year to pull data from
-        return_pandas (bool, optional): Whether or not to return the DataFrame as a pandas DataFrame. Defaults to False.
 
     Returns:
-        pl.DataFrame | pd.DataFrame: A DataFrame of team standard batting data for the given year. If False, returns a polars DataFrame. If True, returns a pandas DataFrame.
+        pl.DataFrame: A Polars DataFrame of team standard batting data for the given year.
     """
-    with bref.get_driver() as driver:
+    with session.get_driver() as driver:
         driver.get(BREF_TEAM_BATTING_URL.format(team_code=team.value, year=year))
         wait = WebDriverWait(driver, 15)
         team_standard_batting_table_wrapper = wait.until(
@@ -94,29 +91,23 @@ def team_standard_batting(
             ]
         ).cast(pl.Float32),
     )
-    return (
-        team_standard_batting_df
-        if not return_pandas
-        else team_standard_batting_df.to_pandas()
-    )
+    return team_standard_batting_df
 
 
 def team_value_batting(
     team: BREFTeams,
     year: int,
-    return_pandas: bool = False,
-) -> pl.DataFrame | pd.DataFrame:
+) -> pl.DataFrame:
     """Return a DataFrame of team value batting data for a given year. NOTE: This function uses Selenium to scrape the data, so it may be slow.
 
     Args:
         team (BREFTeams): Which team to pull data from. Use the BREFTeams enum to get the correct team code. You can use the show_options() method to see all available teams.
         year (int): Which year to pull data from
-        return_pandas (bool, optional): Whether to return a pandas DataFrame or Polars DataFrame. Defaults to False (polars DataFrame).
 
     Returns:
-        pl.DataFrame | pd.DataFrame: _description_
+        pl.DataFrame: A Polars DataFrame of team value batting data for the given year.
     """
-    with bref.get_driver() as driver:
+    with session.get_driver() as driver:
         driver.get(
             BREF_TEAM_BATTING_URL.format(team_code=BREFTeams.NATIONALS.value, year=2024)
         )
@@ -159,19 +150,27 @@ def team_value_batting(
             ["waa", "war", "waa_win_perc", "waa_win_perc_162", "war_off", "war_def"]
         ).cast(pl.Float32),
     )
-    return (
-        team_value_batting_df
-        if not return_pandas
-        else team_value_batting_df.to_pandas()
-    )
+    return team_value_batting_df
 
 
 def bref_teams_yearly_history(
     team: BREFTeams,
     start_season: int = None,
     end_season: int = None,
-    return_pandas: bool = False,
-) -> pl.DataFrame | pd.DataFrame:
+) -> pl.DataFrame:
+    """Returns a DataFrame of franchise history data for a given team.
+
+    Args:
+        team (BREFTeams): The team to get data for.
+        start_season (int, optional): The start season to filter by. Defaults to None.
+        end_season (int, optional): The end season to filter by. Defaults to None.
+
+    Raises:
+        ValueError: _description_
+
+    Returns:
+        pl.DataFrame: _description_
+    """
     if team is None:
         raise ValueError("Must provide a team")
     html = fetch_page_html(BREF_TEAM_RECORD_URL.format(team_code=team.value))
@@ -208,4 +207,4 @@ def bref_teams_yearly_history(
         df = df.filter(pl.col("year_ID") >= start_season)
     if end_season:
         df = df.filter(pl.col("year_ID") <= end_season)
-    return df if not return_pandas else df.to_pandas()
+    return df
