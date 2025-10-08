@@ -32,7 +32,9 @@ def fangraphs_single_game_play_by_play(
     """
     # validate date
     date_object = dateparser.parse(date)
+    assert date_object, "date must be in 'YYYY-MM-DD' format"
     date_string = date_object.strftime("%Y-%m-%d")
+
     if date_object > datetime.now():
         raise ValueError("Date cannot be in the future")
     if date_object < datetime(1977, 4, 6):
@@ -46,6 +48,9 @@ def fangraphs_single_game_play_by_play(
     soup = BeautifulSoup(content, "html.parser")
     table = soup.find(
         "table", {"class": "rgMasterTable", "id": "WinsBox1_dgPlay_ctl00"}
+    )
+    assert table, (
+        "Error extracting data for the given date and team. Please validate inputs."
     )
     headers = table.thead.find_all("th")
     headers = [header.text for header in headers]
