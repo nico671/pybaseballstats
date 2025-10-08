@@ -38,7 +38,7 @@ def managers_basic_data(year: int) -> pl.DataFrame:
         driver.get(MANAGERS_URL.format(year=year))
         wait = WebDriverWait(driver, 15)
         draft_table = wait.until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, "#div_manager_record"))
+            EC.presence_of_element_located((By.ID, "div_manager_record"))
         )
         html = draft_table.get_attribute("outerHTML")
         assert html is not None, "Failed to retrieve HTML content"
@@ -98,7 +98,7 @@ def managers_tendencies_data(year: int) -> pl.DataFrame:
         driver.get(MANAGERS_URL.format(year=year))
         wait = WebDriverWait(driver, 15)
         draft_table = wait.until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, "#manager_tendencies"))
+            EC.presence_of_element_located((By.ID, "div_manager_tendencies"))
         )
         html = draft_table.get_attribute("outerHTML")
         assert html is not None, "Failed to retrieve HTML content"
