@@ -15,6 +15,18 @@ from pybaseballstats.utils.bref_utils import (
 
 session = BREFSession.instance()  # type: ignore[attr-defined]
 
+__all__ = [
+    "single_player_standard_batting",
+    "single_player_value_batting",
+    "single_player_advanced_batting",
+    "single_player_standard_fielding",
+    "single_player_sabermetric_fielding",
+    "single_player_salaries",
+    "single_player_standard_pitching",
+    "single_player_value_pitching",
+    "single_player_advanced_pitching",
+]
+
 
 def single_player_standard_batting(player_code: str) -> pl.DataFrame:
     """Returns a DataFrame of a player's standard batting statistics.
@@ -193,6 +205,7 @@ def single_player_advanced_batting(player_code: str) -> pl.DataFrame:
     )
     advanced_batting_table = advanced_batting_table.find("table")
     advanced_batting_df = pl.DataFrame(_extract_table(advanced_batting_table))
+    advanced_batting_df = advanced_batting_df.fill_null("")
     advanced_batting_df = advanced_batting_df.select(
         pl.all().name.map(lambda col_name: col_name.replace("b_", ""))
     )
@@ -200,7 +213,7 @@ def single_player_advanced_batting(player_code: str) -> pl.DataFrame:
         pl.all().name.map(lambda col_name: col_name.replace("_abbr", ""))
     )
     advanced_batting_df = advanced_batting_df.with_columns(
-        pl.all().str.replace("%", "")
+        pl.col(pl.String).str.replace("%", "")
     )
     advanced_batting_df = advanced_batting_df.with_columns(
         pl.col(
@@ -349,41 +362,41 @@ def single_player_sabermetric_fielding(player_code: str) -> pl.DataFrame:
     return sabermetric_fielding_df
 
 
-def single_player_salaries(player_code: str) -> pl.DataFrame:
-    """Returns a DataFrame of a player's salary history.
+# def single_player_salaries(player_code: str) -> pl.DataFrame:
+#     """Returns a DataFrame of a player's salary history.
 
-    Args:
-        player_code (str): The player's code from Baseball Reference. This can be found using the pybaseballstats.retrosheet.player_lookup function.
+#     Args:
+#         player_code (str): The player's code from Baseball Reference. This can be found using the pybaseballstats.retrosheet.player_lookup function.
 
-    Returns:
-        pl.DataFrame: A Polars DataFrame containing the player's salary history.
-    """
-    last_name_initial = player_code[0].lower()
-    with session.get_driver() as driver:
-        driver.get(
-            BREF_SINGLE_PLAYER_URL.format(
-                initial=last_name_initial, player_code=player_code
-            )
-        )
-        wait = WebDriverWait(driver, 15)
-        salaries_table = wait.until(
-            EC.presence_of_element_located((By.ID, "all_br-salaries"))
-        )
-        html = salaries_table.get_attribute("outerHTML")
-        assert html is not None, "Failed to retrieve HTML content"
-        soup = BeautifulSoup(html, "html.parser")
-    salaries_table_actual = soup.find("table")
-    salaries_df = pl.DataFrame(_extract_table(salaries_table_actual))
-    salaries_df = salaries_df.with_columns(
-        pl.col("Salary")
-        .str.replace("\\$", "")
-        .str.replace(",", "")
-        .str.replace("\\*", "")
-        .cast(pl.Int32),
-    )
+#     Returns:
+#         pl.DataFrame: A Polars DataFrame containing the player's salary history.
+#     """
+#     last_name_initial = player_code[0].lower()
+#     with session.get_driver() as driver:
+#         driver.get(
+#             BREF_SINGLE_PLAYER_URL.format(
+#                 initial=last_name_initial, player_code=player_code
+#             )
+#         )
+#         wait = WebDriverWait(driver, 15)
+#         salaries_table = wait.until(
+#             EC.presence_of_element_located((By.ID, "all_br-salaries"))
+#         )
+#         html = salaries_table.get_attribute("outerHTML")
+#         assert html is not None, "Failed to retrieve HTML content"
+#         soup = BeautifulSoup(html, "html.parser")
+#     salaries_table_actual = soup.find("table")
+#     salaries_df = pl.DataFrame(_extract_table(salaries_table_actual))
+#     salaries_df = salaries_df.with_columns(
+#         pl.col("Salary")
+#         .str.replace("\\$", "")
+#         .str.replace(",", "")
+#         .str.replace("\\*", "")
+#         .cast(pl.Int32),
+#     )
 
-    salaries_df = salaries_df.rename({"Salary": "salary ($)"})
-    return salaries_df
+#     salaries_df = salaries_df.rename({"Salary": "salary ($)"})
+#     return salaries_df
 
 
 def single_player_standard_pitching(player_code: str) -> pl.DataFrame:
@@ -509,7 +522,6 @@ def single_player_value_pitching(player_code: str) -> pl.DataFrame:
                 "war",
                 "waa_win_perc",
                 "waa_win_perc_162",
-                "leverage_index_avg_rp",
             ]
         ).cast(pl.Float32),
     )
@@ -550,7 +562,7 @@ def single_player_advanced_pitching(player_code: str) -> pl.DataFrame:
     )
     # allow for float conversions in this column
     advanced_pitching_df = advanced_pitching_df.with_columns(
-        pl.col("cwpa_def").str.replace("%", "")
+        pl.col(pl.String).str.replace("%", "")
     )
     advanced_pitching_df = advanced_pitching_df.with_columns(
         pl.col(
