@@ -5,6 +5,8 @@ import requests
 
 import pybaseballstats.consts.statcast_leaderboard_consts as sc
 
+__all__ = ["pitch_timer_infractions_leaderboard"]
+
 
 def pitch_timer_infractions_leaderboard(
     focus: Literal["Pit", "Cat", "Bat", "Team", "Opp"] = "Pit",

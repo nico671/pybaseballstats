@@ -183,13 +183,3 @@ def ejections_data(
         else:
             raise ValueError("Inning must be between -1 and 20")
     return df
-
-
-if __name__ == "__main__":
-    print(
-        ejections_data(
-            start_date="04/01/2016",
-            end_date="10/01/2025",
-            inning=7,
-        )
-    )

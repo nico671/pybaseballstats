@@ -7,7 +7,7 @@
 - [ ] finish bref_single_player usage docs
 - [ ] finish statcast tests
 - [ ] finish statcast usage docs
-- [ ] retrosheet tests
+- [x] retrosheet tests
 - [ ] retrosheet usage docs
 - [ ] redo bref_teams completely
 - [ ] fangraphs_single_game mypy / rewrite
