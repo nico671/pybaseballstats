@@ -21,7 +21,7 @@ __all__ = [
     "single_player_advanced_batting",
     "single_player_standard_fielding",
     "single_player_sabermetric_fielding",
-    "single_player_salaries",
+    # "single_player_salaries",
     "single_player_standard_pitching",
     "single_player_value_pitching",
     "single_player_advanced_pitching",
