@@ -120,21 +120,6 @@ class BREFSession:
         finally:
             driver.quit()
 
-    def get_persistent_driver(self) -> webdriver.Chrome:
-        """Get a persistent driver instance (reused across calls).
-        Use this only if you need to maintain state between requests.
-        Remember to call quit_driver() when done."""
-        if self._driver is None:
-            self._driver = self._create_driver()
-        self._rate_limit()
-        return self._driver
-
-    def quit_driver(self):
-        """Quit the persistent driver if it exists."""
-        if self._driver:
-            self._driver.quit()
-            self._driver = None
-
 
 def _extract_table(table):
     trs = table.tbody.find_all("tr")
