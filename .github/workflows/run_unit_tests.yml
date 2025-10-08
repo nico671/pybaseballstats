@@ -34,7 +34,7 @@ jobs:
       - name: Convert coverage.json to badge-compatible format
         if: github.ref == 'refs/heads/main'
         run: |
-          percent=$(jq '.totals.percent_covered' coverage.json)
+          percent=$(jq '.totals.percent_covered | round' coverage.json)
           mkdir -p badges
           echo "{\"total\":{\"lines\":{\"pct\":$percent}}}" > coverage-summary.json
 

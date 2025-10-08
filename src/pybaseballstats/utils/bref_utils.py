@@ -1,6 +1,7 @@
 import time
+from collections import deque
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Optional
 
 from curl_cffi import requests
@@ -57,21 +58,36 @@ class BREFSession:
 
     def __init__(self, max_req_per_minute=10):
         self.max_req_per_minute = max_req_per_minute
-        self.last_request_time: Optional[datetime] = None
+        self.request_timestamps = deque(maxlen=max_req_per_minute)
         self.session = requests.Session()
         self._driver: Optional[webdriver.Chrome] = None
 
     def _rate_limit(self):
-        """Apply rate limiting before any request."""
-        if self.last_request_time:
-            difference = datetime.now() - self.last_request_time
-            wait_time = 60 / self.max_req_per_minute - difference.total_seconds()
+        """
+        Apply rate limiting to ensure no more than max_req_per_minute requests are made
+        within any rolling 60-second window.
+        """
+        # Remove timestamps older than 60 seconds
+        now = datetime.now()
+        window_start = now - timedelta(seconds=60)
+
+        while self.request_timestamps and self.request_timestamps[0] < window_start:
+            self.request_timestamps.popleft()
+
+        # If we've reached our maximum requests per minute, wait until we can make another
+        if len(self.request_timestamps) >= self.max_req_per_minute:
+            # Wait until the oldest timestamp ages out of our window
+            wait_time = (self.request_timestamps[0] - window_start).total_seconds()
             if wait_time > 0:
                 print(
                     f"Sleeping for {wait_time:.2f} seconds to avoid being rate limited"
                 )
                 time.sleep(wait_time)
-        self.last_request_time = datetime.now()
+                # After waiting, we need to recalculate the window
+                return self._rate_limit()
+
+        # Add current time to our request timestamps
+        self.request_timestamps.append(now)
 
     def get(self, url: str, **kwargs: Any) -> requests.Response:
         """Make an HTTP request with rate limiting."""
