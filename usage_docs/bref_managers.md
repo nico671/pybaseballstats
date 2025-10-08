@@ -9,6 +9,8 @@ This module provides functionality to retrieve data from [Baseball Reference's m
 
 ## Example Usage
 
+Both of these functions take a single parameter, `year`, which is an integer representing the year for which you want to fetch data.
+
 ### Fetching Basic Manager Data
 
 ```python
