@@ -103,23 +103,21 @@ def validate_team_stat_split_param(team: FangraphsTeams, stat_split: str) -> str
     elif stat_split == "league":
         stat_split = "ss"
     if team:
-        team = team.value
+        team_value = str(team.value)
     else:
-        team = ""
+        team_value = ""
     team_together = ""
     if stat_split == "":
-        team_together = team
+        team_together = team_value
     else:
-        team_together = f"{team},{stat_split}"
+        team_together = f"{team_value},{stat_split}"
     return team_together
 
 
 def validate_active_roster_param(active_roster_only: bool) -> str:
     if active_roster_only:
         return "1"
-
-    else:
-        return "0"
+    return "0"
 
 
 def validate_season_type(season_type: str) -> str:
@@ -149,6 +147,7 @@ def validate_season_type(season_type: str) -> str:
             return "D"
         case "wild_card":
             return "F"
+    raise Exception("Unreachable code reached in validate_season_type")
 
 
 def pick_season_or_dates(
@@ -173,11 +172,15 @@ def validate_dates(start_date: str, end_date: str) -> Tuple[str, str]:
     if not end_date:
         print("No end date provided, defaulting to today's date")
         end_date = datetime.today().strftime("%Y-%m-%d")
-    start_date_parsed, end_date_parsed = (
+    start_dt, end_dt = (
         dateparser.parse(start_date),
         dateparser.parse(end_date),
     )
-    return start_date_parsed.strftime("%Y-%m-%d"), end_date_parsed.strftime("%Y-%m-%d")
+    assert start_dt is not None, "Could not parse start_date"
+    assert end_dt is not None, "Could not parse end_date"
+    if start_dt > end_dt:
+        raise ValueError("start_date must be before end_date")
+    return start_dt.strftime("%Y-%m-%d"), end_dt.strftime("%Y-%m-%d")
 
 
 # def fangraphs_fielding_input_val(

@@ -56,13 +56,13 @@ class BREFSession:
     A singleton class to manage both requests and Selenium driver instances with rate limiting.
     """
 
-    def __init__(self, max_req_per_minute=10):
-        self.max_req_per_minute = max_req_per_minute
-        self.request_timestamps = deque(maxlen=max_req_per_minute)
-        self.session = requests.Session()
+    def __init__(self, max_req_per_minute=10) -> None:
+        self.max_req_per_minute: int = max_req_per_minute
+        self.request_timestamps: deque[datetime] = deque(maxlen=max_req_per_minute)
+        self.session: requests.Session = requests.Session()
         self._driver: Optional[webdriver.Chrome] = None
 
-    def _rate_limit(self):
+    def _rate_limit(self) -> None:
         """
         Apply rate limiting to ensure no more than max_req_per_minute requests are made
         within any rolling 60-second window.
@@ -88,15 +88,16 @@ class BREFSession:
 
         # Add current time to our request timestamps
         self.request_timestamps.append(now)
+        return
 
-    def get(self, url: str, **kwargs: Any) -> requests.Response:
+    def get(self, url: str, **kwargs: Any) -> requests.Response | None:
         """Make an HTTP request with rate limiting."""
         self._rate_limit()
         try:
             resp = self.session.get(url, impersonate="chrome", **kwargs)
             resp.raise_for_status()
             return resp
-        except requests.RequestException as e:
+        except Exception as e:
             print(f"Error fetching {url}: {e}")
         return None
 

@@ -5,14 +5,12 @@ from typing import Iterator, Tuple
 
 import aiohttp
 import dateparser
-import pandas as pd
 import polars as pl
 from rich.progress import MofNCompleteColumn, Progress, SpinnerColumn, TimeElapsedColumn
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 
 from pybaseballstats.consts.statcast_consts import (
-    STATCAST_DATE_RANGE_URL,
     STATCAST_YEAR_RANGES,
 )
 
@@ -150,43 +148,6 @@ def _load_all_data(responses):
     return data_list
 
 
-async def _statcast_date_range_helper(
-    start_date: str,
-    end_date: str,
-    return_pandas: bool = False,
-) -> pl.DataFrame | pd.DataFrame:
-    if start_date is None or end_date is None:
-        raise ValueError("start_date and end_date must be provided")
-    start_dt, end_dt = _handle_dates(start_date, end_date)
-    print(f"Pulling data for date range: {start_dt} to {end_dt}.")
-    print("Splitting date range into smaller chunks.")
-    date_ranges = list(_create_date_ranges(start_dt, end_dt, step=3))
-    assert len(date_ranges) > 0, "No date ranges generated. Check your input dates."
-
-    urls = []
-    for start_dt, end_dt in date_ranges:
-        urls.append(
-            STATCAST_DATE_RANGE_URL.format(
-                start_date=start_dt,
-                end_date=end_dt,
-            )
-        )
-    date_range_total_days = (end_dt - start_dt).days
-    responses = await _fetch_all_data(urls, date_range_total_days)
-    data_list = _load_all_data(responses)
-    if not data_list:
-        print("No data was successfully retrieved.")
-        return pl.LazyFrame() if not return_pandas else pd.DataFrame()
-
-    elif len(data_list) > 0:
-        print("Concatenating data.")
-        df = pl.concat(data_list)
-        return df if not return_pandas else df.collect().to_pandas()
-    else:
-        print("No data frames to concatenate.")
-        return pl.LazyFrame() if not return_pandas else pd.DataFrame()
-
-
 def _handle_dates(start_date_str: str, end_date_str: str) -> Tuple[date, date]:
     """
     Helper function to handle date inputs.
@@ -199,13 +160,17 @@ def _handle_dates(start_date_str: str, end_date_str: str) -> Tuple[date, date]:
     A tuple of datetime.date objects for the start and end dates.
     """
     try:
-        start_dt = dateparser.parse(start_date_str).date()
-        end_dt = dateparser.parse(end_date_str).date()
+        start_dt = dateparser.parse(start_date_str)
+        end_dt = dateparser.parse(end_date_str)
     except Exception as e:
         raise ValueError(f"Error parsing dates: {e}")
-    if start_dt > end_dt:
+    assert start_dt is not None, "Could not parse start_date"
+    assert end_dt is not None, "Could not parse end_date"
+    start_dt_date = start_dt.date()
+    end_dt_date = end_dt.date()
+    if start_dt_date > end_dt_date:
         raise ValueError("Start date must be before end date.")
-    return start_dt, end_dt
+    return start_dt_date, end_dt_date
 
 
 # this function comes from https://github.com/jldbc/pybaseball/blob/master/pybaseball/statcast.py
