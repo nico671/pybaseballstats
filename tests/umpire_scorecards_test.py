@@ -17,6 +17,12 @@ def test_game_data_general():
         us.game_data(start_date="2023-07-01", end_date="2023-07-07", game_type="X")
     with pytest.raises(ValueError):
         us.game_data(
+            start_date="2014-07-01",
+            end_date="2023-07-07",
+            # focus_team_home_away="x",
+        )
+    with pytest.raises(ValueError):
+        us.game_data(
             start_date="2023-07-01",
             end_date="2023-07-07",
             focus_team=us.UmpireScorecardTeams.ANGELS,
@@ -95,6 +101,20 @@ def test_game_data_team_filtering():
     assert df.select(pl.col("home_team").unique()).item() == "LAA"
     assert df.select(pl.col("away_team").n_unique()).item() == 1
     assert df.select(pl.col("away_team").unique()).item() == "TEX"
+
+    df = us.game_data(
+        start_date="2023-04-01",
+        end_date="2023-07-07",
+        focus_team=us.UmpireScorecardTeams.ANGELS,
+        focus_team_home_away="a",
+        opponent_team=us.UmpireScorecardTeams.RANGERS,
+    )
+    assert df.shape[0] == 3
+    assert df.shape[1] == 32
+    assert df.select(pl.col("away_team").n_unique()).item() == 1
+    assert df.select(pl.col("away_team").unique()).item() == "LAA"
+    assert df.select(pl.col("home_team").n_unique()).item() == 1
+    assert df.select(pl.col("home_team").unique()).item() == "TEX"
 
 
 def test_game_data_umpire_filtering():

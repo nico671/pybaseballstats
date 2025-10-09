@@ -64,8 +64,6 @@ def franchise_draft_order(team: BREFTeams, year: int) -> pl.DataFrame:
         raise ValueError(
             "Team must be a valid BREFTeams enum value. See BREFTeams class for valid values."
         )
-    elif not team:
-        raise ValueError("Team must be provided")
 
     resp = session.get(TEAM_YEAR_DRAFT_URL.format(year=year, team=team.value))
     soup = BeautifulSoup(resp.content, "html.parser")
