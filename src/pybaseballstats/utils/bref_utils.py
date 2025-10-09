@@ -68,14 +68,13 @@ class BREFSession:
         within any rolling 60-second window.
         """
         # Remove timestamps older than 60 seconds
-        now = datetime.now()
-        window_start = now - timedelta(seconds=60)
+        window_start = datetime.now() - timedelta(seconds=60)
 
         while self.request_timestamps and self.request_timestamps[0] < window_start:
             self.request_timestamps.popleft()
 
         # If we've reached our maximum requests per minute, wait until we can make another
-        if len(self.request_timestamps) >= self.max_req_per_minute:
+        while len(self.request_timestamps) >= self.max_req_per_minute:
             # Wait until the oldest timestamp ages out of our window
             wait_time = (self.request_timestamps[0] - window_start).total_seconds()
             if wait_time > 0:
@@ -83,11 +82,9 @@ class BREFSession:
                     f"Sleeping for {wait_time:.2f} seconds to avoid being rate limited"
                 )
                 time.sleep(wait_time)
-                # After waiting, we need to recalculate the window
-                return self._rate_limit()
 
         # Add current time to our request timestamps
-        self.request_timestamps.append(now)
+        self.request_timestamps.append(datetime.now())
         return
 
     def get(self, url: str, **kwargs: Any) -> requests.Response | None:
