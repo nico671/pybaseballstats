@@ -22,8 +22,6 @@ async def async_statcast_date_range_pitch_by_pitch(
     end_date: str,
     force_collect: bool = False,
 ) -> pl.LazyFrame | pl.DataFrame | None:
-    if start_date is None or end_date is None:
-        raise ValueError("Both start_date and end_date must be provided")
     start_dt, end_dt = _handle_dates(start_date, end_date)
     print(f"Pulling data for date range: {start_dt} to {end_dt}.")
     print("Splitting date range into smaller chunks.")
@@ -53,7 +51,6 @@ async def async_statcast_date_range_pitch_by_pitch(
     return df
 
 
-# TODO: usage docs
 # TODO: add more restrictions for api calls
 def pitch_by_pitch_data(
     start_date: str,
@@ -65,13 +62,27 @@ def pitch_by_pitch_data(
     Args:
         start_date (str): The start date in 'YYYY-MM-DD' format.
         end_date (str): The end date in 'YYYY-MM-DD' format.
-        force_collect (bool, optional): Whether to force collection of the data. Defaults to False.
+        force_collect (bool, optional): Whether to force collection of the data, meaning conversion to a Polars DataFrame rather than the default Polars LazyFrame. Defaults to False.
 
     Returns:
         pl.LazyFrame | pl.DataFrame | None: The pitch-by-pitch data as a Polars LazyFrame if force_collect is False, a Polars DataFrame if force_collect is True, or None if no data is found.
     """
+    if start_date is None or end_date is None:
+        raise ValueError("Both start_date and end_date must be provided")
     return asyncio.run(
         async_statcast_date_range_pitch_by_pitch(
             start_date=start_date, end_date=end_date, force_collect=force_collect
         )
     )
+
+
+if __name__ == "__main__":
+    # Example usage
+    df = pitch_by_pitch_data(
+        start_date="2023-07-01", end_date="2023-07-03", force_collect=True
+    )
+    if df is not None:
+        print(df.shape)
+        print(df.select(pl.col("player_name").n_unique()).item())
+    else:
+        print("No data found for the given date range.")
