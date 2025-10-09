@@ -14,6 +14,21 @@ jobs:
         with:
           fetch-depth: 0 # needed to push branches
 
+      # Set up Chrome and ChromeDriver for Selenium tests
+      - name: Install Chrome
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
+
+      - name: Install ChromeDriver
+        uses: nanasess/setup-chromedriver@master
+
+      - name: Start ChromeDriver
+        run: |
+          export DISPLAY=:99
+          sudo Xvfb -ac :99 -screen 0 1280x1024x24 > /dev/null 2>&1 &
+          chromedriver --url-base=/wd/hub &
+      # set up python environment using uv
       - name: Install uv
         uses: astral-sh/setup-uv@v6
         with:
@@ -24,7 +39,7 @@ jobs:
 
       - name: Install dependencies
         run: uv sync --locked --all-extras --dev
-
+      # run tests with coverage
       - name: Run tests
         run: uv run coverage run --source=src/pybaseballstats -m pytest tests/
 

@@ -4,7 +4,10 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
-from pybaseballstats.consts.bref_consts import MANAGERS_URL
+from pybaseballstats.consts.bref_consts import (
+    BREF_MANAGER_TENDENCIES_URL,
+    BREF_MANAGERS_GENERAL_URL,
+)
 from pybaseballstats.utils.bref_utils import (
     BREFSession,
     _extract_table,
@@ -35,8 +38,8 @@ def managers_basic_data(year: int) -> pl.DataFrame:
     if year < 1871:
         raise ValueError("Year must be greater than 1871")
     with session.get_driver() as driver:
-        driver.get(MANAGERS_URL.format(year=year))
-        wait = WebDriverWait(driver, 15)
+        driver.get(BREF_MANAGERS_GENERAL_URL.format(year=year))
+        wait = WebDriverWait(driver, 5)
         draft_table = wait.until(
             EC.presence_of_element_located((By.ID, "div_manager_record"))
         )
@@ -95,8 +98,8 @@ def managers_tendencies_data(year: int) -> pl.DataFrame:
         raise ValueError("Year must be greater than 1871")
 
     with session.get_driver() as driver:
-        driver.get(MANAGERS_URL.format(year=year))
-        wait = WebDriverWait(driver, 15)
+        driver.get(BREF_MANAGER_TENDENCIES_URL.format(year=year))
+        wait = WebDriverWait(driver, 5)
         draft_table = wait.until(
             EC.presence_of_element_located((By.ID, "div_manager_tendencies"))
         )
