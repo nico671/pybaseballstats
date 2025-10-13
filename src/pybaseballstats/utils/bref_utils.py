@@ -2,6 +2,7 @@ import time
 from collections import deque
 from contextlib import contextmanager
 from datetime import datetime, timedelta
+from threading import Lock
 from typing import Any, Optional
 
 from curl_cffi import requests
@@ -61,40 +62,36 @@ class BREFSession:
         self.request_timestamps: deque[datetime] = deque(maxlen=max_req_per_minute)
         self.session: requests.Session = requests.Session()
         self._driver: Optional[webdriver.Chrome] = None
+        self._lock = Lock()
 
     def _rate_limit(self) -> None:
-        """
-        Apply rate limiting to ensure no more than max_req_per_minute requests are made
-        within any rolling 60-second window.
-        """
-
-        while True:
+        """Block until it's safe to make another request."""
+        with self._lock:
             current_time = datetime.now()
-            # Remove timestamps older than 60 seconds
             window_start = current_time - timedelta(seconds=60)
 
+            # Remove old timestamps
             while self.request_timestamps and self.request_timestamps[0] < window_start:
                 self.request_timestamps.popleft()
 
-            # If we're under the limit, we can proceed
-            if len(self.request_timestamps) < self.max_req_per_minute:
-                break
+            if len(self.request_timestamps) >= self.max_req_per_minute:
+                oldest = self.request_timestamps[0]
+                wait_time = 60 - (current_time - oldest).total_seconds()
+                if wait_time > 0:
+                    print(f"Rate limit reached, sleeping {wait_time:.2f}s")
+                    time.sleep(wait_time)
 
-            # Calculate time until the oldest request ages out of our 60-second window
-            oldest_timestamp = self.request_timestamps[0]
-            wait_time = 60 - (current_time - oldest_timestamp).total_seconds()
+                # After sleeping, clean again and continue
+                current_time = datetime.now()
+                window_start = current_time - timedelta(seconds=60)
+                while (
+                    self.request_timestamps
+                    and self.request_timestamps[0] < window_start
+                ):
+                    self.request_timestamps.popleft()
 
-            if wait_time > 0:
-                print(
-                    f"Sleeping for {wait_time:.2f} seconds to avoid being rate limited"
-                )
-                time.sleep(wait_time)
-            else:
-                # This is a safety check in case of clock issues
-                self.request_timestamps.popleft()
-
-        # Add current time to our request timestamps
-        self.request_timestamps.append(current_time)
+            # Record this request
+            self.request_timestamps.append(datetime.now())
 
     def get(self, url: str, **kwargs: Any) -> requests.Response | None:
         """Make an HTTP request with rate limiting."""
