@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 
 from pybaseballstats.consts.bref_consts import (
     BREF_MANAGER_TENDENCIES_URL,
+    BREF_MANAGERS_GENERAL_URL,
 )
 from pybaseballstats.utils.bref_utils import (
     BREFSession,
@@ -35,11 +36,8 @@ def managers_basic_data(year: int) -> pl.DataFrame:
         raise ValueError("Year must be greater than 1871")
 
     with session.get_page() as page:
-        # Remove the fragment from URL - it's causing navigation issues
-        base_url = (
-            f"https://www.baseball-reference.com/leagues/majors/{year}-managers.shtml"
-        )
-        page.goto(base_url, wait_until="domcontentloaded")
+        url = BREF_MANAGERS_GENERAL_URL.format(year=year)
+        page.goto(url, wait_until="domcontentloaded")
 
         # Wait for the table to be populated by JavaScript
         page.wait_for_function(
