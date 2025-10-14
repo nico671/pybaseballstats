@@ -77,6 +77,7 @@ def managers_basic_data(year: int) -> pl.DataFrame:
             pl.col("L_post").cast(pl.Int32).fill_null(0).alias("postseason_losses"),
         ]
     ).drop(["W_post", "L_post"])
+    print(df)
     return df
 
 

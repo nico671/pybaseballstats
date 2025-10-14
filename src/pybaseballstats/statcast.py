@@ -74,15 +74,3 @@ def pitch_by_pitch_data(
             start_date=start_date, end_date=end_date, force_collect=force_collect
         )
     )
-
-
-if __name__ == "__main__":
-    # Example usage
-    df = pitch_by_pitch_data(
-        start_date="2023-07-01", end_date="2023-07-03", force_collect=True
-    )
-    if df is not None:
-        print(df.shape)
-        print(df.select(pl.col("player_name").n_unique()).item())
-    else:
-        print("No data found for the given date range.")

@@ -31,7 +31,7 @@ def fangraphs_single_game_play_by_play(
         pl.DataFrame: A DataFrame of play-by-play data for the given date and team.
     """
     # validate date
-    date_object = dateparser.parse(date)
+    date_object = dateparser.parse(date, date_formats=["%Y-%m-%d"])
     assert date_object, "date must be in 'YYYY-MM-DD' format"
     date_string = date_object.strftime("%Y-%m-%d")
 
@@ -49,20 +49,26 @@ def fangraphs_single_game_play_by_play(
     table = soup.find(
         "table", {"class": "rgMasterTable", "id": "WinsBox1_dgPlay_ctl00"}
     )
-    assert table, (
+    assert table is not None, (
         "Error extracting data for the given date and team. Please validate inputs."
     )
-    headers = table.thead.find_all("th")
-    headers = [header.text for header in headers]
+    thead = table.find("thead")
+    assert thead is not None, "Could not find table header"
+    header_tags = thead.find_all("th")
+    headers = [header.get_text() for header in header_tags]
     headers = headers[:-2]
-    row_data = {}
+    row_data: dict[str, list[str]] = {}
     for header in headers:
         row_data[header] = []
-    for tr in table.tbody.find_all("tr"):
-        for i, td in enumerate(tr.find_all("td")):
+    tbody = table.find("tbody")
+    assert tbody is not None, "Could not find table body"
+    for tr in tbody.find_all("tr"):
+        td_tags = tr.find_all("td")
+        for i, td in enumerate(td_tags):
             if "style" in td.attrs and td.attrs["style"] == "display:none;":
                 continue
-            row_data[headers[i]].append(td.text)
+            if i < len(headers):  # Ensure we don't exceed headers length
+                row_data[headers[i]].append(str(td.get_text()))
     df = pl.DataFrame(row_data)
     df = df.with_columns(
         [
@@ -89,3 +95,9 @@ def fangraphs_single_game_play_by_play(
 
 
 # TODO: extra stats from this page are available, could add in the future
+
+if __name__ == "__main__":
+    df = fangraphs_single_game_play_by_play(
+        date="2024-09-13", team=FangraphsSingleGameTeams.Angels
+    )
+    print(df.filter(pl.col("Play").str.contains("scored")))

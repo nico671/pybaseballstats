@@ -10,6 +10,6 @@
 - [x] retrosheet tests
 - [ ] retrosheet usage docs
 - [ ] fangraphs_single_game mypy / rewrite
-- [ ] fangraphs_single_game tests
+- [x] fangraphs_single_game tests
 - [ ] fangraphs_single_game usage docs
 - [ ] all functions add links to the relevant webpage being scraped.

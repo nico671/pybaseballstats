@@ -56,6 +56,8 @@ dev = [
     "mypy>=1.18.2",
     "pytest>=8.3.4",
     "ruff>=0.9.7",
+    "types-dateparser>=1.2.2.20250809",
+    "types-requests>=2.32.4.20250913",
 ]
 
 [tool.setuptools]

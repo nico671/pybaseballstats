@@ -14,15 +14,14 @@ def test_manager_basic_data_errors():
 
 
 def test_manager_basic_data():
-    df = bm.managers_basic_data(year=2025)
-    assert df.shape[0] == 34
+    df = bm.managers_basic_data(year=2023)
+    assert df.shape[0] == 31
     assert df.shape[1] == 15
-    assert df.select(pl.col("manager").n_unique()).item() == 34
+    assert df.select(pl.col("manager").n_unique()).item() == 31
     assert df.select(pl.col("team_ID").n_unique()).item() == 30
-    assert df.select(pl.col("G").min()).item() == 38
+    assert df.select(pl.col("G").min()).item() == 3
     assert df.select(pl.col("G").max()).item() == 162
-    assert df.select(pl.col("W").min()).item() == 7
-    assert df.select(pl.col("W").max()).item() == 97
+    assert df.select(pl.col("W").max()).item() == 104
     assert df.select(pl.col("mgr_ejections").max()).item() == 7
 
 

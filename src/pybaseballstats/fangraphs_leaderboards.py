@@ -1,4 +1,4 @@
-from typing import List, Literal, Union
+from typing import List, Literal, Optional, Union
 
 import polars as pl
 import requests
@@ -32,14 +32,14 @@ from pybaseballstats.utils.fangraphs_utils import (
 # #TODO: docstrings for all functions
 # TODO: REDO all funcs (batting leaderboard new done now just need to write tests for all 3 and redo the other 2)
 def fangraphs_batting_leaderboard(
-    start_date: str = None,
-    end_date: str = None,
-    start_season: int = None,
-    end_season: int = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    start_season: Optional[int] = None,
+    end_season: Optional[int] = None,
     pos: FangraphsBattingPosTypes = FangraphsBattingPosTypes.ALL,
     team: FangraphsTeams = FangraphsTeams.ALL,
     stat_split: Literal["player", "team", "league"] = "player",
-    stat_types: List[FangraphsBattingStatType] = None,
+    stat_types: Optional[List[FangraphsBattingStatType]] = None,
     active_roster_only: bool = False,
     season_type: Literal[
         "regular",
@@ -92,13 +92,15 @@ def fangraphs_batting_leaderboard(
         print("Using date range")
         # using dates
         start_date, end_date = validate_dates(start_date, end_date)
-        start_season, end_season = "", ""
+        start_season_str, end_season_str = "", ""
         month_param = 1000
     else:
         print("using season range")
         month_param = 0
         start_date, end_date = "", ""
-        start_season, end_season = validate_seasons_param(start_season, end_season)
+        start_season_str, end_season_str = validate_seasons_param(
+            start_season, end_season
+        )
         # using season range
 
     hand_param = validate_hand_param(handedness)
@@ -117,8 +119,8 @@ def fangraphs_batting_leaderboard(
         "postseason": season_type_param,
         "month": month_param,
         "players": 0,
-        "season1": start_season,
-        "season": end_season,
+        "season1": start_season_str,
+        "season": end_season_str,
         "startDate": start_date,
         "endDate": end_date,
         "ind": ind_param,
@@ -361,8 +363,11 @@ def fangraphs_war_leaderboard(
     )
     soup = BeautifulSoup(resp.content, "html.parser")
     table_wrapper = soup.find("div", class_="leaders-war-data")
+    assert table_wrapper is not None, "Could not find table wrapper"
     table = table_wrapper.find("table")
-    tbody = table.tbody
+    assert table is not None, "Could not find table"
+    tbody = table.find("tbody")
+    assert tbody is not None, "Could not find table body"
     row_data = []
     for row in tbody.find_all("tr"):
         curr_row = {}

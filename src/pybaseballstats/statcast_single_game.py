@@ -1,7 +1,8 @@
 import datetime
 import io
+from typing import Dict
 
-import pandas as pd
+import pandas as pd  # type: ignore[import-untyped]
 import polars as pl
 import requests
 from bs4 import BeautifulSoup
@@ -10,7 +11,7 @@ from pybaseballstats.consts.statcast_consts import (
     STATCAST_SINGLE_GAME_EV_PV_WP_URL,
     STATCAST_SINGLE_GAME_URL,
 )
-from pybaseballstats.statcast import statcast_date_range_pitch_by_pitch
+from pybaseballstats.statcast import pitch_by_pitch_data
 from pybaseballstats.utils.statcast_utils import get_page
 
 # TODO: usage docs
@@ -39,16 +40,23 @@ def statcast_single_game_pitch_by_pitch(
 
 def get_available_game_pks_for_date(
     game_date: str,
-):
-    available_games = {}
-    df = statcast_date_range_pitch_by_pitch(game_date, game_date).collect()
-    if df.shape[0] == 0 or df.shape[1] == 0:
+) -> Dict[int, Dict[str, str]]:
+    available_games: Dict[int, Dict[str, str]] = {}
+    df = pitch_by_pitch_data(game_date, game_date)
+    if df is None:
+        print(
+            "No games found for the specified date. Please check the date format / date and try again."
+        )
+        return available_games
+
+    collected_df = df.collect() if hasattr(df, "collect") else df
+    if collected_df.shape[0] == 0 or collected_df.shape[1] == 0:
         # No games found for the specified date
         print(
             "No games found for the specified date. Please check the date format / date and try again."
         )
         return available_games
-    for i, group in df.group_by("game_pk"):
+    for i, group in collected_df.group_by("game_pk"):
         game_pk = group.select(pl.col("game_pk").first()).item()
         available_games[game_pk] = {}
         available_games[game_pk]["home_team"] = group.select(
@@ -92,15 +100,19 @@ def get_statcast_single_game_exit_velocity(
 
     soup = BeautifulSoup(ev_table_html, "html.parser")
     table = soup.find("table")
+    assert table is not None, "Could not find table"
 
     # extract headers
-    thead = table.thead
+    thead = table.find("thead")
+    assert thead is not None, "Could not find table header"
     headers_tr = thead.find("tr", {"class": "tr-component-row"})
+    assert headers_tr is not None, "Could not find header row"
     headers = [th.text for th in headers_tr.find_all("th") if th.text != ""]
 
     # extract data
-    tbody = table.tbody
-    row_data = {header: [] for header in headers}
+    tbody = table.find("tbody")
+    assert tbody is not None, "Could not find table body"
+    row_data: Dict[str, list[str]] = {header: [] for header in headers}
 
     for tr in tbody.find_all("tr"):
         cells = tr.find_all("td")
@@ -127,8 +139,9 @@ def get_statcast_single_game_exit_velocity(
                             cell_text = cell.get_text(strip=True)
                     else:
                         cell_text = cell.get_text(strip=True)
-                        if cell.find("a"):
-                            cell_text = cell.find("a").get_text(strip=True)
+                        link = cell.find("a")
+                        if link:
+                            cell_text = link.get_text(strip=True)
 
                     header = headers[header_index]
                     cell_data[header] = cell_text
@@ -196,16 +209,20 @@ def get_statcast_single_game_pitch_velocity(
 
     soup = BeautifulSoup(pv_table_html, "html.parser")
     table = soup.find("table")
+    assert table is not None, "Could not find table"
 
     # extract headers
-    thead = table.thead
+    thead = table.find("thead")
+    assert thead is not None, "Could not find table header"
     headers_tr = thead.find("tr", {"class": "tr-component-row"})
+    assert headers_tr is not None, "Could not find header row"
     headers = [th.text for th in headers_tr.find_all("th") if th.text != ""]
     headers = headers[:-1]
 
     # extract data
-    tbody = table.tbody
-    row_data = {header: [] for header in headers}
+    tbody = table.find("tbody")
+    assert tbody is not None, "Could not find table body"
+    row_data: Dict[str, list[str]] = {header: [] for header in headers}
 
     for tr in tbody.find_all("tr"):
         cells = tr.find_all("td")
@@ -234,8 +251,9 @@ def get_statcast_single_game_pitch_velocity(
                         continue
                     else:
                         cell_text = cell.get_text(strip=True)
-                        if cell.find("a"):
-                            cell_text = cell.find("a").get_text(strip=True)
+                        link = cell.find("a")
+                        if link:
+                            cell_text = link.get_text(strip=True)
 
                     header = headers[header_index]
                     cell_data[header] = cell_text
@@ -303,13 +321,17 @@ def get_statcast_single_game_wp_table(
 
     soup = BeautifulSoup(wp_table_html, "html.parser")
     table = soup.find("table")
+    assert table is not None, "Could not find table"
 
-    thead = table.thead
+    thead = table.find("thead")
+    assert thead is not None, "Could not find table header"
     headers_tr = thead.find("tr", {"class": "tr-component-row"})
+    assert headers_tr is not None, "Could not find header row"
     headers = [th.text for th in headers_tr.find_all("th") if th.text != ""]
 
-    tbody = table.tbody
-    row_data = {header: [] for header in headers}
+    tbody = table.find("tbody")
+    assert tbody is not None, "Could not find table body"
+    row_data: Dict[str, list[str]] = {header: [] for header in headers}
 
     for tr in tbody.find_all("tr"):
         cells = tr.find_all("td")
@@ -336,8 +358,9 @@ def get_statcast_single_game_wp_table(
                             cell_text = cell.get_text(strip=True)
                     else:
                         cell_text = cell.get_text(strip=True)
-                        if cell.find("a"):
-                            cell_text = cell.find("a").get_text(strip=True)
+                        link = cell.find("a")
+                        if link:
+                            cell_text = link.get_text(strip=True)
 
                     header = headers[header_index]
                     cell_data[header] = cell_text
