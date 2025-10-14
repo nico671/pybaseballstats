@@ -1,8 +1,5 @@
 import polars as pl
 from bs4 import BeautifulSoup
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import WebDriverWait
 
 from pybaseballstats.consts.bref_consts import (
     BREF_SINGLE_PLAYER_SABERMETRIC_FIELDING_URL,
@@ -38,24 +35,22 @@ def single_player_standard_batting(player_code: str) -> pl.DataFrame:
         pl.DataFrame: A Polars dataframe containing the player's standard batting statistics.
     """
     last_name_initial = player_code[0].lower()
-    with session.get_driver() as driver:
-        driver.get(
-            BREF_SINGLE_PLAYER_URL.format(
-                initial=last_name_initial, player_code=player_code
-            )
+    with session.get_page() as page:
+        url = BREF_SINGLE_PLAYER_URL.format(
+            initial=last_name_initial, player_code=player_code
         )
-        wait = WebDriverWait(driver, 15)
-        standard_stats_table = wait.until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, "#content"))
-        )
-        html = standard_stats_table.get_attribute("outerHTML")
-        assert html is not None, "Failed to retrieve HTML content"
-        soup = BeautifulSoup(html, "html.parser")
-    assert soup is not None, "Failed to retrieve page content"
+        page.goto(url, wait_until="domcontentloaded")
+        # Wait for the specific div to be present
+        page.wait_for_selector("#all_players_standard_batting", timeout=15000)
+
+        # Get page content
+        content = page.content()
+        soup = BeautifulSoup(content, "html.parser")
     standard_stats_table_div = soup.find("div", {"id": "all_players_standard_batting"})
     assert standard_stats_table_div is not None, (
         "Failed to retrieve standard stats table"
     )
+
     standard_stats_table_actual = standard_stats_table_div.find("table")
     standard_stats_df = pl.DataFrame(_extract_table(standard_stats_table_actual))
     standard_stats_df = standard_stats_df.with_columns(
@@ -119,19 +114,16 @@ def single_player_value_batting(player_code: str) -> pl.DataFrame:
         pl.DataFrame: A Polars dataframe containing the player's value batting statistics.
     """
     last_name_initial = player_code[0].lower()
-    with session.get_driver() as driver:
-        driver.get(
-            BREF_SINGLE_PLAYER_URL.format(
-                initial=last_name_initial, player_code=player_code
-            )
+    with session.get_page() as page:
+        url = BREF_SINGLE_PLAYER_URL.format(
+            initial=last_name_initial, player_code=player_code
         )
-        wait = WebDriverWait(driver, 15)
-        standard_stats_table = wait.until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, "#content"))
-        )
-        html = standard_stats_table.get_attribute("outerHTML")
-        assert html is not None, "Failed to retrieve HTML content"
-        soup = BeautifulSoup(html, "html.parser")
+        page.goto(url, wait_until="domcontentloaded")
+        page.wait_for_selector("#all_players_value_batting", timeout=15000)
+
+        # Get page content
+        content = page.content()
+        soup = BeautifulSoup(content, "html.parser")
     value_batting_table = soup.find("div", {"id": "all_players_value_batting"})
     assert value_batting_table is not None, "Failed to retrieve value batting table"
     value_batting_table = value_batting_table.find("table")
@@ -139,7 +131,6 @@ def single_player_value_batting(player_code: str) -> pl.DataFrame:
     value_batting_df = value_batting_df.select(
         pl.all().name.map(lambda col_name: col_name.replace("b_", ""))
     )
-
     value_batting_df = value_batting_df.select(
         pl.all().name.map(lambda col_name: col_name.replace("_abbr", ""))
     )
@@ -186,66 +177,53 @@ def single_player_advanced_batting(player_code: str) -> pl.DataFrame:
         pl.DataFrame: A Polars dataframe containing the player's advanced batting statistics.
     """
     last_name_initial = player_code[0].lower()
-    with session.get_driver() as driver:
-        driver.get(
-            BREF_SINGLE_PLAYER_URL.format(
-                initial=last_name_initial, player_code=player_code
-            )
+    with session.get_page() as page:
+        url = BREF_SINGLE_PLAYER_URL.format(
+            initial=last_name_initial, player_code=player_code
         )
-        wait = WebDriverWait(driver, 15)
-        standard_stats_table = wait.until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, "#content"))
-        )
-        html = standard_stats_table.get_attribute("outerHTML")
-        assert html is not None, "Failed to retrieve HTML content"
-        soup = BeautifulSoup(html, "html.parser")
+        page.goto(url, wait_until="domcontentloaded")
+        page.wait_for_selector("#all_players_advanced_batting", timeout=15000)
+
+        # Get page content
+        content = page.content()
+    soup = BeautifulSoup(content, "html.parser")
     advanced_batting_table = soup.find("div", {"id": "all_players_advanced_batting"})
     assert advanced_batting_table is not None, (
         "Failed to retrieve advanced batting table"
     )
     advanced_batting_table = advanced_batting_table.find("table")
     advanced_batting_df = pl.DataFrame(_extract_table(advanced_batting_table))
-    advanced_batting_df = advanced_batting_df.fill_null("")
     advanced_batting_df = advanced_batting_df.select(
         pl.all().name.map(lambda col_name: col_name.replace("b_", ""))
     )
+
     advanced_batting_df = advanced_batting_df.select(
         pl.all().name.map(lambda col_name: col_name.replace("_abbr", ""))
-    )
-    advanced_batting_df = advanced_batting_df.with_columns(
-        pl.col(pl.String).str.replace("%", "")
     )
     advanced_batting_df = advanced_batting_df.with_columns(
         pl.col(
             [
                 "age",
                 "pa",
-                "rbat_plus",
+                "runs_batting",
+                "runs_baserunning",
+                "runs_fielding",
+                "runs_double_plays",
+                "runs_position",
+                "raa",
+                "runs_replacement",
+                "rar",
+                "rar_off",
             ]
         ).cast(pl.Int32),
         pl.col(
             [
-                "stolen_base_perc",
-                "extra_bases_taken_perc",
-                "run_scoring_perc",
-                "baseout_runs",
-                "cwpa_bat",
-                "wpa_bat",
-                "roba",
-                "batting_avg_bip",
-                "iso_slugging",
-                "home_run_perc",
-                "strikeout_perc",
-                "base_on_balls_perc",
-                "avg_exit_velo",
-                "hard_hit_perc",
-                "ld_perc",
-                "fperc",
-                "gperc",
-                "gfratio",
-                "pull_perc",
-                "center_perc",
-                "oppo_perc",
+                "waa",
+                "war",
+                "waa_win_perc",
+                "waa_win_perc_162",
+                "war_off",
+                "war_def",
             ]
         ).cast(pl.Float32),
     )
@@ -265,17 +243,14 @@ def single_player_standard_fielding(player_code: str) -> pl.DataFrame:
         pl.DataFrame: A Polars dataframe containing the player's standard fielding statistics.
     """
     last_name_initial = player_code[0].lower()
-    with session.get_driver() as driver:
-        driver.get(
+    with session.get_page() as page:
+        page.goto(
             BREF_SINGLE_PLAYER_URL.format(
                 initial=last_name_initial, player_code=player_code
             )
         )
-        wait = WebDriverWait(driver, 15)
-        standard_stats_table = wait.until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, "#content"))
-        )
-        html = standard_stats_table.get_attribute("outerHTML")
+        page.wait_for_selector("#content", timeout=15000)
+        html = page.content()
         assert html is not None, "Failed to retrieve HTML content"
         soup = BeautifulSoup(html, "html.parser")
     table_wrapper = soup.find("div", {"id": "div_players_standard_fielding"})
@@ -333,17 +308,14 @@ def single_player_sabermetric_fielding(player_code: str) -> pl.DataFrame:
         pl.DataFrame: A Polars dataframe containing the player's advanced fielding statistics.
     """
     last_name_initial = player_code[0].lower()
-    with session.get_driver() as driver:
-        driver.get(
+    with session.get_page() as page:
+        page.goto(
             BREF_SINGLE_PLAYER_SABERMETRIC_FIELDING_URL.format(
                 initial=last_name_initial, player_code=player_code
             )
         )
-        wait = WebDriverWait(driver, 15)
-        standard_stats_table = wait.until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, "#content"))
-        )
-        html = standard_stats_table.get_attribute("outerHTML")
+        page.wait_for_selector("#content", timeout=15000)
+        html = page.content()
         assert html is not None, "Failed to retrieve HTML content"
         soup = BeautifulSoup(html, "html.parser")
     sabermetric_fielding_table = soup.find("div", {"id": "div_advanced_fielding"})
@@ -362,43 +334,6 @@ def single_player_sabermetric_fielding(player_code: str) -> pl.DataFrame:
     return sabermetric_fielding_df
 
 
-# def single_player_salaries(player_code: str) -> pl.DataFrame:
-#     """Returns a DataFrame of a player's salary history.
-
-#     Args:
-#         player_code (str): The player's code from Baseball Reference. This can be found using the pybaseballstats.retrosheet.player_lookup function.
-
-#     Returns:
-#         pl.DataFrame: A Polars DataFrame containing the player's salary history.
-#     """
-#     last_name_initial = player_code[0].lower()
-#     with session.get_driver() as driver:
-#         driver.get(
-#             BREF_SINGLE_PLAYER_URL.format(
-#                 initial=last_name_initial, player_code=player_code
-#             )
-#         )
-#         wait = WebDriverWait(driver, 15)
-#         salaries_table = wait.until(
-#             EC.presence_of_element_located((By.ID, "all_br-salaries"))
-#         )
-#         html = salaries_table.get_attribute("outerHTML")
-#         assert html is not None, "Failed to retrieve HTML content"
-#         soup = BeautifulSoup(html, "html.parser")
-#     salaries_table_actual = soup.find("table")
-#     salaries_df = pl.DataFrame(_extract_table(salaries_table_actual))
-#     salaries_df = salaries_df.with_columns(
-#         pl.col("Salary")
-#         .str.replace("\\$", "")
-#         .str.replace(",", "")
-#         .str.replace("\\*", "")
-#         .cast(pl.Int32),
-#     )
-
-#     salaries_df = salaries_df.rename({"Salary": "salary ($)"})
-#     return salaries_df
-
-
 def single_player_standard_pitching(player_code: str) -> pl.DataFrame:
     """Returns a DataFrame of a player's standard pitching statistics.
 
@@ -409,17 +344,14 @@ def single_player_standard_pitching(player_code: str) -> pl.DataFrame:
         pl.DataFrame: A Polars DataFrame containing the player's standard pitching statistics.
     """
     last_name_initial = player_code[0].lower()
-    with session.get_driver() as driver:
-        driver.get(
+    with session.get_page() as page:
+        page.goto(
             BREF_SINGLE_PLAYER_URL.format(
                 initial=last_name_initial, player_code=player_code
             )
         )
-        wait = WebDriverWait(driver, 15)
-        standard_pitching_table_wrapper = wait.until(
-            EC.presence_of_element_located((By.ID, "div_players_standard_pitching"))
-        )
-        html = standard_pitching_table_wrapper.get_attribute("outerHTML")
+        page.wait_for_selector("#content", timeout=15000)
+        html = page.content()
         assert html is not None, "Failed to retrieve HTML content"
         soup = BeautifulSoup(html, "html.parser")
     standard_pitching_table = soup.find("table")
@@ -485,17 +417,17 @@ def single_player_value_pitching(player_code: str) -> pl.DataFrame:
         pl.DataFrame : A Polars DataFrame containing the player's value pitching statistics.
     """
     last_name_initial = player_code[0].lower()
-    with session.get_driver() as driver:
-        driver.get(
+    with session.get_page() as page:
+        page.goto(
             BREF_SINGLE_PLAYER_URL.format(
                 initial=last_name_initial, player_code=player_code
             )
         )
-        wait = WebDriverWait(driver, 15)
-        value_pitching_table_wrapper = wait.until(
-            EC.presence_of_element_located((By.ID, "div_players_value_pitching"))
+        page.wait_for_selector("#content", timeout=15000)
+        value_pitching_table_wrapper = page.query_selector(
+            "#div_players_value_pitching"
         )
-        html = value_pitching_table_wrapper.get_attribute("outerHTML")
+        html = value_pitching_table_wrapper.inner_html()
         assert html is not None, "Failed to retrieve HTML content"
         soup = BeautifulSoup(html, "html.parser")
     value_pitching_table = soup.find("table")
@@ -538,17 +470,17 @@ def single_player_advanced_pitching(player_code: str) -> pl.DataFrame:
         pl.DataFrame: A polars DataFrame containing the player's advanced pitching statistics.
     """
     last_name_initial = player_code[0].lower()
-    with session.get_driver() as driver:
-        driver.get(
+    with session.get_page() as page:
+        page.goto(
             BREF_SINGLE_PLAYER_URL.format(
                 initial=last_name_initial, player_code=player_code
             )
         )
-        wait = WebDriverWait(driver, 15)
-        advanced_pitching_table_wrapper = wait.until(
-            EC.presence_of_element_located((By.ID, "div_players_advanced_pitching"))
+        page.wait_for_selector("#content", timeout=15000)
+        advanced_pitching_table_wrapper = page.query_selector(
+            "#div_players_advanced_pitching"
         )
-        html = advanced_pitching_table_wrapper.get_attribute("outerHTML")
+        html = advanced_pitching_table_wrapper.inner_html()
         assert html is not None, "Failed to retrieve HTML content"
         soup = BeautifulSoup(html, "html.parser")
     advanced_pitching_table = soup.find("table")

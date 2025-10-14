@@ -1,13 +1,13 @@
+import random
 import time
 from collections import deque
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from threading import Lock
-from typing import Any, Optional
+from typing import Any
 
 from curl_cffi import requests
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
+from playwright.sync_api import sync_playwright
 
 
 # https://stackoverflow.com/questions/31875/is-there-a-simple-elegant-way-to-define-singletons
@@ -57,78 +57,119 @@ class BREFSession:
     A singleton class to manage both requests and Selenium driver instances with rate limiting.
     """
 
-    def __init__(self, max_req_per_minute=10) -> None:
+    def __init__(
+        self,
+        max_req_per_minute=5,  # requests allowed per minute, technically 10 is the maximum but being conservative
+    ) -> None:
         self.max_req_per_minute: int = max_req_per_minute
         self.request_timestamps: deque[datetime] = deque(maxlen=max_req_per_minute)
         self.session: requests.Session = requests.Session()
-        self._driver: Optional[webdriver.Chrome] = None
+
         self._lock = Lock()
+        # Set common headers to appear more browser-like
+        self.session.headers.update(
+            {
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+                "Accept-Language": "en-US,en;q=0.5",
+                "Accept-Encoding": "gzip, deflate",
+                "Connection": "keep-alive",
+                "Upgrade-Insecure-Requests": "1",
+            }
+        )
 
     def _rate_limit(self) -> None:
         """Block until it's safe to make another request."""
         with self._lock:
             current_time = datetime.now()
-            window_start = current_time - timedelta(seconds=60)
+            window_start = current_time - timedelta(minutes=1)
 
-            # Remove old timestamps
+            # loop to remove timestamps older than 1 minute
             while self.request_timestamps and self.request_timestamps[0] < window_start:
                 self.request_timestamps.popleft()
 
             if len(self.request_timestamps) >= self.max_req_per_minute:
-                oldest = self.request_timestamps[0]
-                wait_time = 60 - (current_time - oldest).total_seconds()
+                oldest_request_time = self.request_timestamps[0]
+                wait_time = 60 - (current_time - oldest_request_time).total_seconds()
+                wait_time = max(wait_time, 0)
                 if wait_time > 0:
                     print(f"Rate limit reached, sleeping {wait_time:.2f}s")
-                    time.sleep(wait_time)
+                    time.sleep(
+                        wait_time + random.uniform(0.5, 1.5)
+                    )  # add a bit of jitter
+                # After sleeping, update current_time and clean up old timestamps again
 
-                # After sleeping, clean again and continue
                 current_time = datetime.now()
-                window_start = current_time - timedelta(seconds=60)
+                window_start = current_time - timedelta(minutes=1)
                 while (
                     self.request_timestamps
                     and self.request_timestamps[0] < window_start
                 ):
                     self.request_timestamps.popleft()
-
-            # Record this request
-            self.request_timestamps.append(datetime.now())
+            self.request_timestamps.append(current_time)
 
     def get(self, url: str, **kwargs: Any) -> requests.Response | None:
         """Make an HTTP request with rate limiting."""
+        # call rate limit before making the request
         self._rate_limit()
         try:
+            # Add Referer header if not present
+            if "headers" not in kwargs:
+                kwargs["headers"] = {}
+            if "Referer" not in kwargs["headers"]:
+                kwargs["headers"]["Referer"] = "https://www.baseball-reference.com/"
             resp = self.session.get(url, impersonate="chrome", **kwargs)
             resp.raise_for_status()
             return resp
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 429:  # error for too many requests
+                print(
+                    f"Received 429 Too Many Requests for {url}. Consider increasing the delay between requests."
+                )
         except Exception as e:
             print(f"Error fetching {url}: {e}")
         return None
 
-    def _create_driver(self) -> webdriver.Chrome:
-        """Create a new Chrome driver with default options."""
-        options = Options()
-        options.add_argument("--headless")
-        options.add_argument("--disable-gpu")
-        options.add_argument("--no-sandbox")
-        options.add_argument("--disable-dev-shm-usage")
-        options.add_argument(
-            "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36"
-        )
-        return webdriver.Chrome(options=options)
-
     @contextmanager
-    def get_driver(self):
-        """Context manager for getting a driver with rate limiting.
-        Creates a new driver each time to prevent memory leaks."""
+    def get_page(self):
+        """Context manager for Playwright page with rate limiting."""
         self._rate_limit()
-        driver = self._create_driver()
+
+        playwright = sync_playwright().start()
+        browser = None
+        context = None
+        page = None
+
         try:
-            yield driver
+            browser = playwright.chromium.launch(
+                headless=True,
+            )
+
+            context = browser.new_context(
+                user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            )
+
+            page = context.new_page()
+            page.set_default_navigation_timeout(30000)
+            page.set_default_timeout(20000)
+
+            yield page
+
         finally:
-            driver.quit()
+            # Always cleanup in reverse order
+            if page:
+                page.close()
+            if context:
+                context.close()
+            if browser:
+                browser.close()
+            playwright.stop()
 
 
 def _extract_table(table):
+    """Extracts data from an HTML table into a dictionary of lists.
+
+    Works specifically for Baseball Reference Tables
+    """
     trs = table.tbody.find_all("tr")
     row_data = {}
     for tr in trs:

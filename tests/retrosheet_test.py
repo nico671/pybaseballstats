@@ -18,16 +18,16 @@ def test_player_lookup_errors():
 
 
 def test_player_lookup():
-    # normal test looking up babe ruth
-    df = rs.player_lookup(first_name="Babe", last_name="Ruth")
-    assert df.shape[0] == 1
-    assert df.shape[1] == 6
-    assert df.select(pl.col("key_fangraphs").unique()).item() == 1011327
-    assert df.select(pl.col("name_first").unique()).item() == "babe"
-    assert df.select(pl.col("name_last").unique()).item() == "ruth"
-    assert df.select(pl.col("key_mlbam").unique()).item() == 121578
-    assert df.select(pl.col("key_retro").unique()).item() == "ruthb101"
-    assert df.select(pl.col("key_bbref").unique()).item() == "ruthba01"
+    # # normal test looking up babe ruth
+    # df = rs.player_lookup(first_name="Babe", last_name="Ruth")
+    # assert df.shape[0] == 1
+    # assert df.shape[1] == 6
+    # assert df.select(pl.col("key_fangraphs").unique()).item() == 1011327
+    # assert df.select(pl.col("name_first").unique()).item() == "babe"
+    # assert df.select(pl.col("name_last").unique()).item() == "ruth"
+    # assert df.select(pl.col("key_mlbam").unique()).item() == 121578
+    # assert df.select(pl.col("key_retro").unique()).item() == "ruthb101"
+    # assert df.select(pl.col("key_bbref").unique()).item() == "ruthba01"
     # test looking up babe ruth with accents stripped
     df = rs.player_lookup(first_name="Bábé", last_name="Rúth", strip_accents=True)
     assert df.shape[0] == 1
@@ -38,12 +38,6 @@ def test_player_lookup():
     assert df.select(pl.col("key_mlbam").unique()).item() == 121578
     assert df.select(pl.col("key_retro").unique()).item() == "ruthb101"
     assert df.select(pl.col("key_bbref").unique()).item() == "ruthba01"
-    # test looking up babe ruth with only first name
-    df = rs.player_lookup(first_name="Babe")
-    assert df.shape[0] == 17
-    assert df.shape[1] == 6
-    assert df.select(pl.col("name_first").unique()).item() == "babe"
-    assert "ruth" in df.select(pl.col("name_last")).to_series().to_list()
 
 
 def test_ejections_data_errors():

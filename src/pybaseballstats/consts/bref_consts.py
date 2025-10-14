@@ -40,14 +40,17 @@ class BREFTeams(Enum):
 
 
 # urls
-# DRAFT URLS
+# bref_draft URLS
 BREF_DRAFT_YEAR_ROUND_URL = "https://www.baseball-reference.com/draft/index.fcgi?year_ID={year}&draft_round={round}&draft_type=junreg&query_type=year_round&from_type_4y=0&from_type_jc=0&from_type_hs=0&from_type_unk=0"
 TEAM_YEAR_DRAFT_URL = "https://www.baseball-reference.com/draft/index.fcgi?team_ID={team}&year_ID={year}&draft_type=junreg&query_type=franch_year&from_type_hs=0&from_type_4y=0&from_type_unk=0&from_type_jc=0"
 
-# MANAGER URLS
-BREF_MANAGERS_GENERAL_URL = "https://www.baseball-reference.com/leagues/majors/{year}-managers.shtml#manager_record"
+# bref_manager URLS
+BREF_MANAGERS_GENERAL_URL = (
+    "https://www.baseball-reference.com/leagues/majors/{year}-managers.shtml"
+)
 BREF_MANAGER_TENDENCIES_URL = "https://www.baseball-reference.com/leagues/majors/{year}-managers.shtml#manager_tendencies"
-# SINGLE PLAYER URLS
+
+# bref_single_player URLS
 BREF_SINGLE_PLAYER_URL = (
     "https://www.baseball-reference.com/players/{initial}/{player_code}.shtml"
 )
@@ -55,9 +58,6 @@ BREF_SINGLE_PLAYER_SABERMETRIC_FIELDING_URL = (
     "https://www.baseball-reference.com/players/{initial}/{player_code}-field.shtml"
 )
 
-# TEAM URLS
-BREF_TEAM_BATTING_URL = (
-    "https://www.baseball-reference.com/teams/{team_code}/{year}-batting.shtml"
-)
+# bref_teams URLS
 
-BREF_TEAM_RECORD_URL = "https://www.baseball-reference.com/teams/{team_code}/"
+BREF_TEAMS_GENERAL_URL = "https://www.baseball-reference.com/teams/{team_code}/"

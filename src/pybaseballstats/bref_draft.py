@@ -45,7 +45,7 @@ def draft_order_by_year_round(year: int, draft_round: int) -> pl.DataFrame:
 
 
 def franchise_draft_order(team: BREFTeams, year: int) -> pl.DataFrame:
-    """Returns a Dataframe of draft data for a given team and year. NOTE: This function uses Selenium to scrape the data, so it may be slow.
+    """Returns a Dataframe of draft data for a given team and year. NOTE: This function uses requests to scrape the data.
 
     Args:
         team (str): Which team to pull draft data from

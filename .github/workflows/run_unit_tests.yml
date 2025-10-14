@@ -14,37 +14,64 @@ jobs:
         with:
           fetch-depth: 0 # needed to push branches
 
-      # Set up Chrome and ChromeDriver for Selenium tests
+      # Check if we should use pre-generated coverage data
+      - name: Check for pre-generated coverage
+        id: check-coverage
+        run: |
+          if [ -f .github/coverage/coverage.json ]; then
+            echo "Using pre-generated coverage data"
+            echo "use_local_coverage=true" >> $GITHUB_OUTPUT
+          else
+            echo "No pre-generated coverage data found, will run tests"
+            echo "use_local_coverage=false" >> $GITHUB_OUTPUT
+          fi
+
+      # Set up Chrome and ChromeDriver for Selenium tests (only if running tests)
       - name: Install Chrome
+        if: steps.check-coverage.outputs.use_local_coverage == 'false'
         run: |
           sudo apt-get update
           sudo apt-get install -y google-chrome-stable
 
       - name: Install ChromeDriver
+        if: steps.check-coverage.outputs.use_local_coverage == 'false'
         uses: nanasess/setup-chromedriver@master
 
       - name: Start ChromeDriver
+        if: steps.check-coverage.outputs.use_local_coverage == 'false'
         run: |
           export DISPLAY=:99
           sudo Xvfb -ac :99 -screen 0 1280x1024x24 > /dev/null 2>&1 &
           chromedriver --url-base=/wd/hub &
-      # set up python environment using uv
+
+      # set up python environment using uv (only if running tests)
       - name: Install uv
+        if: steps.check-coverage.outputs.use_local_coverage == 'false'
         uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
 
       - name: Set up Python
+        if: steps.check-coverage.outputs.use_local_coverage == 'false'
         run: uv python install
 
       - name: Install dependencies
+        if: steps.check-coverage.outputs.use_local_coverage == 'false'
         run: uv sync --locked --all-extras --dev
-      # run tests with coverage
+
+      # run tests with coverage (only if not using local coverage)
       - name: Run tests
+        if: steps.check-coverage.outputs.use_local_coverage == 'false'
         run: uv run coverage run --source=src/pybaseballstats -m pytest tests/
 
       - name: Generate coverage report
+        if: steps.check-coverage.outputs.use_local_coverage == 'false'
         run: uv run coverage json -o coverage.json
+
+      # Copy pre-generated coverage data if using local coverage
+      - name: Use pre-generated coverage data
+        if: steps.check-coverage.outputs.use_local_coverage == 'true'
+        run: cp .github/coverage/coverage.json ./coverage.json
 
       - name: Convert coverage.json to badge-compatible format
         if: github.ref == 'refs/heads/main'

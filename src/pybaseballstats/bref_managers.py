@@ -1,12 +1,8 @@
 import polars as pl
 from bs4 import BeautifulSoup
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import WebDriverWait
 
 from pybaseballstats.consts.bref_consts import (
     BREF_MANAGER_TENDENCIES_URL,
-    BREF_MANAGERS_GENERAL_URL,
 )
 from pybaseballstats.utils.bref_utils import (
     BREFSession,
@@ -18,7 +14,7 @@ __all__ = ["managers_basic_data", "managers_tendencies_data"]
 
 
 def managers_basic_data(year: int) -> pl.DataFrame:
-    """Returns a DataFrame of manager data for a given year. NOTE: This function uses Selenium to scrape the data, so it may be slow.
+    """Returns a DataFrame of manager data for a given year. NOTE: This function uses Playwright to scrape the data, so it may be slow.
 
     Args:
         year (int): Which year to pull manager data from
@@ -37,15 +33,26 @@ def managers_basic_data(year: int) -> pl.DataFrame:
         raise TypeError("Year must be an integer")
     if year < 1871:
         raise ValueError("Year must be greater than 1871")
-    with session.get_driver() as driver:
-        driver.get(BREF_MANAGERS_GENERAL_URL.format(year=year))
-        wait = WebDriverWait(driver, 5)
-        draft_table = wait.until(
-            EC.presence_of_element_located((By.ID, "div_manager_record"))
+
+    with session.get_page() as page:
+        # Remove the fragment from URL - it's causing navigation issues
+        base_url = (
+            f"https://www.baseball-reference.com/leagues/majors/{year}-managers.shtml"
         )
-        html = draft_table.get_attribute("outerHTML")
-        assert html is not None, "Failed to retrieve HTML content"
+        page.goto(base_url, wait_until="domcontentloaded")
+
+        # Wait for the table to be populated by JavaScript
+        page.wait_for_function(
+            """() => {
+                const table = document.querySelector('#manager_record');
+                return table && table.rows && table.rows.length > 1;
+            }""",
+            timeout=15000,
+        )
+
+        html = page.locator("#div_manager_record").inner_html()
         soup = BeautifulSoup(html, "html.parser")
+
     table = soup.find("table", {"id": "manager_record"})
     df = pl.DataFrame(_extract_table(table))
     df = df.select(pl.all().replace("", "0"))
@@ -68,15 +75,15 @@ def managers_basic_data(year: int) -> pl.DataFrame:
                 ]
             ).cast(pl.Int32),
             pl.col(["win_loss_perc", "finish", "win_loss_perc_post"]).cast(pl.Float32),
-            pl.col("W_post").cast(pl.Int32).alias("postseason_wins"),
-            pl.col("L_post").cast(pl.Int32).alias("postseason_losses"),
+            pl.col("W_post").cast(pl.Int32).fill_null(0).alias("postseason_wins"),
+            pl.col("L_post").cast(pl.Int32).fill_null(0).alias("postseason_losses"),
         ]
     ).drop(["W_post", "L_post"])
     return df
 
 
 def managers_tendencies_data(year: int) -> pl.DataFrame:
-    """Returns a DataFrame of manager tendencies data for a given year. NOTE: This function uses Selenium to scrape the data, so it may be slow.
+    """Returns a DataFrame of manager tendencies data for a given year. NOTE: This function uses Playwright to scrape the data, so it may be slow.
 
     Args:
         year (int): Which year to pull manager tendencies data from
@@ -97,15 +104,8 @@ def managers_tendencies_data(year: int) -> pl.DataFrame:
     if year < 1871:
         raise ValueError("Year must be greater than 1871")
 
-    with session.get_driver() as driver:
-        driver.get(BREF_MANAGER_TENDENCIES_URL.format(year=year))
-        wait = WebDriverWait(driver, 5)
-        draft_table = wait.until(
-            EC.presence_of_element_located((By.ID, "div_manager_tendencies"))
-        )
-        html = draft_table.get_attribute("outerHTML")
-        assert html is not None, "Failed to retrieve HTML content"
-        soup = BeautifulSoup(html, "html.parser")
+    resp = session.get(BREF_MANAGER_TENDENCIES_URL.format(year=year))
+    soup = BeautifulSoup(resp.content, "html.parser")
     table = soup.find("table", {"id": "manager_tendencies"})
     df = pl.DataFrame(_extract_table(table))
     df = df.select(pl.all().str.replace("", "0").str.replace("%", ""))

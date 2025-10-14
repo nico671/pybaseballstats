@@ -1,3 +1,5 @@
+from functools import lru_cache
+
 import polars as pl
 import requests
 
@@ -7,6 +9,7 @@ from pybaseballstats.consts.retrosheet_consts import (
 )
 
 
+@lru_cache(maxsize=1)
 def _get_people_data() -> pl.DataFrame:
     df_list = []
     for i in range(0, 10):

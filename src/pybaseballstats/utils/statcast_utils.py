@@ -6,9 +6,8 @@ from typing import Iterator, Tuple
 import aiohttp
 import dateparser
 import polars as pl
+from playwright.sync_api import sync_playwright
 from rich.progress import MofNCompleteColumn, Progress, SpinnerColumn, TimeElapsedColumn
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
 
 from pybaseballstats.consts.statcast_consts import (
     STATCAST_YEAR_RANGES,
@@ -17,20 +16,64 @@ from pybaseballstats.consts.statcast_consts import (
 
 # region statcast_single_game helpers
 @contextmanager
-def get_driver():
-    """Provides a WebDriver instance that automatically quits on exit."""
-    options = Options()
-    options.add_argument("--headless")
-    options.add_argument("--disable-gpu")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-
-    driver = webdriver.Chrome(options=options)
+def get_page():
+    """Context manager for Playwright page without rate limiting for statcast."""
+    # Always create a fresh browser/context for each call
+    playwright = sync_playwright().start()
+    browser = None
+    context = None
+    page = None
 
     try:
-        yield driver  # Hands control back to the calling function
+        browser = playwright.chromium.launch(
+            headless=True,
+            args=[
+                "--no-sandbox",
+                "--disable-dev-shm-usage",
+                "--disable-blink-features=AutomationControlled",
+                "--disable-web-security",
+                "--disable-features=VizDisplayCompositor",
+                "--disable-background-networking",
+                "--disable-sync",
+                "--disable-translate",
+                "--disable-logging",
+                "--memory-pressure-off",
+            ],
+        )
+
+        context = browser.new_context(
+            user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            viewport={"width": 1920, "height": 1080},
+        )
+
+        # Block unnecessary resources for faster loading
+        context.route(
+            "**/*.{png,jpg,jpeg,gif,svg,woff,woff2,ttf,css}",
+            lambda route: route.abort(),
+        )
+
+        page = context.new_page()
+        page.set_default_navigation_timeout(30000)
+        page.set_default_timeout(15000)
+
+        yield page
+
     finally:
-        driver.quit()  # Ensures WebDriver is always closed
+        # Always cleanup in reverse order
+        if page:
+            page.close()
+        if context:
+            context.close()
+        if browser:
+            browser.close()
+        playwright.stop()
+
+
+@contextmanager
+def get_driver():
+    """Legacy function that now uses Playwright instead of Selenium."""
+    with get_page() as page:
+        yield page
 
 
 # endregion statcast_single_game helpers

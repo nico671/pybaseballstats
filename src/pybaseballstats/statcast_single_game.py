@@ -5,16 +5,13 @@ import pandas as pd
 import polars as pl
 import requests
 from bs4 import BeautifulSoup
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import WebDriverWait
 
 from pybaseballstats.consts.statcast_consts import (
     STATCAST_SINGLE_GAME_EV_PV_WP_URL,
     STATCAST_SINGLE_GAME_URL,
 )
 from pybaseballstats.statcast import statcast_date_range_pitch_by_pitch
-from pybaseballstats.utils.statcast_utils import get_driver
+from pybaseballstats.utils.statcast_utils import get_page
 
 # TODO: usage docs
 
@@ -81,22 +78,17 @@ def get_statcast_single_game_exit_velocity(
 ) -> pl.DataFrame | pd.DataFrame:
     game_date_str = _handle_single_game_date(game_date)
 
-    with get_driver() as driver:
+    with get_page() as page:
         # Use the URL from the previous cell
-        driver.get(
+        page.goto(
             STATCAST_SINGLE_GAME_EV_PV_WP_URL.format(
                 game_date=game_date_str, game_pk=game_pk, stat_type="exitVelocity"
             )
         )
 
         # Wait for the chart to load
-        wait = WebDriverWait(driver, 10)
-        ev_table = wait.until(
-            EC.presence_of_element_located(
-                (By.ID, "exitVelocityTable_{game_pk}".format(game_pk=game_pk))
-            )
-        )
-        ev_table_html = ev_table.get_attribute("outerHTML")
+        page.wait_for_selector(f"#exitVelocityTable_{game_pk}", timeout=10000)
+        ev_table_html = page.locator(f"#exitVelocityTable_{game_pk}").inner_html()
 
     soup = BeautifulSoup(ev_table_html, "html.parser")
     table = soup.find("table")
@@ -191,21 +183,17 @@ def get_statcast_single_game_pitch_velocity(
     return_pandas: bool = False,
 ) -> pl.DataFrame | pd.DataFrame:
     game_date_str = _handle_single_game_date(game_date)
-    with get_driver() as driver:
-        driver.get(
+    with get_page() as page:
+        page.goto(
             STATCAST_SINGLE_GAME_EV_PV_WP_URL.format(
                 game_date=game_date_str, game_pk=game_pk, stat_type="pitchVelocity"
             )
         )
 
         # Wait for the chart to load
-        wait = WebDriverWait(driver, 10)
-        pv_table = wait.until(
-            EC.presence_of_element_located(
-                (By.ID, "pitchVelocity_{game_pk}".format(game_pk=game_pk))
-            )
-        )
-        pv_table_html = pv_table.get_attribute("outerHTML")
+        page.wait_for_selector(f"#pitchVelocity_{game_pk}", timeout=10000)
+        pv_table_html = page.locator(f"#pitchVelocity_{game_pk}").inner_html()
+
     soup = BeautifulSoup(pv_table_html, "html.parser")
     table = soup.find("table")
 
@@ -301,22 +289,17 @@ def get_statcast_single_game_wp_table(
     return_pandas: bool = False,
 ) -> pl.DataFrame | pd.DataFrame:
     game_date_str = _handle_single_game_date(game_date)
-    with get_driver() as driver:
+    with get_page() as page:
         # Use the URL from the previous cell
-        driver.get(
+        page.goto(
             STATCAST_SINGLE_GAME_EV_PV_WP_URL.format(
                 game_date=game_date_str, game_pk=game_pk, stat_type="winProbability"
             )
         )
 
         # Wait for the chart to load
-        wait = WebDriverWait(driver, 10)
-        wp_table = wait.until(
-            EC.presence_of_element_located(
-                (By.ID, "tableWinProbability_{game_pk}".format(game_pk=game_pk))
-            )
-        )
-        wp_table_html = wp_table.get_attribute("outerHTML")
+        page.wait_for_selector(f"#tableWinProbability_{game_pk}", timeout=10000)
+        wp_table_html = page.locator(f"#tableWinProbability_{game_pk}").inner_html()
 
     soup = BeautifulSoup(wp_table_html, "html.parser")
     table = soup.find("table")
