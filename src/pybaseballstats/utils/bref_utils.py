@@ -64,7 +64,11 @@ class BREFSession:
         self.max_req_per_minute: int = max_req_per_minute
         self.request_timestamps: deque[datetime] = deque(maxlen=max_req_per_minute)
         self.session: requests.Session = requests.Session()
-
+        # Playwright browser management
+        self._playwright = None
+        self._browser = None
+        self._context = None
+        self._page = None
         self._lock = Lock()
         # Set common headers to appear more browser-like
         self.session.headers.update(
@@ -129,40 +133,60 @@ class BREFSession:
             print(f"Error fetching {url}: {e}")
         return None
 
+    def _ensure_browser_initialized(self):
+        """Initialize browser if not already done."""
+        if self._browser is None or not self._browser.is_connected():
+            if self._browser:
+                self._cleanup_browser()
+
+            self._playwright = sync_playwright().start()
+            self._browser = self._playwright.chromium.launch(headless=True)
+            self._context = self._browser.new_context(
+                user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            )
+            self._page = self._context.new_page()
+            self._page.set_default_navigation_timeout(30000)
+            self._page.set_default_timeout(20000)
+
+    def _cleanup_browser(self):
+        """Clean up browser resources."""
+        if self._page:
+            self._page.close()
+            self._page = None
+        if self._context:
+            self._context.close()
+            self._context = None
+        if self._browser:
+            self._browser.close()
+            self._browser = None
+        if self._playwright:
+            self._playwright.stop()
+            self._playwright = None
+
     @contextmanager
     def get_page(self):
         """Context manager for Playwright page with rate limiting."""
         self._rate_limit()
 
-        playwright = sync_playwright().start()
-        browser = None
-        context = None
-        page = None
+        with self._lock:
+            try:
+                self._ensure_browser_initialized()
+                yield self._page
+            except Exception as e:
+                print(f"Browser error occurred: {e}")
+                # Try to reinitialize browser on error
+                self._cleanup_browser()
+                self._ensure_browser_initialized()
+                yield self._page
 
-        try:
-            browser = playwright.chromium.launch(
-                headless=True,
-            )
+    def close_browser(self):
+        """Manually close the browser session."""
+        with self._lock:
+            self._cleanup_browser()
 
-            context = browser.new_context(
-                user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            )
-
-            page = context.new_page()
-            page.set_default_navigation_timeout(30000)
-            page.set_default_timeout(20000)
-
-            yield page
-
-        finally:
-            # Always cleanup in reverse order
-            if page:
-                page.close()
-            if context:
-                context.close()
-            if browser:
-                browser.close()
-            playwright.stop()
+    def __del__(self):
+        """Cleanup when the singleton is destroyed."""
+        self._cleanup_browser()
 
 
 def _extract_table(table):

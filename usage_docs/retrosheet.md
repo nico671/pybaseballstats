@@ -11,7 +11,7 @@ This module provides functionality to retrieve data from the [Retrosheet](https:
 
 ### Player Lookup
 
-This will most often be done to use the player information returned by this function as an input to other functions in this package. The inputs to this function are flexible. You can search by first name, last name, or both. You also have the option to strip accents from names to improve search results. The parameters are as follows:
+Note that this function is currently very slow, I am looking into strategies for improvement. This will most often be done to use the player information returned by this function as an input to other functions in this package. The inputs to this function are flexible. You can search by first name, last name, or both. You also have the option to strip accents from names to improve search results. The parameters are as follows:
 
 - `first_name` (str, optional): The first name of the player.
 - `last_name` (str, optional): The last name of the player.

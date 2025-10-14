@@ -6,7 +6,7 @@
 - [x] finish bref_single_player tests
 - [x] finish bref_single_player usage docs
 - [x] finish statcast tests
-- [ ] finish statcast usage docs
+- [x] finish statcast usage docs
 - [x] retrosheet tests
 - [ ] retrosheet usage docs
 - [ ] fangraphs_single_game mypy / rewrite
