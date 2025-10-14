@@ -11,14 +11,13 @@ from pybaseballstats.utils.bref_utils import (
 )
 
 session = BREFSession.instance()  # type: ignore[attr-defined]
-
+# TODO: playoffs data also available, currently not implemented
 __all__ = [
     "single_player_standard_batting",
     "single_player_value_batting",
     "single_player_advanced_batting",
     "single_player_standard_fielding",
     "single_player_sabermetric_fielding",
-    # "single_player_salaries",
     "single_player_standard_pitching",
     "single_player_value_pitching",
     "single_player_advanced_pitching",
@@ -193,6 +192,7 @@ def single_player_advanced_batting(player_code: str) -> pl.DataFrame:
     )
     advanced_batting_table = advanced_batting_table.find("table")
     advanced_batting_df = pl.DataFrame(_extract_table(advanced_batting_table))
+
     advanced_batting_df = advanced_batting_df.select(
         pl.all().name.map(lambda col_name: col_name.replace("b_", ""))
     )
@@ -201,32 +201,32 @@ def single_player_advanced_batting(player_code: str) -> pl.DataFrame:
         pl.all().name.map(lambda col_name: col_name.replace("_abbr", ""))
     )
     advanced_batting_df = advanced_batting_df.with_columns(
+        pl.col(["year_id", "age", "pa", "rbat_plus"]).cast(pl.Int32),
         pl.col(
             [
-                "age",
-                "pa",
-                "runs_batting",
-                "runs_baserunning",
-                "runs_fielding",
-                "runs_double_plays",
-                "runs_position",
-                "raa",
-                "runs_replacement",
-                "rar",
-                "rar_off",
-            ]
-        ).cast(pl.Int32),
-        pl.col(
-            [
-                "waa",
-                "war",
-                "waa_win_perc",
-                "waa_win_perc_162",
-                "war_off",
-                "war_def",
+                "roba",
+                "batting_avg_bip",
+                "iso_slugging",
+                "home_run_perc",
+                "strikeout_perc",
+                "base_on_balls_perc",
+                "avg_exit_velo",
+                "hard_hit_perc",
+                "ld_perc",
+                "pull_perc",
+                "center_perc",
+                "oppo_perc",
+                "wpa_bat",
+                "baseout_runs",
+                "run_scoring_perc",
+                "extra_bases_taken_perc",
             ]
         ).cast(pl.Float32),
-    )
+        pl.col("gperc").cast(pl.Float64).alias("gb_perc"),
+        pl.col("fperc").cast(pl.Float64).alias("fb_perc"),
+        pl.col("gfratio").cast(pl.Float32).alias("gb_fb_ratio"),
+        pl.col("cwpa_bat").str.replace("%", "").cast(pl.Float32),
+    ).drop(["gperc", "fperc", "gfratio"])
     advanced_batting_df = advanced_batting_df.with_columns(
         pl.lit(player_code).alias("key_bbref")
     )
@@ -244,12 +244,11 @@ def single_player_standard_fielding(player_code: str) -> pl.DataFrame:
     """
     last_name_initial = player_code[0].lower()
     with session.get_page() as page:
-        page.goto(
-            BREF_SINGLE_PLAYER_URL.format(
-                initial=last_name_initial, player_code=player_code
-            )
+        url = BREF_SINGLE_PLAYER_URL.format(
+            initial=last_name_initial, player_code=player_code
         )
-        page.wait_for_selector("#content", timeout=15000)
+        page.goto(url, wait_until="domcontentloaded")
+        page.wait_for_selector("#all_players_standard_fielding", timeout=15000)
         html = page.content()
         assert html is not None, "Failed to retrieve HTML content"
         soup = BeautifulSoup(html, "html.parser")
@@ -312,9 +311,10 @@ def single_player_sabermetric_fielding(player_code: str) -> pl.DataFrame:
         page.goto(
             BREF_SINGLE_PLAYER_SABERMETRIC_FIELDING_URL.format(
                 initial=last_name_initial, player_code=player_code
-            )
+            ),
+            wait_until="domcontentloaded",
         )
-        page.wait_for_selector("#content", timeout=15000)
+        page.wait_for_selector("#div_advanced_fielding", timeout=15000)
         html = page.content()
         assert html is not None, "Failed to retrieve HTML content"
         soup = BeautifulSoup(html, "html.parser")
@@ -348,13 +348,24 @@ def single_player_standard_pitching(player_code: str) -> pl.DataFrame:
         page.goto(
             BREF_SINGLE_PLAYER_URL.format(
                 initial=last_name_initial, player_code=player_code
-            )
+            ),
+            wait_until="domcontentloaded",
         )
-        page.wait_for_selector("#content", timeout=15000)
+        page.wait_for_selector("#all_players_standard_pitching", timeout=15000)
         html = page.content()
         assert html is not None, "Failed to retrieve HTML content"
         soup = BeautifulSoup(html, "html.parser")
-    standard_pitching_table = soup.find("table")
+    standard_pitching_table_wrapper = soup.find(
+        "div", {"id": "div_players_standard_pitching"}
+    )
+    assert standard_pitching_table_wrapper is not None, (
+        "Failed to retrieve standard pitching table wrapper"
+    )
+    standard_pitching_table = standard_pitching_table_wrapper.find("table")
+    assert standard_pitching_table is not None, (
+        "Failed to retrieve standard pitching table"
+    )
+    print(standard_pitching_table.prettify())
     standard_pitching_df = pl.DataFrame(_extract_table(standard_pitching_table))
     standard_pitching_df = standard_pitching_df.select(
         pl.all().name.map(lambda col_name: col_name.replace("p_", ""))
@@ -421,9 +432,10 @@ def single_player_value_pitching(player_code: str) -> pl.DataFrame:
         page.goto(
             BREF_SINGLE_PLAYER_URL.format(
                 initial=last_name_initial, player_code=player_code
-            )
+            ),
+            wait_until="domcontentloaded",
         )
-        page.wait_for_selector("#content", timeout=15000)
+        page.wait_for_selector("#div_players_value_pitching", timeout=15000)
         value_pitching_table_wrapper = page.query_selector(
             "#div_players_value_pitching"
         )
@@ -474,9 +486,10 @@ def single_player_advanced_pitching(player_code: str) -> pl.DataFrame:
         page.goto(
             BREF_SINGLE_PLAYER_URL.format(
                 initial=last_name_initial, player_code=player_code
-            )
+            ),
+            wait_until="domcontentloaded",
         )
-        page.wait_for_selector("#content", timeout=15000)
+        page.wait_for_selector("#div_players_advanced_pitching", timeout=15000)
         advanced_pitching_table_wrapper = page.query_selector(
             "#div_players_advanced_pitching"
         )
@@ -526,3 +539,8 @@ def single_player_advanced_pitching(player_code: str) -> pl.DataFrame:
         ).cast(pl.Float32),
     )
     return advanced_pitching_df
+
+
+if __name__ == "__main__":
+    df = single_player_standard_pitching("imanash01")
+    print(df.columns)

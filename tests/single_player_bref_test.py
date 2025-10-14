@@ -108,9 +108,6 @@ def test_single_player_advanced_batting():
         "avg_exit_velo",
         "hard_hit_perc",
         "ld_perc",
-        "gperc",
-        "fperc",
-        "gfratio",
         "pull_perc",
         "center_perc",
         "oppo_perc",
@@ -122,6 +119,9 @@ def test_single_player_advanced_batting():
         "extra_bases_taken_perc",
         "pos",
         "awards",
+        "gb_perc",
+        "fb_perc",
+        "gb_fb_ratio",
         "key_bbref",
     ]
 

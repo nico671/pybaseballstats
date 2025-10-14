@@ -176,8 +176,7 @@ class BREFSession:
                 print(f"Browser error occurred: {e}")
                 # Try to reinitialize browser on error
                 self._cleanup_browser()
-                self._ensure_browser_initialized()
-                yield self._page
+                raise
 
     def close_browser(self):
         """Manually close the browser session."""

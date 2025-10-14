@@ -73,19 +73,32 @@ jobs:
         if: steps.check-coverage.outputs.use_local_coverage == 'true'
         run: cp .github/coverage/coverage.json ./coverage.json
 
+      # Install jq for JSON parsing
+      - name: Install jq
+        if: github.ref == 'refs/heads/main'
+        run: sudo apt-get update && sudo apt-get install -y jq
+
       - name: Convert coverage.json to badge-compatible format
         if: github.ref == 'refs/heads/main'
         run: |
+          # Extract percentage from coverage.json and round it
           percent=$(jq '.totals.percent_covered | round' coverage.json)
-          mkdir -p badges
-          echo "{\"total\":{\"lines\":{\"pct\":$percent}}}" > coverage-summary.json
 
-      - name: Generate coverage badge
-        if: github.ref == 'refs/heads/main'
-        uses: jaywcjlove/coverage-badges-cli@main
-        with:
-          output: ./badges/coverage.svg
-          source: ./coverage-summary.json
+          # Create the badges directory
+          mkdir -p badges
+
+          # Create a simple badge using shields.io format
+          # Determine color based on coverage percentage
+          if [ "$percent" -ge 80 ]; then
+            color="brightgreen"
+          elif [ "$percent" -ge 60 ]; then
+            color="yellow"
+          else
+            color="red"
+          fi
+
+          # Download the badge from shields.io
+          curl -o badges/coverage.svg "https://img.shields.io/badge/coverage-${percent}%25-${color}"
 
       - name: Push coverage badge to dedicated branch
         if: github.ref == 'refs/heads/main'
