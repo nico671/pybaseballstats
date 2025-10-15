@@ -21,3 +21,5 @@ src/pybaseballstats/consts/__pycache__/
 run_coverage.fish
 .mypy_cache/
 .ruff_cache/
+todolist.txt
+**/pycache__/

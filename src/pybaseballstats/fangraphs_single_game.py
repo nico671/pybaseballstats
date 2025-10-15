@@ -94,8 +94,6 @@ def fangraphs_single_game_play_by_play(
     return df
 
 
-# TODO: extra stats from this page are available, could add in the future
-
 if __name__ == "__main__":
     df = fangraphs_single_game_play_by_play(
         date="2024-09-13", team=FangraphsSingleGameTeams.Angels

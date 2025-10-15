@@ -14,8 +14,6 @@ from pybaseballstats.consts.statcast_consts import (
 from pybaseballstats.statcast import pitch_by_pitch_data
 from pybaseballstats.utils.statcast_utils import get_page
 
-# TODO: usage docs
-
 
 def statcast_single_game_pitch_by_pitch(
     game_pk: int, return_pandas: bool = False

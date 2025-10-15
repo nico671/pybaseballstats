@@ -11,7 +11,6 @@ from pybaseballstats.utils.bref_utils import (
 )
 
 session = BREFSession.instance()  # type: ignore[attr-defined]
-# TODO: playoffs data also available, currently not implemented
 __all__ = [
     "single_player_standard_batting",
     "single_player_value_batting",

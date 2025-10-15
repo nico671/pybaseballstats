@@ -3,7 +3,9 @@ from typing import Literal
 import polars as pl
 import requests
 
-import pybaseballstats.consts.statcast_leaderboard_consts as sc
+from pybaseballstats.consts.statcast_leaderboard_consts import (
+    PITCH_TIMER_INFRACTIONS_LEADERBOARD_URL,
+)
 
 __all__ = ["pitch_timer_infractions_leaderboard"]
 
@@ -41,7 +43,7 @@ def pitch_timer_infractions_leaderboard(
     if not isinstance(include_non_violators, bool):
         raise ValueError("Invalid include_non_violators parameter.")
 
-    url = sc.PITCH_TIMER_INFRACTIONS_LEADERBOARD_URL.format(
+    url = PITCH_TIMER_INFRACTIONS_LEADERBOARD_URL.format(
         stat_type=focus,
         season=season,
         min_pitches=min_pitches,

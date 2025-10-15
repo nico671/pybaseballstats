@@ -28,9 +28,6 @@ from pybaseballstats.utils.fangraphs_utils import (
 )
 
 
-# TODO: tests for all functions
-# #TODO: docstrings for all functions
-# TODO: re add fangraphs_pitching_leaderboard and fangraphs_fielding_leaderboard
 def fangraphs_batting_leaderboard(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
@@ -58,21 +55,21 @@ def fangraphs_batting_leaderboard(
     """Returns a leaderboard of Fangraphs batting statistics. Function is to meant to replicate this leaderboard search: 'https://www.fangraphs.com/leaders/major-league'
 
     Args:
-        start_date (str, optional): _description_. Defaults to None.
-        end_date (str, optional): _description_. Defaults to None.
-        start_season (int, optional): _description_. Defaults to None.
-        end_season (int, optional): _description_. Defaults to None.
-        pos (FangraphsBattingPosTypes, optional): _description_. Defaults to FangraphsBattingPosTypes.ALL.
-        team (FangraphsTeams, optional): _description_. Defaults to FangraphsTeams.ALL.
-        stat_split (Literal[&quot;player&quot;, &quot;team&quot;, &quot;league&quot;], optional): _description_. Defaults to "player".
-        stat_types (List[FangraphsBattingStatType], optional): _description_. Defaults to None.
-        active_roster_only (bool, optional): _description_. Defaults to False.
-        season_type (Literal[ &quot;regular&quot;, &quot;all_postseason&quot;, &quot;world_series&quot;, &quot;championship_series&quot;, &quot;division_series&quot;, &quot;wild_card&quot;, ], optional): _description_. Defaults to "regular".
-        split_seasons (bool, optional): _description_. Defaults to False.
-        handedness (Literal[&quot;L&quot;, &quot;R&quot;, &quot;S&quot;, None], optional): _description_. Defaults to None.
-        min_age (int, optional): _description_. Defaults to 14.
-        max_age (int, optional): _description_. Defaults to 56.
-        min_pa (Union[int, str], optional): _description_. Defaults to "y".
+        start_date (str, optional): When to start the date range. Defaults to None.
+        end_date (str, optional): When to end the date range. Defaults to None.
+        start_season (int, optional): The starting season year. Defaults to None.
+        end_season (int, optional): The ending season year. Defaults to None.
+        pos (FangraphsBattingPosTypes, optional): The position filter. Defaults to FangraphsBattingPosTypes.ALL.
+        team (FangraphsTeams, optional): The team to filter the data by. Defaults to FangraphsTeams.ALL.
+        stat_split (Literal["player", "team", "league"], optional): The statistic split to use. Defaults to "player".
+        stat_types (List[FangraphsBattingStatType], optional): The types of statistics to include. Defaults to None.
+        active_roster_only (bool, optional): Whether to include only active roster players. Defaults to False.
+        season_type (Literal[ "regular", "all_postseason", "world_series", "championship_series", "division_series", "wild_card", ], optional): The type of season to filter by. Defaults to "regular".
+        split_seasons (bool, optional): Whether to split the data by seasons. Defaults to False.
+        handedness (Literal["L", "R", "S", None], optional): The handedness of the players. Defaults to None.
+        min_age (int, optional): The minimum age of players to include. Defaults to 14.
+        max_age (int, optional): The maximum age of players to include. Defaults to 56.
+        min_pa (Union[int, str], optional): The minimum plate appearances to filter by. Defaults to "y".
 
     Raises:
         ValueError: _description_

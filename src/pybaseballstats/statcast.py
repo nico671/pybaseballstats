@@ -51,7 +51,6 @@ async def async_statcast_date_range_pitch_by_pitch(
     return df
 
 
-# TODO: add more restrictions for api calls
 def pitch_by_pitch_data(
     start_date: str,
     end_date: str,
