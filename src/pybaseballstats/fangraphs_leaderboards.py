@@ -127,12 +127,6 @@ def fangraphs_batting_leaderboard(
         "pagenum": 1,
         "qual": min_pa_param,
     }
-    # from urllib.parse import urlencode
-
-    # final_url = (
-    #     f"{FANGRAPHS_BATTING_LEADERS_URL}?{urlencode(request_params, doseq=True)}"
-    # )
-    # print(final_url)
     resp = requests.get(
         FANGRAPHS_BATTING_LEADERS_URL,
         params=request_params,
