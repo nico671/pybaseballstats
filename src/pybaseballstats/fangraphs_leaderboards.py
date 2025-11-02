@@ -14,7 +14,6 @@ from pybaseballstats.consts.fangraphs_consts import (
 from pybaseballstats.utils.fangraphs_utils import (
     # fangraphs_fielding_input_val,
     # fangraphs_pitching_range_input_val,
-    pick_season_or_dates,
     validate_active_roster_param,
     validate_age_params,
     validate_dates,
@@ -85,47 +84,54 @@ def fangraphs_batting_leaderboard(
     season_type_param = validate_season_type(season_type)
     ind_param = validate_ind_param(split_seasons)
     month_param = None
-    if pick_season_or_dates(start_date, end_date, start_season, end_season):
+
+    date_non_null_counts = sum(x is not None for x in [start_date, end_date])
+    season_non_null_counts = sum(x is not None for x in [start_season, end_season])
+
+    if date_non_null_counts == 0 and season_non_null_counts == 0:
+        raise ValueError("Must provide either date range or season range")
+    elif date_non_null_counts == season_non_null_counts:
+        raise ValueError("Must provide either date range or season range, not both")
+    if date_non_null_counts > season_non_null_counts:
         print("Using date range")
         # using dates
+
         start_date, end_date = validate_dates(start_date, end_date)
         start_season_str, end_season_str = "", ""
-        month_param = 1000
+        month_param = "1000"  # Ensure month_param is a string
     else:
-        print("using season range")
-        month_param = 0
+        print("Using season range")
+
+        month_param = "0"  # Ensure month_param is a string
         start_date, end_date = "", ""
         start_season_str, end_season_str = validate_seasons_param(
             start_season, end_season
         )
-        # using season range
 
     hand_param = validate_hand_param(handedness)
     age_param = validate_age_params(min_age, max_age)
-    # age_param = quote(age_param)
-    # print(team_param, age_param)
     pos_param = validate_pos_param(pos)
     min_pa_param = validate_min_pa_param(min_pa)
 
     request_params = {
-        "age": age_param,
-        "pos": pos_param,
+        "age": str(age_param),  # Cast to str
+        "pos": str(pos_param),  # Cast to str
         "stats": "bat",
         "lg": "all",
-        "rost": roster_param,
-        "postseason": season_type_param,
-        "month": month_param,
-        "players": 0,
+        "rost": str(roster_param),  # Cast to str
+        "postseason": str(season_type_param),  # Cast to str
+        "month": month_param,  # Already a string
+        "players": "0",  # Ensure string type
         "season1": start_season_str,
         "season": end_season_str,
         "startDate": start_date,
         "endDate": end_date,
-        "ind": ind_param,
-        "hand": hand_param,
-        "team": team_param,
-        "pageitems": 2000000000,
-        "pagenum": 1,
-        "qual": min_pa_param,
+        "ind": str(ind_param),  # Cast to str
+        "hand": str(hand_param),  # Cast to str
+        "team": str(team_param),  # Cast to str
+        "pageitems": "2000000000",  # Ensure string type
+        "pagenum": "1",  # Ensure string type
+        "qual": str(min_pa_param),  # Cast to str
     }
     resp = requests.get(
         FANGRAPHS_BATTING_LEADERS_URL,

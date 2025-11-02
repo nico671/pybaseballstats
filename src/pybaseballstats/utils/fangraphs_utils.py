@@ -57,27 +57,31 @@ def validate_ind_param(split_seasons: bool) -> str:
         return "0"
 
 
-def validate_seasons_param(start_season: int, end_season: int) -> Tuple[int, int]:
+def validate_seasons_param(
+    start_season: int | None, end_season: int | None
+) -> Tuple[str, str]:
     current_year = datetime.now().year
 
     # Check if only one parameter is provided for single season
     if start_season is not None and end_season is None:
+        assert start_season is not None  # for mypy
         if start_season < 1871 or start_season > current_year:
             raise ValueError(f"start_season must be between 1871 and {current_year}")
         print(
             "End season not provided, doing a single year search using the start season param."
         )
-        return start_season, start_season
+        return str(start_season), str(start_season)
     elif start_season is None and end_season is not None:
+        assert end_season is not None  # for mypy
         if end_season < 1871 or end_season > current_year:
             raise ValueError(f"end_season must be between 1871 and {current_year}")
         print(
             "Start season not provided, doing a single year search using the end season param."
         )
-        return end_season, end_season
+        return str(end_season), str(end_season)
     elif start_season is None and end_season is None:
         raise ValueError("At least one season must be provided")
-
+    assert start_season is not None and end_season is not None  # for mypy
     # Both parameters provided - validate range
     if start_season < 1871 or start_season > current_year:
         raise ValueError(f"start_season must be between 1871 and {current_year}")
@@ -86,7 +90,7 @@ def validate_seasons_param(start_season: int, end_season: int) -> Tuple[int, int
     if start_season > end_season:
         print("start_season is greater than end_season, switching them")
         start_season, end_season = end_season, start_season
-    return start_season, end_season
+    return str(start_season), str(end_season)
 
 
 def validate_team_stat_split_param(team: FangraphsTeams, stat_split: str) -> str:
@@ -150,23 +154,7 @@ def validate_season_type(season_type: str) -> str:
     raise Exception("Unreachable code reached in validate_season_type")
 
 
-def pick_season_or_dates(
-    start_date: str, end_date: str, start_season: int, end_season: int
-) -> bool:
-    date_non_null_counts = sum(x is not None for x in [start_date, end_date])
-    season_non_null_counts = sum(x is not None for x in [start_season, end_season])
-
-    if date_non_null_counts == 0 and season_non_null_counts == 0:
-        raise ValueError("Must provide either date range or season range")
-    elif date_non_null_counts == season_non_null_counts:
-        raise ValueError("Must provide either date range or season range, not both")
-    if date_non_null_counts > season_non_null_counts:
-        return True
-    else:
-        return False
-
-
-def validate_dates(start_date: str, end_date: str) -> Tuple[str, str]:
+def validate_dates(start_date: str | None, end_date: str | None) -> Tuple[str, str]:
     if not start_date:
         raise ValueError("start_date must be provided")
     if not end_date:
