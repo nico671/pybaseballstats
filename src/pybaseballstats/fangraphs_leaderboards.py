@@ -5,10 +5,11 @@ import requests
 from bs4 import BeautifulSoup
 
 from pybaseballstats.consts.fangraphs_consts import (
-    FANGRAPHS_BATTING_LEADERS_URL,
+    FANGRAPHS_LEADERBOARDS_URL,
     FANGRAPHS_WAR_LEADERBOARD_URL,
     FangraphsBattingPosTypes,
     FangraphsBattingStatType,
+    FangraphsPitchingStatType,
     FangraphsTeams,
 )
 from pybaseballstats.utils.fangraphs_utils import (
@@ -78,8 +79,6 @@ def fangraphs_batting_leaderboard(
     """
 
     team_param = validate_team_stat_split_param(team, stat_split)
-    print(team_param)
-    # team_param = quote(team_param)
     roster_param = validate_active_roster_param(active_roster_only)
     season_type_param = validate_season_type(season_type)
     ind_param = validate_ind_param(split_seasons)
@@ -134,16 +133,15 @@ def fangraphs_batting_leaderboard(
         "qual": str(min_pa_param),  # Cast to str
     }
     resp = requests.get(
-        FANGRAPHS_BATTING_LEADERS_URL,
+        FANGRAPHS_LEADERBOARDS_URL,
         params=request_params,
     )
-    print(resp.url)
+
     if resp.status_code == 200:
         df = pl.DataFrame(resp.json()["data"])
     else:
         print(resp.status_code, resp.text)
         raise ValueError("Error fetching data from Fangraphs API")
-    print(df.columns)
     # filter columns using stat_types
 
     # else:
@@ -222,3 +220,160 @@ def fangraphs_war_leaderboard(
         .cast(pl.Float32),
     )
     return df
+
+
+def fangraphs_pitching_leaderboard(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    start_season: Optional[int] = None,
+    end_season: Optional[int] = None,
+    team: FangraphsTeams = FangraphsTeams.ALL,
+    stat_split: Literal["player", "team", "league"] = "player",
+    stat_types: Optional[List[FangraphsPitchingStatType]] = None,
+    active_roster_only: bool = False,
+    season_type: Literal[
+        "regular",
+        "all_postseason",
+        "world_series",
+        "championship_series",
+        "division_series",
+        "wild_card",
+    ] = "regular",
+    split_seasons: bool = False,
+    handedness: Literal["L", "R", "S", None] = None,
+    min_age: int = 14,
+    max_age: int = 56,
+    min_ip: Union[int, str] = "y",
+    starter_reliever: Literal["starter", "reliever", "both"] = "both",
+) -> pl.DataFrame:
+    """Returns a leaderboard of Fangraphs pitching statistics. Function is to meant to replicate this leaderboard search: 'https://www.fangraphs.com/leaders/major-league'
+
+    Args:
+        start_date (Optional[str], optional): Starting date for leaderboard stats computation. Defaults to None.
+        end_date (Optional[str], optional): End date for leaderboard stats computation. Defaults to None.
+        start_season (Optional[int], optional): Starting season for leaderboard stats computation. Defaults to None.
+        end_season (Optional[int], optional): Ending season for leaderboard stats computation. Defaults to None.
+        team (FangraphsTeams, optional): Team to filter by. Defaults to FangraphsTeams.ALL.
+        stat_split (Literal["player", "team", "league"], optional): Whether to aggregate stats by players, teams or leagues. Defaults to "player".
+        stat_types (Optional[List[FangraphsPitchingStatType]], optional): Stat types to include. Defaults to None.
+        active_roster_only (bool, optional): Whether to include only active roster players. Defaults to False.
+        season_type (Literal["regular", "all_postseason", "world_series", "championship_series", "division_series", "wild_card"], optional): Type of season to include. Defaults to "regular".
+        split_seasons (bool, optional): Whether to split stats by season. Defaults to False.
+        handedness (Literal["L", "R", "S", None], optional): Handedness filter. Defaults to None.
+        min_age (int, optional): Minimum age filter. Defaults to 14.
+        max_age (int, optional): Maximum age filter. Defaults to 56.
+        min_ip (Union[int, str], optional): Minimum innings pitched filter. Defaults to "y".
+        starter_reliever (Literal["starter", "reliever", "both"], optional): Starter or reliever filter. Defaults to "both".
+    Raises:
+        ValueError: _description_
+        ValueError: _description_
+        ValueError: _description_
+        ValueError: _description_
+
+    Returns:
+        pl.DataFrame: _description_
+    """
+
+    team_param = validate_team_stat_split_param(team, stat_split)
+    roster_param = validate_active_roster_param(active_roster_only)
+    season_type_param = validate_season_type(season_type)
+    ind_param = validate_ind_param(split_seasons)
+    month_param = None
+
+    date_non_null_counts = sum(x is not None for x in [start_date, end_date])
+    season_non_null_counts = sum(x is not None for x in [start_season, end_season])
+
+    if date_non_null_counts == 0 and season_non_null_counts == 0:
+        raise ValueError("Must provide either date range or season range")
+    elif date_non_null_counts == season_non_null_counts:
+        raise ValueError("Must provide either date range or season range, not both")
+    if date_non_null_counts > season_non_null_counts:
+        print("Using date range")
+        # using dates
+
+        start_date, end_date = validate_dates(start_date, end_date)
+        start_season_str, end_season_str = "", ""
+        month_param = "1000"  # Ensure month_param is a string
+    else:
+        print("Using season range")
+
+        month_param = "0"  # Ensure month_param is a string
+        start_date, end_date = "", ""
+        start_season_str, end_season_str = validate_seasons_param(
+            start_season, end_season
+        )
+
+    hand_param = validate_hand_param(handedness)
+    age_param = validate_age_params(min_age, max_age)
+    min_ip_param = validate_min_pa_param(
+        min_ip
+    )  # Using the same function as min_pa since the logic is similar
+
+    # validate starter_reliever param
+    if starter_reliever not in ["starter", "reliever", "both"]:
+        raise ValueError(
+            "starter_reliever must be one of 'starter', 'reliever', or 'both'"
+        )
+    if starter_reliever == "starter":
+        start_reliever_param = "sta"
+    elif starter_reliever == "reliever":
+        start_reliever_param = "rel"
+    else:
+        start_reliever_param = "pit"
+
+    request_params = {
+        "age": str(age_param),
+        "pos": "all",
+        "lg": "all",
+        "rost": roster_param,
+        "postseason": season_type_param,
+        "month": month_param,
+        "season1": start_season_str,
+        "season": end_season_str,
+        "startDate": start_date,
+        "endDate": end_date,
+        "ind": ind_param,
+        "hand": hand_param,
+        "team": team_param,
+        "stats": start_reliever_param,
+        "pageitems": "2000000000",
+        "pagenum": "1",
+        "qual": min_ip_param,
+        "players": "0",  # Ensure string type
+    }
+
+    resp = requests.get(
+        FANGRAPHS_LEADERBOARDS_URL,
+        params=request_params,
+    )
+    print(resp.url)
+    if resp.status_code == 200:
+        df = pl.DataFrame(resp.json()["data"], infer_schema_length=None)
+    else:
+        print(resp.status_code, resp.text)
+        raise ValueError("Error fetching data from Fangraphs API")
+
+    wanted_cols = [
+        "PlayerName",
+        "TeamName",
+        "xMLBAMID",
+        "Season",
+        "Age",
+        "AgeR",
+        "Throws",
+        "teamid",
+    ]
+
+    if stat_types:
+        for stat in stat_types:
+            for col in stat.value:
+                if col in df.columns and col not in wanted_cols:
+                    wanted_cols.append(col)
+    else:
+        for enum_opt in FangraphsPitchingStatType:
+            for col in enum_opt.value:
+                if col in df.columns and col not in wanted_cols:
+                    wanted_cols.append(col)
+    wanted_cols.remove("Name")
+    wanted_cols.remove("Team")
+    return df.select(wanted_cols)

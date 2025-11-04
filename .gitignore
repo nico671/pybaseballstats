@@ -22,4 +22,5 @@ run_coverage.fish
 .mypy_cache/
 .ruff_cache/
 todolist.txt
-**/pycache__/
+__pycache__/
+.env
