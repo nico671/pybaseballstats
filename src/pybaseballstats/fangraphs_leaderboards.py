@@ -9,6 +9,7 @@ from pybaseballstats.consts.fangraphs_consts import (
     FANGRAPHS_WAR_LEADERBOARD_URL,
     FangraphsBattingPosTypes,
     FangraphsBattingStatType,
+    FangraphsFieldingStatType,
     FangraphsPitchingStatType,
     FangraphsTeams,
 )
@@ -28,6 +29,7 @@ from pybaseballstats.utils.fangraphs_utils import (
 )
 
 
+# main functions
 def fangraphs_batting_leaderboard(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
@@ -377,3 +379,155 @@ def fangraphs_pitching_leaderboard(
     wanted_cols.remove("Name")
     wanted_cols.remove("Team")
     return df.select(wanted_cols)
+
+
+def fangraphs_fielding_leaderboard(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    start_season: Optional[int] = None,
+    end_season: Optional[int] = None,
+    team: FangraphsTeams = FangraphsTeams.ALL,
+    stat_split: Literal["player", "team", "league"] = "player",
+    stat_types: Optional[List[FangraphsFieldingStatType]] = None,
+    active_roster_only: bool = False,
+    season_type: Literal[
+        "regular",
+        "all_postseason",
+        "world_series",
+        "championship_series",
+        "division_series",
+        "wild_card",
+    ] = "regular",
+    split_seasons: bool = False,
+    positional_split: FangraphsBattingPosTypes = FangraphsBattingPosTypes.ALL,
+    min_innings: Union[int, str] = "y",
+):
+    """Returns a leaderboard of Fangraphs fielding statistics. Function is to meant to replicate this leaderboard search: 'https://www.fangraphs.com/leaders/major-league'
+
+    Args:
+        start_date (Optional[str], optional): Starting date for leaderboard stats computation. Defaults to None.
+        end_date (Optional[str], optional): End date for leaderboard stats computation. Defaults to None.
+        start_season (Optional[int], optional): Starting season for leaderboard stats computation. Defaults to None.
+        end_season (Optional[int], optional): Ending season for leaderboard stats computation. Defaults to None.
+        team (FangraphsTeams, optional): Team to filter by. Defaults to FangraphsTeams.ALL.
+        stat_split (Literal["player", "team", "league"], optional): Whether to aggregate stats by players, teams or leagues. Defaults to "player".
+        active_roster_only (bool, optional): Whether to include only active roster players. Defaults to False.
+        season_type (Literal["regular", "all_postseason", "world_series", "championship_series", "division_series", "wild_card"], optional): Type of season to include. Defaults to "regular".
+        split_seasons (bool, optional): Whether to split stats by season. Defaults to False.
+        pos (FangraphsBattingPosTypes, optional): The position filter. Defaults to FangraphsBattingPosTypes.ALL.
+        min_innings (Union[int, str], optional): Minimum innings played filter. Defaults to "y".
+
+    Raises:
+        ValueError: _description_
+        ValueError: _description_
+        ValueError: _description_
+        ValueError: _description_
+
+    Returns:
+        pl.DataFrame: _description_
+    """
+    team_param = validate_team_stat_split_param(team, stat_split)
+    roster_param = validate_active_roster_param(active_roster_only)
+    season_type_param = validate_season_type(season_type)
+    ind_param = validate_ind_param(split_seasons)
+    month_param = None
+    date_non_null_counts = sum(x is not None for x in [start_date, end_date])
+    season_non_null_counts = sum(x is not None for x in [start_season, end_season])
+    if date_non_null_counts == 0 and season_non_null_counts == 0:
+        raise ValueError("Must provide either date range or season range")
+    elif date_non_null_counts == season_non_null_counts:
+        raise ValueError("Must provide either date range or season range, not both")
+    if date_non_null_counts > season_non_null_counts:
+        print("Using date range")
+        # using dates
+
+        start_date, end_date = validate_dates(start_date, end_date)
+        start_season_str, end_season_str = "", ""
+        month_param = "1000"  # Ensure month_param is a string
+    else:
+        print("Using season range")
+
+        month_param = "0"  # Ensure month_param is a string
+        start_date, end_date = "", ""
+        start_season_str, end_season_str = validate_seasons_param(
+            start_season, end_season
+        )
+    pos_param = validate_pos_param(positional_split)
+    min_innings_param = validate_min_pa_param(min_innings)
+    request_params = {
+        "age": "",
+        "pos": str(pos_param),
+        "stats": "fld",
+        "lg": "all",
+        "rost": str(roster_param),
+        "postseason": str(season_type_param),
+        "month": month_param,
+        "players": "0",  # Ensure string type
+        "season1": start_season_str,
+        "season": end_season_str,
+        "startDate": start_date,
+        "endDate": end_date,
+        "ind": str(ind_param),
+        "hand": "",
+        "team": str(team_param),
+        "pageitems": "2000000000",
+        "pagenum": "1",
+        "qual": str(min_innings_param),
+    }
+    resp = requests.get(
+        FANGRAPHS_LEADERBOARDS_URL,
+        params=request_params,
+    )
+
+    wanted_cols = [
+        "PlayerName",
+        "TeamName",
+        "xMLBAMID",
+        "Season",
+        # "Age",
+        # "AgeR",
+        # "Bats",
+        "Pos",
+        "teamid",
+    ]
+    if resp.status_code == 200:
+        df = pl.DataFrame(resp.json()["data"], infer_schema_length=None)
+    else:
+        print(resp.status_code, resp.text)
+        raise ValueError("Error fetching data from Fangraphs API")
+    for enum_opt in FangraphsBattingStatType:
+        for col in enum_opt.value:
+            if col in df.columns and col not in wanted_cols:
+                wanted_cols.append(col)
+    wanted_cols.remove("Name")
+    wanted_cols.remove("Team")
+    return df.select(wanted_cols)
+
+
+# end main functions
+
+
+# helper functions
+def list_fangraphs_teams() -> None:
+    """Prints the available FangraphsTeams enum options."""
+    FangraphsTeams.show_options()
+
+
+def list_fangraphs_batting_pos_types() -> None:
+    """Prints the available FangraphsBattingPosTypes enum options."""
+    FangraphsBattingPosTypes.show_options()
+
+
+def list_fangraphs_batting_stat_types() -> None:
+    """Prints the available FangraphsBattingStatType enum options."""
+    FangraphsBattingStatType.show_options()
+
+
+def list_fangraphs_pitching_stat_types() -> None:
+    """Prints the available FangraphsPitchingStatType enum options."""
+    FangraphsPitchingStatType.show_options()
+
+
+def list_fangraphs_fielding_stat_types() -> None:
+    """Prints the available FangraphsFieldingStatType enum options."""
+    FangraphsFieldingStatType.show_options()
