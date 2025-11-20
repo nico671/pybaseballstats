@@ -35,10 +35,10 @@ def test_manager_tendencies_data_errors():
 
 
 def test_manager_tendencies_data():
-    df = bm.managers_tendencies_data(year=2025)
-    assert df.shape[0] == 34
+    df = bm.managers_tendencies_data(year=2024)
+    assert df.shape[0] == 33
     assert df.shape[1] == 26
-    assert df.select(pl.col("manager").n_unique()).item() == 34
+    assert df.select(pl.col("manager").n_unique()).item() == 33
     assert df.select(pl.col("team_ID").n_unique()).item() == 30
-    assert df.select(pl.col("manager_games").min()).item() == 38
+    assert df.select(pl.col("manager_games").min()).item() == 5
     assert df.select(pl.col("manager_games").max()).item() == 162

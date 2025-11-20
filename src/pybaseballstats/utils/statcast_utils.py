@@ -156,9 +156,13 @@ async def _fetch_all_data(urls, date_range_total_days):
         valid_results = [r for r in results if r is not None]
 
         if len(valid_results) < len(urls):
-            print(
-                f"Warning: {len(urls) - len(valid_results)} of {len(urls)} requests failed"
-            )
+            failed_count = len(urls) - len(valid_results)
+            print(f"Warning: {failed_count} of {len(urls)} requests failed")
+            # Add threshold check
+            if failed_count / len(urls) > 0.1:  # More than 10% failed
+                raise RuntimeError(
+                    f"Too many requests failed ({failed_count}/{len(urls)}). Data may be incomplete."
+                )
 
         return valid_results
 
