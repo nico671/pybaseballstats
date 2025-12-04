@@ -69,13 +69,6 @@ def get_page():
         playwright.stop()
 
 
-@contextmanager
-def get_driver():
-    """Legacy function that now uses Playwright instead of Selenium."""
-    with get_page() as page:
-        yield page
-
-
 # endregion statcast_single_game helpers
 
 

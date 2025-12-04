@@ -96,7 +96,7 @@ def pitch_by_pitch_data(
         )
     else:
         # Event loop already running - Jupyter notebooks, existing async context
-        import nest_asyncio
+        import nest_asyncio # type: ignore
 
         nest_asyncio.apply()
         return asyncio.run(
