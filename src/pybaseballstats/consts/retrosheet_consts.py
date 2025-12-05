@@ -6,6 +6,10 @@ RETROSHEET_KEEP_COLS = [
     "key_bbref",
     "name_last",
     "name_first",
+    "name_given",
+    "name_suffix",
+    "name_matrilineal",
+    "name_nick",
 ]
 
 EJECTIONS_URL = "https://raw.githubusercontent.com/chadwickbureau/retrosheet/refs/heads/master/reference/ejections.csv"

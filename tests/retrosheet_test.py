@@ -4,6 +4,12 @@ import polars as pl
 import pytest
 
 import pybaseballstats.retrosheet as rs
+from pybaseballstats.utils.retrosheet_utils import _clear_people_cache
+
+
+def setup_module():
+    """Clear cache before tests."""
+    _clear_people_cache()
 
 
 def test_player_lookup_errors():
@@ -30,11 +36,12 @@ def test_player_lookup():
     # assert df.select(pl.col("key_bbref").unique()).item() == "ruthba01"
     # test looking up babe ruth with accents stripped
     df = rs.player_lookup(first_name="Bábé", last_name="Rúth", strip_accents=True)
+
     assert df.shape[0] == 1
-    assert df.shape[1] == 6
+    assert df.shape[1] == 10
     assert df.select(pl.col("key_fangraphs").unique()).item() == 1011327
-    assert df.select(pl.col("name_first").unique()).item() == "babe"
-    assert df.select(pl.col("name_last").unique()).item() == "ruth"
+    assert df.select(pl.col("name_first").unique()).item() == "Babe"
+    assert df.select(pl.col("name_last").unique()).item() == "Ruth"
     assert df.select(pl.col("key_mlbam").unique()).item() == 121578
     assert df.select(pl.col("key_retro").unique()).item() == "ruthb101"
     assert df.select(pl.col("key_bbref").unique()).item() == "ruthba01"
