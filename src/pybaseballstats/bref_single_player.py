@@ -364,7 +364,6 @@ def single_player_standard_pitching(player_code: str) -> pl.DataFrame:
     assert standard_pitching_table is not None, (
         "Failed to retrieve standard pitching table"
     )
-    print(standard_pitching_table.prettify())
     standard_pitching_df = pl.DataFrame(_extract_table(standard_pitching_table))
     standard_pitching_df = standard_pitching_df.select(
         pl.all().name.map(lambda col_name: col_name.replace("p_", ""))
@@ -538,8 +537,3 @@ def single_player_advanced_pitching(player_code: str) -> pl.DataFrame:
         ).cast(pl.Float32),
     )
     return advanced_pitching_df
-
-
-if __name__ == "__main__":
-    df = single_player_standard_pitching("imanash01")
-    print(df.columns)
