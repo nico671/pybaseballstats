@@ -2,7 +2,9 @@ import asyncio
 
 import polars as pl
 
-from pybaseballstats.consts.statcast_consts import STATCAST_DATE_RANGE_URL
+from typing import Optional
+
+from pybaseballstats.consts.statcast_consts import STATCAST_DATE_RANGE_URL, TEAM_ABBR
 from pybaseballstats.utils.statcast_utils import (
     _create_date_ranges,
     _fetch_all_data,
@@ -16,6 +18,7 @@ __all__ = ["pitch_by_pitch_data"]
 async def _async_pitch_by_pitch_data(
     start_date: str,
     end_date: str,
+    team: Optional[str] = None,
     force_collect: bool = False,
 ) -> pl.LazyFrame | pl.DataFrame | None:
     """Internal async implementation."""
@@ -31,6 +34,7 @@ async def _async_pitch_by_pitch_data(
             STATCAST_DATE_RANGE_URL.format(
                 start_date=start_dt,
                 end_date=end_dt,
+                team=team if team else '',
             )
         )
 
@@ -54,6 +58,7 @@ async def _async_pitch_by_pitch_data(
 def pitch_by_pitch_data(
     start_date: str,
     end_date: str,
+    team: Optional[str] = None,
     force_collect: bool = False,
 ) -> pl.LazyFrame | pl.DataFrame | None:
     """Returns pitch-by-pitch data from Statcast for a given date range.
@@ -83,6 +88,9 @@ def pitch_by_pitch_data(
     if start_date is None or end_date is None:
         raise ValueError("Both start_date and end_date must be provided")
 
+    if team is not None and team not in TEAM_ABBR:
+        raise ValueError("Team abbreviation cannot be found")
+
     try:
         loop = asyncio.get_running_loop()  # noqa: F841
     except RuntimeError:
@@ -91,6 +99,7 @@ def pitch_by_pitch_data(
             _async_pitch_by_pitch_data(
                 start_date=start_date,
                 end_date=end_date,
+                team=team,
                 force_collect=force_collect,
             )
         )
@@ -103,6 +112,7 @@ def pitch_by_pitch_data(
             _async_pitch_by_pitch_data(
                 start_date=start_date,
                 end_date=end_date,
+                team=team,
                 force_collect=force_collect,
             )
         )

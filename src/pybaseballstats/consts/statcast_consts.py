@@ -1,7 +1,7 @@
 from datetime import date, datetime
 
 STATCAST_SINGLE_GAME_URL = "https://baseballsavant.mlb.com/statcast_search/csv?all=true&type=details&game_pk={game_pk}"
-STATCAST_DATE_RANGE_URL = "https://baseballsavant.mlb.com/statcast_search/csv?all=true&player_type=pitcher&game_date_gt={start_date}&game_date_lt={end_date}&sort_col=pitches&player_event_sort=api_p_release_speed&sort_order=desc&type=details#results"
+STATCAST_DATE_RANGE_URL = "https://baseballsavant.mlb.com/statcast_search/csv?all=true&player_type=pitcher&game_date_gt={start_date}&game_date_lt={end_date}&sort_col=pitches&team={team}&player_event_sort=api_p_release_speed&sort_order=desc&type=details#results"
 STATCAST_YEAR_RANGES = {
     2022: (date(2022, 3, 17), date(2022, 11, 5)),
     2016: (date(2016, 4, 3), date(2016, 11, 2)),
@@ -16,6 +16,37 @@ STATCAST_YEAR_RANGES = {
     2025: (date(2025, 3, 18), datetime.now().date()),
 }
 STATCAST_SINGLE_GAME_EV_PV_WP_URL = "https://baseballsavant.mlb.com/gamefeed?date={game_date}&gamePk={game_pk}&chartType=pitch&legendType=pitchName&playerType=pitcher&inning=&count=&pitchHand=&batSide=&descFilter=&ptFilter=&resultFilter=&hf={stat_type}&sportId=1&liveAb=#{game_pk}"
-
-
 STATCAST_DATE_FORMAT = "%Y-%m-%d"
+
+TEAM_ABBR = {
+    "ARI",
+    "ATL",
+    "BAL",
+    "BOS",
+    "CHC",
+    "CHW",
+    "CIN",
+    "CLE",
+    "COL",
+    "DET",
+    "HOU",
+    "KCR",
+    "LAA",
+    "LAD",
+    "MIA",
+    "MIL",
+    "MIN",
+    "NYM",
+    "NYY",
+    "OAK",
+    "PHI",
+    "PIT",
+    "SDP",
+    "SEA",
+    "SFG",
+    "STL",
+    "TBR",
+    "TEX",
+    "TOR",
+    "WSN",
+}
