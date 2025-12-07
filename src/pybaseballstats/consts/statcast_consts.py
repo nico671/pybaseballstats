@@ -33,6 +33,10 @@ class StatcastTeams(Enum):
     BLUE_JAYS = "TOR"
     NATIONALS = "WSH"
 
+    # Would give results for any game with at least team in the specified league. Unusable currently. 
+    # AMERICAN_LEAGUE = "AmericanL"
+    # NATIONAL_LEAGUE = "NationalL"
+
     @classmethod
     def show_options(cls):
         return "\n".join(f"{team.name}: {team.value}" for team in cls)

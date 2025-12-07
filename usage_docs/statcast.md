@@ -11,12 +11,47 @@ This module provides functions to retrieve data from the [Statcast](https://base
 ## Example Usage
 
 ```python
-from pybaseballstats.statcast import pitch_by_pitch_data
+import pybaseballstats.statcast as sc
 
 # Fetch Statcast data for a specific date range
-data = pitch_by_pitch_data(start_date="2022-05-01", end_date="2022-05-31")
+data = sc.pitch_by_pitch_data(start_date="2022-05-01", end_date="2022-05-31")
 
 # Fetch Statcast data for a specific date range + specific team"
-data = pitch_by_pitch_data(start_date="2022-05-01", end_date="2022-05-31", team="NYY")
+data = sc.pitch_by_pitch_data(start_date="2022-05-01", end_date="2022-05-31", team="NYY")
+
+#To print all available teams
+print(sc.StatcastTeams.show_options())|
+"""
+DIAMONDBACKS: AZ
+BRAVES: ATL
+ORIOLES: BAL
+RED_SOX: BOS
+CUBS: CHC
+REDS: CIN
+GUARDIANS: CLE
+ROCKIES: COL
+WHITE_SOX: CWS
+TIGERS: DET
+ASTROS: HOU
+ROYALS: KC
+ANGELS: LAA
+DODGERS: LAD
+MARLINS: MIA
+BREWERS: MIL
+TWINS: MIN
+METS: NYM
+YANKEES: NYY
+ATHLETICS: OAK
+PHILLIES: PHI
+PIRATES: PIT
+PADRES: SD
+MARINERS: SEA
+GIANTS: SF
+CARDINALS: STL
+RAYS: TB
+RANGERS: TEX
+BLUE_JAYS: TOR
+NATIONALS: WSH
+"""
 
 ```
