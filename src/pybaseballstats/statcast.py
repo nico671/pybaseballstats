@@ -34,7 +34,7 @@ async def _async_pitch_by_pitch_data(
             STATCAST_DATE_RANGE_URL.format(
                 start_date=start_dt,
                 end_date=end_dt,
-                team=team if team else '',
+                team=team if team else "",
             )
         )
 
@@ -69,6 +69,9 @@ def pitch_by_pitch_data(
     Args:
         start_date (str): The start date in 'YYYY-MM-DD' format.
         end_date (str): The end date in 'YYYY-MM-DD' format.
+        team (str, optional): MLB team abbreviation for filtering; whitespace is
+            trimmed and matching is case-insensitive. Defaults to None (all
+            teams).
         force_collect (bool, optional): Whether to force collection of the data,
             meaning conversion to a Polars DataFrame rather than the default
             Polars LazyFrame. Defaults to False.
@@ -80,6 +83,7 @@ def pitch_by_pitch_data(
 
     Raises:
         ValueError: If start_date or end_date is invalid or if start_date > end_date.
+        ValueError: If team is provided but not found in TEAM_ABBR.
 
     Example:
         >>> data = pitch_by_pitch_data("2024-04-01", "2024-04-03")
