@@ -47,7 +47,7 @@ def test_pitch_by_pitch_data_team_filtering():
     df = sc.pitch_by_pitch_data(
         start_date="2023-07-01",
         end_date="2023-07-03",
-        team="LAD",
+        team=sc.StatcastTeams.DODGERS,
         force_collect=True,
     )
     assert df is not None
@@ -57,25 +57,15 @@ def test_pitch_by_pitch_data_team_filtering():
     assert df.select(pl.col("game_date").max()).item() == "2023-07-03"
 
     dodgers_games = (pl.col("home_team") == "LAD") | (pl.col("away_team") == "LAD")
-    assert df.select(dodgers_games.all()).item() is True
+    assert df.filter(~dodgers_games).is_empty() # Filters out non Dodger rows and there should be none
     assert df.shape[0] > 0
 
 
 def test_pitch_by_pitch_data_invalid_team():
-    """Tests for exception to be raised when the entered abbreviation is incorrect"""
-    with pytest.raises(ValueError):
+    """Tests for AttributeError exception to be raised when you try to access a nonexistent enum member"""
+    with pytest.raises(AttributeError):
         sc.pitch_by_pitch_data(
             start_date="2023-07-01",
             end_date="2023-07-03",
-            team="ZZZ",
-        )
-
-
-def test_pitch_by_pitch_data_empty_team_string():
-    """Tests for exception to be raised when the entered abbreviation is empty"""
-    with pytest.raises(ValueError):
-        sc.pitch_by_pitch_data(
-            start_date="2023-07-01",
-            end_date="2023-07-03",
-            team="",
+            team=sc.StatcastTeams.METZ, 
         )

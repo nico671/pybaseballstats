@@ -1,4 +1,41 @@
 from datetime import date, datetime
+from enum import Enum
+
+class StatcastTeams(Enum):
+    DIAMONDBACKS = "AZ"
+    BRAVES = "ATL"
+    ORIOLES = "BAL"
+    RED_SOX = "BOS"
+    CUBS = "CHC"
+    REDS = "CIN"
+    GUARDIANS = "CLE"
+    ROCKIES = "COL"
+    WHITE_SOX = "CWS"
+    TIGERS = "DET"
+    ASTROS = "HOU"
+    ROYALS = "KC"
+    ANGELS = "LAA"
+    DODGERS = "LAD"
+    MARLINS = "MIA"
+    BREWERS = "MIL"
+    TWINS = "MIN"
+    METS = "NYM"
+    YANKEES = "NYY"
+    ATHLETICS = "OAK"
+    PHILLIES = "PHI"
+    PIRATES = "PIT"
+    PADRES = "SD"
+    MARINERS = "SEA"
+    GIANTS = "SF"
+    CARDINALS = "STL"
+    RAYS = "TB"
+    RANGERS = "TEX"
+    BLUE_JAYS = "TOR"
+    NATIONALS = "WSH"
+
+    @classmethod
+    def show_options(cls):
+        return "\n".join(f"{team.name}: {team.value}" for team in cls)
 
 STATCAST_SINGLE_GAME_URL = "https://baseballsavant.mlb.com/statcast_search/csv?all=true&type=details&game_pk={game_pk}"
 STATCAST_DATE_RANGE_URL = "https://baseballsavant.mlb.com/statcast_search/csv?all=true&player_type=pitcher&game_date_gt={start_date}&game_date_lt={end_date}&sort_col=pitches&team={team}&player_event_sort=api_p_release_speed&sort_order=desc&type=details#results"
@@ -17,35 +54,3 @@ STATCAST_YEAR_RANGES = {
 }
 STATCAST_SINGLE_GAME_EV_PV_WP_URL = "https://baseballsavant.mlb.com/gamefeed?date={game_date}&gamePk={game_pk}&chartType=pitch&legendType=pitchName&playerType=pitcher&inning=&count=&pitchHand=&batSide=&descFilter=&ptFilter=&resultFilter=&hf={stat_type}&sportId=1&liveAb=#{game_pk}"
 STATCAST_DATE_FORMAT = "%Y-%m-%d"
-TEAM_ABBR = {
-    "AZ",
-    "ATL",
-    "BAL",
-    "BOS",
-    "CHC",
-    "CIN",
-    "CLE",
-    "COL",
-    "CWS",
-    "DET",
-    "HOU",
-    "KC",
-    "LAA",
-    "LAD",
-    "MIA",
-    "MIL",
-    "MIN",
-    "NYM",
-    "NYY",
-    "OAK",
-    "PHI",
-    "PIT",
-    "SD",
-    "SEA",
-    "SF",
-    "STL",
-    "TB",
-    "TEX",
-    "TOR",
-    "WSH",
-}
