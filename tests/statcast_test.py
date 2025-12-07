@@ -50,10 +50,19 @@ def test_pitch_by_pitch_data_team_filtering():
 
 
 def test_pitch_by_pitch_data_invalid_team():
-    """Tests for exception to be raised when the entered abbreviation is incorrect/None"""
+    """Tests for exception to be raised when the entered abbreviation is incorrect"""
     with pytest.raises(ValueError):
         sc.pitch_by_pitch_data(
             start_date="2023-07-01",
             end_date="2023-07-03",
             team="ZZZ",
+        )
+
+def test_pitch_by_pitch_data_empty_team_string():
+    """Tests for exception to be raised when the entered abbreviation is None"""
+    with pytest.raises(ValueError):
+        sc.pitch_by_pitch_data(
+            start_date="2023-07-01",
+            end_date="2023-07-03",
+            team="",
         )
