@@ -14,71 +14,55 @@ jobs:
         with:
           fetch-depth: 0 # needed to push branches
 
-      # Check if we should use pre-generated coverage data
-      - name: Check for pre-generated coverage
-        id: check-coverage
-        run: |
-          if [ -f .github/coverage/coverage.json ]; then
-            echo "Using pre-generated coverage data"
-            echo "use_local_coverage=true" >> $GITHUB_OUTPUT
-          else
-            echo "No pre-generated coverage data found, will run tests"
-            echo "use_local_coverage=false" >> $GITHUB_OUTPUT
-          fi
-
-      # Set up Chrome and ChromeDriver for Selenium tests (only if running tests)
+      # Set up Chrome and ChromeDriver for Selenium tests
       - name: Install Chrome
-        if: steps.check-coverage.outputs.use_local_coverage == 'false'
         run: |
           sudo apt-get update
           sudo apt-get install -y google-chrome-stable
 
       - name: Install ChromeDriver
-        if: steps.check-coverage.outputs.use_local_coverage == 'false'
         uses: nanasess/setup-chromedriver@master
 
       - name: Start ChromeDriver
-        if: steps.check-coverage.outputs.use_local_coverage == 'false'
         run: |
           export DISPLAY=:99
           sudo Xvfb -ac :99 -screen 0 1280x1024x24 > /dev/null 2>&1 &
           chromedriver --url-base=/wd/hub &
 
-      # set up python environment using uv (only if running tests)
+      # Set up python environment using uv
       - name: Install uv
-        if: steps.check-coverage.outputs.use_local_coverage == 'false'
         uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
 
       - name: Set up Python
-        if: steps.check-coverage.outputs.use_local_coverage == 'false'
         run: uv python install
 
       - name: Install dependencies
-        if: steps.check-coverage.outputs.use_local_coverage == 'false'
         run: uv sync --locked --all-extras --dev
 
-      # run tests with coverage (only if not using local coverage)
+      # Run tests with coverage
       - name: Run tests
-        if: steps.check-coverage.outputs.use_local_coverage == 'false'
         run: uv run coverage run --source=src/pybaseballstats -m pytest tests/
 
       - name: Generate coverage report
-        if: steps.check-coverage.outputs.use_local_coverage == 'false'
-        run: uv run coverage json -o coverage.json
+        run: |
+          uv run coverage report -m
+          uv run coverage json -o coverage.json
 
-      # Copy pre-generated coverage data if using local coverage
-      - name: Use pre-generated coverage data
-        if: steps.check-coverage.outputs.use_local_coverage == 'true'
-        run: cp .github/coverage/coverage.json ./coverage.json
-
-      # Install jq for JSON parsing
+      # Install jq for JSON parsing (only on main branch)
       - name: Install jq
         if: github.ref == 'refs/heads/main'
         run: sudo apt-get update && sudo apt-get install -y jq
 
-      - name: Convert coverage.json to badge-compatible format
+      # Save coverage data to repository (only on main branch)
+      - name: Save coverage data
+        if: github.ref == 'refs/heads/main'
+        run: |
+          mkdir -p .github/coverage
+          cp coverage.json .github/coverage/coverage.json
+
+      - name: Convert coverage.json to badge
         if: github.ref == 'refs/heads/main'
         run: |
           # Extract percentage from coverage.json and round it
@@ -87,7 +71,6 @@ jobs:
           # Create the badges directory
           mkdir -p badges
 
-          # Create a simple badge using shields.io format
           # Determine color based on coverage percentage
           if [ "$percent" -ge 80 ]; then
             color="brightgreen"
@@ -100,19 +83,26 @@ jobs:
           # Download the badge from shields.io
           curl -o badges/coverage.svg "https://img.shields.io/badge/coverage-${percent}%25-${color}"
 
-      - name: Push coverage badge to dedicated branch
+      - name: Commit and push coverage data and badge
         if: github.ref == 'refs/heads/main'
         run: |
           git config --local user.email "actions@github.com"
           git config --local user.name "github-actions"
 
-          # Create coverage-badge branch if it doesn't exist
+          # Commit to main branch
+          git checkout main
+          git add .github/coverage/coverage.json
+          git diff --cached --quiet || git commit -m "Update coverage data [skip ci]"
+
+          # Create and push coverage badge to dedicated branch
           git fetch origin coverage-badge || true
           git checkout -B coverage-badge
-
           git add badges/coverage.svg
           git diff --cached --quiet || git commit -m "Update coverage badge [skip ci]"
-
           git push -u origin coverage-badge --force
+
+          # Return to main and push coverage data
+          git checkout main
+          git push origin main
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
