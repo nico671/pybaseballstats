@@ -301,15 +301,3 @@ def team_data(
     if focus_team != UmpireScorecardTeams.ALL:
         df = df.filter(pl.col("team").str.contains(focus_team.value))
     return df
-
-
-if __name__ == "__main__":
-    print(
-        game_data(
-            start_date="2023-04-01",
-            end_date="2023-07-07",
-            focus_team=UmpireScorecardTeams.ANGELS,
-            focus_team_home_away="a",
-            opponent_team=UmpireScorecardTeams.RANGERS,
-        )
-    )
