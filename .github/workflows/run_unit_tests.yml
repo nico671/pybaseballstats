@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          fetch-depth: 0 # needed to push branches
+          fetch-depth: 0
 
       # Set up Chrome and ChromeDriver for Selenium tests
       - name: Install Chrome
@@ -40,14 +40,19 @@ jobs:
 
       - name: Install dependencies
         run: uv sync --locked --all-extras --dev
+
       - name: Install playwright browsers
         run: uv run playwright install --with-deps chromium
-      # Run tests with coverage
-      - name: Run tests
-        run: uv run coverage run --source=src/pybaseballstats -m pytest tests/
+
+      # Run mypy type checks BEFORE tests
       - name: Run mypy type checks
         run: uv run mypy src/pybaseballstats
         continue-on-error: false
+
+      # Run tests with coverage
+      - name: Run tests
+        run: uv run coverage run --source=src/pybaseballstats -m pytest tests/
+
       - name: Generate coverage report
         run: |
           uv run coverage report -m
@@ -57,13 +62,6 @@ jobs:
       - name: Install jq
         if: github.ref == 'refs/heads/main'
         run: sudo apt-get update && sudo apt-get install -y jq
-
-      # Save coverage data to repository (only on main branch)
-      - name: Save coverage data
-        if: github.ref == 'refs/heads/main'
-        run: |
-          mkdir -p .github/coverage
-          cp coverage.json .github/coverage/coverage.json
 
       - name: Convert coverage.json to badge
         if: github.ref == 'refs/heads/main'
@@ -86,26 +84,28 @@ jobs:
           # Download the badge from shields.io
           curl -o badges/coverage.svg "https://img.shields.io/badge/coverage-${percent}%25-${color}"
 
-      - name: Commit and push coverage data and badge
+      # Only commit badge to separate branch (NOT main)
+      - name: Commit and push coverage badge
         if: github.ref == 'refs/heads/main'
         run: |
           git config --local user.email "actions@github.com"
           git config --local user.name "github-actions"
 
-          # Commit to main branch
-          git checkout main
-          git add .github/coverage/coverage.json
-          git diff --cached --quiet || git commit -m "Update coverage data [skip ci]"
+          # Fetch and checkout coverage-badge branch
+          git fetch origin coverage-badge || git checkout --orphan coverage-badge
+          git checkout coverage-badge || git checkout --orphan coverage-badge
 
-          # Create and push coverage badge to dedicated branch
-          git fetch origin coverage-badge || true
-          git checkout -B coverage-badge
-          git add badges/coverage.svg
+          # Remove all files except badges
+          git rm -rf . 2>/dev/null || true
+          mkdir -p badges
+          cp coverage.json badges/ 2>/dev/null || true
+
+          # Copy the badge
+          cp badges/coverage.svg badges/coverage.svg 2>/dev/null || true
+
+          # Commit and push
+          git add badges/
           git diff --cached --quiet || git commit -m "Update coverage badge [skip ci]"
           git push -u origin coverage-badge --force
-
-          # Return to main and push coverage data
-          git checkout main
-          git push origin main
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
