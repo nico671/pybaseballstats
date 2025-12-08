@@ -14,21 +14,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Set up Chrome and ChromeDriver for Selenium tests
-      - name: Install Chrome
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y google-chrome-stable
-
-      - name: Install ChromeDriver
-        uses: nanasess/setup-chromedriver@master
-
-      - name: Start ChromeDriver
-        run: |
-          export DISPLAY=:99
-          sudo Xvfb -ac :99 -screen 0 1280x1024x24 > /dev/null 2>&1 &
-          chromedriver --url-base=/wd/hub &
-
       # Set up python environment using uv
       - name: Install uv
         uses: astral-sh/setup-uv@v6
