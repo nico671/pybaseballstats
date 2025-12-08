@@ -41,11 +41,13 @@ jobs:
       - name: Install dependencies
         run: uv sync --locked --all-extras --dev
       - name: Install playwright browsers
-        run: uv run playwright install
+        run: uv run playwright install --with-deps chromium
       # Run tests with coverage
       - name: Run tests
         run: uv run coverage run --source=src/pybaseballstats -m pytest tests/
-
+      - name: Run mypy type checks
+        run: uv run mypy src/pybaseballstats
+        continue-on-error: false
       - name: Generate coverage report
         run: |
           uv run coverage report -m

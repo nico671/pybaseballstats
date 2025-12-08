@@ -46,7 +46,8 @@ def player_lookup(
         raise TypeError("first_name must be a string")
     if last_name and not isinstance(last_name, str):
         raise TypeError("last_name must be a string")
-    if not 0 <= fuzzy_threshold <= 100:
+
+    if fuzzy_threshold and not 0 <= fuzzy_threshold <= 100:
         raise ValueError("fuzzy_threshold must be between 0 and 100")
 
     full_df = _get_people_data()
