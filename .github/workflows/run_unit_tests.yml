@@ -40,7 +40,8 @@ jobs:
 
       - name: Install dependencies
         run: uv sync --locked --all-extras --dev
-
+      - name: Install playwright browsers
+        run: uv run playwright install
       # Run tests with coverage
       - name: Run tests
         run: uv run coverage run --source=src/pybaseballstats -m pytest tests/
