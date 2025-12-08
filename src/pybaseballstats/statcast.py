@@ -2,7 +2,12 @@ import asyncio
 
 import polars as pl
 
-from pybaseballstats.consts.statcast_consts import STATCAST_DATE_RANGE_URL
+from typing import Optional
+
+from pybaseballstats.consts.statcast_consts import (
+    STATCAST_DATE_RANGE_URL, 
+    StatcastTeams,
+)
 from pybaseballstats.utils.statcast_utils import (
     _create_date_ranges,
     _fetch_all_data,
@@ -16,6 +21,7 @@ __all__ = ["pitch_by_pitch_data"]
 async def _async_pitch_by_pitch_data(
     start_date: str,
     end_date: str,
+    team: Optional[StatcastTeams] = None,
     force_collect: bool = False,
 ) -> pl.LazyFrame | pl.DataFrame | None:
     """Internal async implementation."""
@@ -31,6 +37,7 @@ async def _async_pitch_by_pitch_data(
             STATCAST_DATE_RANGE_URL.format(
                 start_date=start_dt,
                 end_date=end_dt,
+                team=team.value if team else "",
             )
         )
 
@@ -54,6 +61,7 @@ async def _async_pitch_by_pitch_data(
 def pitch_by_pitch_data(
     start_date: str,
     end_date: str,
+    team: Optional[StatcastTeams] = None,
     force_collect: bool = False,
 ) -> pl.LazyFrame | pl.DataFrame | None:
     """Returns pitch-by-pitch data from Statcast for a given date range.
@@ -64,6 +72,7 @@ def pitch_by_pitch_data(
     Args:
         start_date (str): The start date in 'YYYY-MM-DD' format.
         end_date (str): The end date in 'YYYY-MM-DD' format.
+        team (StatcastTeams, optional): MLB team abbreviation for filtering. Defaults to None (all teams).
         force_collect (bool, optional): Whether to force collection of the data,
             meaning conversion to a Polars DataFrame rather than the default
             Polars LazyFrame. Defaults to False.
@@ -75,6 +84,7 @@ def pitch_by_pitch_data(
 
     Raises:
         ValueError: If start_date or end_date is invalid or if start_date > end_date.
+        ValueError: If team is provided but not found in TEAM_ABBR.
 
     Example:
         >>> data = pitch_by_pitch_data("2024-04-01", "2024-04-03")
@@ -82,6 +92,9 @@ def pitch_by_pitch_data(
     """
     if start_date is None or end_date is None:
         raise ValueError("Both start_date and end_date must be provided")
+
+    if not isinstance(team, StatcastTeams) and team is not None:
+        raise ValueError("Team must be a valid StatcastTeams enum value. See StatcastTeams class for valid values.")
 
     try:
         loop = asyncio.get_running_loop()  # noqa: F841
@@ -91,6 +104,7 @@ def pitch_by_pitch_data(
             _async_pitch_by_pitch_data(
                 start_date=start_date,
                 end_date=end_date,
+                team=team,
                 force_collect=force_collect,
             )
         )
@@ -103,6 +117,7 @@ def pitch_by_pitch_data(
             _async_pitch_by_pitch_data(
                 start_date=start_date,
                 end_date=end_date,
+                team=team,
                 force_collect=force_collect,
             )
         )
