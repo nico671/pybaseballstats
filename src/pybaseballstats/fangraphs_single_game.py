@@ -92,10 +92,3 @@ def fangraphs_single_game_play_by_play(
         }
     )
     return df
-
-
-if __name__ == "__main__":
-    df = fangraphs_single_game_play_by_play(
-        date="2024-09-13", team=FangraphsSingleGameTeams.Angels
-    )
-    print(df.filter(pl.col("Play").str.contains("scored")))

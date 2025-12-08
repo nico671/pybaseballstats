@@ -1161,7 +1161,7 @@ class FangraphsBattingStatType(Enum):
 
     @classmethod
     def show_options(cls):
-        return "\n".join([f"{team.name}: {team.value}" for team in cls])
+        return "\n".join([f"{stat.name}: {stat.value}" for stat in cls])
 
 
 class FangraphsSingleGameTeams(Enum):
