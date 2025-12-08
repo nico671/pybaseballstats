@@ -5,7 +5,7 @@ import dateparser
 
 from pybaseballstats.consts.fangraphs_consts import (
     FangraphsBattingPosTypes,
-    FangraphsTeams,
+    FangraphsLeaderboardTeams,
 )
 
 
@@ -31,23 +31,21 @@ def validate_pos_param(pos: FangraphsBattingPosTypes) -> str:
         return pos.value
 
 
-def validate_hand_param(handedness: Literal["L", "R", "S", None]) -> str:
-    if handedness not in ["L", "R", "S", None]:
-        raise ValueError("handedness must be one of ['L', 'R', 'S', None]")
-    elif handedness is None:
-        return ""
-    else:
-        return handedness
+def validate_hand_param(handedness: Literal["L", "R", "S", ""]) -> str:
+    if handedness not in ["L", "R", "S", ""]:
+        raise ValueError("handedness must be one of ['L', 'R', 'S', '']")
+
+    return handedness
 
 
-def validate_age_params(min_age: int, max_age: int) -> str:
+def validate_age_params(min_age: int, max_age: int) -> None:
     if not (14 <= min_age <= 56):
         raise ValueError("min_age must be between 14 and 56")
     if not (14 <= max_age <= 56):
         raise ValueError("max_age must be between 14 and 56")
     if min_age > max_age:
         raise ValueError("min_age cannot be greater than max_age")
-    return f"{min_age},{max_age}"
+    return
 
 
 def validate_ind_param(split_seasons: bool) -> str:
@@ -93,7 +91,15 @@ def validate_seasons_param(
     return str(start_season), str(end_season)
 
 
-def validate_team_stat_split_param(team: FangraphsTeams, stat_split: str) -> str:
+def validate_league_param(league: Literal["", "al", "nl"]) -> str:
+    if league not in ["", "al", "nl"]:
+        raise ValueError("league must be one of '', 'al', or 'nl'")
+    return league
+
+
+def validate_team_stat_split_param(
+    team: FangraphsLeaderboardTeams, stat_split: str
+) -> str:
     # handle team and stat_split together
     if stat_split and stat_split not in ["player", "team", "league"]:
         raise ValueError("stat_split must be one of 'player', 'team', or 'league'")
@@ -171,13 +177,35 @@ def validate_dates(start_date: str | None, end_date: str | None) -> Tuple[str, s
     return start_dt.strftime("%Y-%m-%d"), end_dt.strftime("%Y-%m-%d")
 
 
+def validate_seasons_and_dates_together(
+    start_season: int | None,
+    end_season: int | None,
+    start_date: str | None,
+    end_date: str | None,
+) -> bool:
+    if (start_season is not None) and (start_date is not None):
+        raise ValueError(
+            "Specify either seasons (start_season, end_season) OR dates (start_date, end_date), but not both."
+        )
+    if (start_season is None) and (start_date is None):
+        raise ValueError(
+            "You must provide either a start or end season (start_season, end_season) OR a start date (start_date, end_date)."
+        )
+    if start_season:
+        # using seasons
+        return True
+    else:
+        # using dates
+        return False
+
+
 # def fangraphs_fielding_input_val(
 #     start_year: Union[int, None] = None,
 #     end_year: Union[int, None] = None,
 #     min_inn: Union[str, int] = "y",
 #     stat_types: List[FangraphsFieldingStatType] = None,
 #     active_roster_only: bool = False,
-#     team: FangraphsTeams = FangraphsTeams.ALL,
+#     team: FangraphsLeaderboardTeams = FangraphsLeaderboardTeams.ALL,
 #     league: Literal["nl", "al", ""] = "",
 #     fielding_position: FangraphsBattingPosTypes = FangraphsBattingPosTypes.ALL,
 # ):
@@ -219,8 +247,8 @@ def validate_dates(start_date: str | None, end_date: str | None) -> Tuple[str, s
 #         active_roster_only = 0
 
 #     # team validation
-#     if not isinstance(team, FangraphsTeams):
-#         raise ValueError("team must be a valid FangraphsTeams value")
+#     if not isinstance(team, FangraphsLeaderboardTeams):
+#         raise ValueError("team must be a valid FangraphsLeaderboardTeams value")
 #     else:
 #         print(f"Filtering by team: {team}")
 #         team = team.value
@@ -265,7 +293,7 @@ def validate_dates(start_date: str | None, end_date: str | None) -> Tuple[str, s
 #     min_ip: Union[str, int] = "y",
 #     stat_types: List[FangraphsPitchingStatType] = None,
 #     active_roster_only: bool = False,
-#     team: FangraphsTeams = FangraphsTeams.ALL,
+#     team: FangraphsLeaderboardTeams = FangraphsLeaderboardTeams.ALL,
 #     league: Literal["nl", "al", ""] = "",
 #     min_age: Optional[int] = None,
 #     max_age: Optional[int] = None,
@@ -329,8 +357,8 @@ def validate_dates(start_date: str | None, end_date: str | None) -> Tuple[str, s
 #         active_roster_only = 0
 
 #     # team validation
-#     if not isinstance(team, FangraphsTeams):
-#         raise ValueError("team must be a valid FangraphsTeams value")
+#     if not isinstance(team, FangraphsLeaderboardTeams):
+#         raise ValueError("team must be a valid FangraphsLeaderboardTeams value")
 #     else:
 #         print(f"Filtering by team: {team}")
 #         team = team.value
