@@ -16,6 +16,8 @@ Note that this function is currently very slow, I am looking into strategies for
 - `first_name` (str, optional): The first name of the player.
 - `last_name` (str, optional): The last name of the player.
 - `strip_accents` (bool, optional): Whether to strip accents from the names (default is True).
+- `fuzzy` (bool, optional): Whether to use fuzzy matching with similarity scoring. Defaults to False.
+- `fuzzy_threshold` (int, optional): Minimum similarity score (0-100) for fuzzy matches. Defaults to 80.
 
 ```python
 import pybaseballstats.retrosheet as rs
@@ -26,6 +28,12 @@ player_info = rs.player_lookup(first_name="Mike", last_name="Trout")
 key_bbref = player_info.select(pl.col("key_bbref")).to_series()[0]  
 # Use the player ID to get more detailed information from Baseball Reference
 bsp.single_player_standard_batting(player_code=key_bbref)
+```
+
+```python
+# Lookup a player by last name only with fuzzy matching
+import pybaseballstats.retrosheet as rs
+player_info = rs.player_lookup(last_name="Rodriguez", fuzzy=True, fuzzy_threshold=90)
 ```
 
 ### Ejections Data
