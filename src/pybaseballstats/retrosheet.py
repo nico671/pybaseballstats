@@ -108,21 +108,26 @@ def player_lookup(
             """Calculate the best fuzzy match score across all name columns."""
             scores = []
 
-            if first_name:
+            if first_name is not None and first_name != "":
                 # Check against first name columns
                 for col in ["name_first_lower", "name_given_lower", "name_nick_lower"]:
                     name_val = row[col]
                     if name_val:
                         scores.append(fuzz.ratio(first_name, name_val))
 
-            if last_name:
+            if last_name is not None and last_name != "":
                 # Check against last name columns
                 for col in ["name_last_lower", "name_matrilineal_lower"]:
                     name_val = row[col]
                     if name_val:
                         scores.append(fuzz.ratio(last_name, name_val))
 
-            if first_name and last_name:
+            if (
+                first_name is not None
+                and first_name != ""
+                and last_name is not None
+                and last_name != ""
+            ):
                 # Combine first and last name for a full name score
                 full_name_input = f"{first_name} {last_name}"
                 for fn_col in [
@@ -276,3 +281,10 @@ def ejections_data(
             raise ValueError("Inning must be between -1 and 20")
 
     return df
+
+
+if __name__ == "__main__":
+    df = player_lookup(
+        first_name=None, last_name="Miller", fuzzy=True, fuzzy_threshold=80
+    )
+    print(df)

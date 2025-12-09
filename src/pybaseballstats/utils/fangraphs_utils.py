@@ -49,6 +49,8 @@ def validate_age_params(min_age: int, max_age: int) -> None:
 
 
 def validate_ind_param(split_seasons: bool) -> str:
+    if not isinstance(split_seasons, bool):
+        raise ValueError("split_seasons must be a boolean value")
     if split_seasons:
         return "1"
     else:
@@ -86,8 +88,7 @@ def validate_seasons_param(
     if end_season < 1871 or end_season > current_year:
         raise ValueError(f"end_season must be between 1871 and {current_year}")
     if start_season > end_season:
-        print("start_season is greater than end_season, switching them")
-        start_season, end_season = end_season, start_season
+        raise ValueError("start_season cannot be greater than end_season")
     return str(start_season), str(end_season)
 
 
@@ -113,6 +114,7 @@ def validate_team_stat_split_param(
     elif stat_split == "league":
         stat_split = "ss"
     if team:
+        assert isinstance(team, FangraphsLeaderboardTeams)
         team_value = str(team.value)
     else:
         team_value = ""
@@ -125,6 +127,9 @@ def validate_team_stat_split_param(
 
 
 def validate_active_roster_param(active_roster_only: bool) -> str:
+    assert isinstance(active_roster_only, bool), (
+        "active_roster_only must be a boolean value"
+    )
     if active_roster_only:
         return "1"
     return "0"
@@ -174,6 +179,16 @@ def validate_dates(start_date: str | None, end_date: str | None) -> Tuple[str, s
     assert end_dt is not None, "Could not parse end_date"
     if start_dt > end_dt:
         raise ValueError("start_date must be before end_date")
+    # ensure year range is valid
+    if start_dt.year < 1871:
+        raise ValueError("start_date year must be 1871 or later")
+    current_year = datetime.now().year
+    if start_dt.year > current_year:
+        raise ValueError(f"end_date year cannot be later than {current_year}")
+    if end_dt.year < 1871:
+        raise ValueError("end_date year must be 1871 or later")
+    if end_dt.year > current_year:
+        raise ValueError(f"end_date year cannot be later than {current_year}")
     return start_dt.strftime("%Y-%m-%d"), end_dt.strftime("%Y-%m-%d")
 
 

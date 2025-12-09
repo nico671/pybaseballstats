@@ -79,7 +79,6 @@ def fangraphs_batting_leaderboard(
     validate_age_params(min_age, max_age)
     active_roster_only_param = validate_active_roster_param(active_roster_only)
     url = FANGRAPHS_BATTING_LEADERBOARD_URL.format(
-        # age_param=f"{min_age},{max_age}" if min_age and max_age else "",
         pos_param=position_param,
         league_param=league_param,
         min_pa_param=min_pa_param,
