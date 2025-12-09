@@ -137,9 +137,9 @@ def fangraphs_batting_leaderboard(
                 if stat in start_cols:
                     continue
                 wanted_stats[stat] = True
-    wanted_stats = list(dict.fromkeys(wanted_stats))  # preserve start columns
-    wanted_stats = start_cols + wanted_stats
-    df = df.select([pl.col(col) for col in wanted_stats if col in df.columns])
+    wanted_stats_ordered = list(dict.fromkeys(wanted_stats))  # preserve order
+    wanted_stats_ordered = start_cols + wanted_stats_ordered
+    df = df.select([pl.col(col) for col in wanted_stats_ordered if col in df.columns])
 
     # filter by min_age and max_age if provided
     if min_age is not None:

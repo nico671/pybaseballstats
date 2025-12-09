@@ -250,7 +250,7 @@ def ejections_data(
     if end_dt:
         df = df.filter(pl.col("DATE") <= end_dt)
 
-    if df.shape.is_empty():
+    if df.is_empty():
         print("Warning: No ejections found for the given date range.")
         return df
 
