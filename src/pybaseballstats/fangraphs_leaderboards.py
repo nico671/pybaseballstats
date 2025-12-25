@@ -59,11 +59,12 @@ def fangraphs_batting_leaderboard(
             start_season, end_season
         )
         start_date_param = end_date_param = ""
-        month_param = 0
+        month_param = 0  # indicates seasons are being used
     else:
         # using dates
         start_date_param, end_date_param = validate_dates(start_date, end_date)
         start_season_param = end_season_param = ""
+        month_param = 1000  # indicates date range is being used
     position_param = validate_pos_param(position)
     season_type_param = validate_season_type(season_type)
     ind_param = validate_ind_param(split_seasons)
@@ -113,6 +114,9 @@ def fangraphs_batting_leaderboard(
         "SeasonMax",
         "AgeR",
     ]
+    if start_season_param == "":
+        start_cols.remove("SeasonMin")
+        start_cols.remove("SeasonMax")
     other_cols = [col for col in df.columns if col not in start_cols]
 
     df = df.select(start_cols + other_cols)
@@ -146,11 +150,3 @@ def fangraphs_batting_leaderboard(
     if max_age is not None:
         df = df.filter(pl.col("Age") <= max_age)
     return df
-
-
-if __name__ == "__main__":
-    df = fangraphs_batting_leaderboard(
-        start_season=2023,
-        end_season=2023,
-    )
-    print(df)

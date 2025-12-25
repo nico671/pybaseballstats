@@ -1,5 +1,6 @@
 from datetime import datetime
 
+import polars as pl
 import pytest
 
 import pybaseballstats.fangraphs_leaderboards as fg
@@ -229,3 +230,56 @@ def test_fangraphs_batting_leaderboard_active_roster_only_badinput():
         fg.fangraphs_batting_leaderboard(
             active_roster_only="yes",  # type: ignore
         )
+
+
+def test_fangraphs_batting_leaderboard_seasons_variations():
+    # valid single season
+    df = fg.fangraphs_batting_leaderboard(
+        start_season=2025,
+        end_season=None,
+    )
+    print(df)
+    assert df.shape[0] == 145
+    assert df.shape[1] == 321
+    assert df.select(pl.col("Season").unique()).item() == 2025
+    assert df.select(pl.col("Name").unique()).shape[0] == 145
+    assert df.select(pl.col("Team").n_unique()).item() == 31  # 31 bc some have 2TM
+    # # valid multi season
+    df = fg.fangraphs_batting_leaderboard(
+        start_season=2023,
+        end_season=2025,
+    )
+    assert df.shape[0] == 229
+    assert df.shape[1] == 321
+    assert df.select(pl.col("Name").n_unique()).item() == 229
+    assert df.select(pl.col("Team").n_unique()).item() == 31
+
+
+def test_fangraphs_batting_leaderboard_dates_variations():
+    # valid date range
+    df = fg.fangraphs_batting_leaderboard(
+        start_date="2023-04-01",
+        end_date="2023-06-30",
+    )
+    assert df.shape[0] == 153
+    assert df.shape[1] == 318
+    assert df.select(pl.col("Season").unique()).item() == 2023
+    assert df.select(pl.col("Name").n_unique()).item() == 153
+    assert df.select(pl.col("Team").n_unique()).item() == 30
+
+
+def test_fangraphs_batting_leaderboard_stat_types_variations():
+    # valid stat types
+    df = fg.fangraphs_batting_leaderboard(
+        start_season=2023,
+        end_season=2023,
+        stat_types=[
+            fg.FangraphsBattingStatType.STANDARD,
+            fg.FangraphsBattingStatType.ADVANCED,
+        ],
+    )
+    assert df.shape[0] == 134
+    assert df.shape[1] == 47  # fewer columns than default which is all stat types
+    assert df.select(pl.col("Season").unique()).item() == 2023
+    assert df.select(pl.col("Name").n_unique()).item() == 134
+    assert df.select(pl.col("Team").n_unique()).item() == 31

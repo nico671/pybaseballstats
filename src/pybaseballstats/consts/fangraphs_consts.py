@@ -1226,7 +1226,7 @@ FG_SINGLE_GAME_URL = (
     "https://www.fangraphs.com/boxscore.aspx?date={date}&team={team}&dh=0"
 )
 
-FANGRAPHS_BATTING_LEADERBOARD_URL = "https://www.fangraphs.com/api/leaders/major-league/data?age=&pos={pos_param}&stats=bat&lg={league_param}&qual={min_pa_param}&season={start_season_param}&season1={end_season_param}&startdate={start_date_param}&enddate={end_date_param}&month={month_param}&hand={hand_param}&team={team_param}&ind={split_seasons_param}&rost={active_roster_param}&players={custom_players_names_param_addedlater}&type=8&postseason={postseason_param}&pagenum=1&pageitems=2000000000"
+FANGRAPHS_BATTING_LEADERBOARD_URL = "https://www.fangraphs.com/api/leaders/major-league/data?age=&pos={pos_param}&stats=bat&lg={league_param}&qual={min_pa_param}&season={end_season_param}&season1={start_season_param}&startdate={start_date_param}&enddate={end_date_param}&month={month_param}&hand={hand_param}&team={team_param}&ind={split_seasons_param}&rost={active_roster_param}&players={custom_players_names_param_addedlater}&type=8&postseason={postseason_param}&pagenum=1&pageitems=2000000000"
 
 FANGRAPHS_WAR_LEADERBOARD_URL = "https://www.fangraphs.com/leaders/war?wartype={war_type}&teamid={team_id}&lg={league}&season={season}"
 FANGRAPHS_FIELDING_API_URL = "https://www.fangraphs.com/api/leaders/major-league/data?age=&pos={fielding_position}&stats=fld&lg={league}&qual={min_inn}&season={end_year}&season1={start_year}&startdate=&enddate=&month=0&hand=&team={team}&pageitems=2000000000&pagenum=1&ind=0&rost={active_roster_only}&players=0&type=1&postseason=&sortdir=default&sortstat=Defense"

@@ -1,4 +1,22 @@
 [project]
+keywords = [
+    "baseball",
+    "stats",
+    "data",
+    "savant",
+    "Baseball Savant",
+    "Fangraphs",
+    "MLB",
+    "scraping",
+    "sabermetrics",
+    "sports analytics",
+    "retrosheet",
+    "baseball data",
+    "baseball statistics",
+    "baseball analytics",
+    "python baseball",
+    "python sports analytics",
+]
 name = "pybaseballstats"
 version = "0.4.5"
 description = "A Python package for scraping baseball data."
@@ -21,17 +39,6 @@ authors = [{ name = "Nicolas Carbone", email = "carbone.nicolas0@gmail.com" }]
 license = { text = "MIT" }
 maintainers = [
     { name = "Nicolas Carbone", email = "carbone.nicolas0@gmail.com" },
-]
-keywords = [
-    "baseball",
-    "stats",
-    "data",
-    "savant",
-    "Baseball Savant",
-    "Fangraphs",
-    "MLB",
-    "scraping",
-    "sabermetrics",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -69,6 +76,6 @@ packages = { find = { where = ["src/"] } }
 "pybaseballstats" = ["data/*.csv"]
 
 [tool.pytest.ini_options]
-asyncio_mode = "auto"                                        # Add this to automatically detect async tests
+asyncio_mode = "auto"                                        # automatically detect async tests
 asyncio_default_fixture_loop_scope = "function"
 filterwarnings = ["ignore::DeprecationWarning:dateparser.*"]

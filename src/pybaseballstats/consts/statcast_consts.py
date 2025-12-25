@@ -1,6 +1,7 @@
 from datetime import date, datetime
 from enum import Enum
 
+
 class StatcastTeams(Enum):
     DIAMONDBACKS = "AZ"
     BRAVES = "ATL"
@@ -33,13 +34,14 @@ class StatcastTeams(Enum):
     BLUE_JAYS = "TOR"
     NATIONALS = "WSH"
 
-    # Would give results for any game with at least team in the specified league. Unusable currently. 
+    # Would give results for any game with at least team in the specified league. Unusable currently.
     # AMERICAN_LEAGUE = "AmericanL"
     # NATIONAL_LEAGUE = "NationalL"
 
     @classmethod
     def show_options(cls):
         return "\n".join(f"{team.name}: {team.value}" for team in cls)
+
 
 STATCAST_SINGLE_GAME_URL = "https://baseballsavant.mlb.com/statcast_search/csv?all=true&type=details&game_pk={game_pk}"
 STATCAST_DATE_RANGE_URL = "https://baseballsavant.mlb.com/statcast_search/csv?all=true&player_type=pitcher&game_date_gt={start_date}&game_date_lt={end_date}&sort_col=pitches&team={team}&player_event_sort=api_p_release_speed&sort_order=desc&type=details#results"

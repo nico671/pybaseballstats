@@ -1,8 +1,8 @@
-import datetime
+import asyncio
 import io
-from typing import Dict
+from typing import Dict, List
 
-import pandas as pd  # type: ignore[import-untyped]
+import nest_asyncio
 import polars as pl
 import requests
 from bs4 import BeautifulSoup
@@ -12,12 +12,56 @@ from pybaseballstats.consts.statcast_consts import (
     STATCAST_SINGLE_GAME_URL,
 )
 from pybaseballstats.statcast import pitch_by_pitch_data
-from pybaseballstats.utils.statcast_utils import get_page
+from pybaseballstats.utils.statcast_single_game_utils import (
+    _handle_single_game_date,
+    get_page_async,
+)
 
 
-def statcast_single_game_pitch_by_pitch(
-    game_pk: int, return_pandas: bool = False
-) -> pl.DataFrame | pd.DataFrame:
+# helper for running async code in sync functions
+def _run_in_loop(coro):
+    """
+    Runs an async coroutine synchronously.
+    Handles cases where an event loop is already running (e.g., Jupyter).
+    """
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(coro)
+    else:
+        nest_asyncio.apply()
+        return loop.run_until_complete(coro)
+
+
+def get_available_game_pks_for_date(
+    game_date: str,
+) -> List[Dict[str, str]]:
+    available_games: List[Dict[str, str]] = []
+
+    df = pitch_by_pitch_data(
+        game_date,
+        game_date,
+        force_collect=True,  # we force collect here bc we only have one day, dataframe shouldnt be too large
+    )  # don't need game date string conversion here, the pitch_by_pitch_data function handles that
+    assert df is not None, "Dataframe is None"
+    assert isinstance(df, pl.DataFrame), "Dataframe is not a Polars DataFrame"
+    if df is None or df.shape[0] == 0 or df.shape[1] == 0:
+        print(
+            "No games found for the specified date. Please check the date format / date and try again."
+        )
+        return available_games
+
+    for i, group in df.group_by("game_pk"):
+        game_pk = group.select(pl.col("game_pk").first()).item()
+        game_data = {}
+        game_data["game_pk"] = game_pk
+        game_data["home_team"] = group.select(pl.col("home_team").first()).item()
+        game_data["away_team"] = group.select(pl.col("away_team").first()).item()
+        available_games.append(game_data)
+    return available_games
+
+
+def single_game_pitch_by_pitch(game_pk: int) -> pl.DataFrame:
     """Pulls statcast data for a single game.
 
     Args:
@@ -26,76 +70,45 @@ def statcast_single_game_pitch_by_pitch(
         return_pandas (bool, optional): whether or not to return as a Pandas DataFrame. Defaults to False (returns Polars LazyFrame).
 
     Returns:
-        pl.DataFrame | pd.DataFrame: DataFrame of statcast data for the game
+        pl.DataFrame: DataFrame of statcast data for the game
     """
     response = requests.get(
         STATCAST_SINGLE_GAME_URL.format(game_pk=game_pk),
     )
     statcast_content = response.content
-    df = pl.scan_csv(io.StringIO(statcast_content.decode("utf-8"))).collect()
-    return df if not return_pandas else df.to_pandas()
+    df = pl.read_csv(io.StringIO(statcast_content.decode("utf-8")))
+    return df
 
 
-def get_available_game_pks_for_date(
-    game_date: str,
-) -> Dict[int, Dict[str, str]]:
-    available_games: Dict[int, Dict[str, str]] = {}
-    df = pitch_by_pitch_data(game_date, game_date)
-    if df is None:
-        print(
-            "No games found for the specified date. Please check the date format / date and try again."
-        )
-        return available_games
-
-    collected_df = df.collect() if hasattr(df, "collect") else df
-    if collected_df.shape[0] == 0 or collected_df.shape[1] == 0:
-        # No games found for the specified date
-        print(
-            "No games found for the specified date. Please check the date format / date and try again."
-        )
-        return available_games
-    for i, group in collected_df.group_by("game_pk"):
-        game_pk = group.select(pl.col("game_pk").first()).item()
-        available_games[game_pk] = {}
-        available_games[game_pk]["home_team"] = group.select(
-            pl.col("home_team").first()
-        ).item()
-        available_games[game_pk]["away_team"] = group.select(
-            pl.col("away_team").first()
-        ).item()
-    return available_games
+def single_game_exit_velocity(game_pk: int, game_date: str) -> pl.DataFrame:
+    return _run_in_loop(_single_game_exit_velocity_async(game_pk, game_date))
 
 
-def _handle_single_game_date(game_date: str):
-    try:
-        dt_object = datetime.datetime.strptime(game_date, "%Y-%m-%d")
-    except ValueError:
-        raise ValueError("Incorrect date format. Please use YYYY-MM-DD format.")
-    # Format date as month/day/year and replace slashes with %2F for URL encoding
-    formatted_date = f"{dt_object.month}/{dt_object.day}/{dt_object.year}"
-    url_encoded_date = formatted_date.replace("/", "%2F")
-    return url_encoded_date
-
-
-def get_statcast_single_game_exit_velocity(
+async def _single_game_exit_velocity_async(
     game_pk: int,
     game_date: str,
-    return_pandas: bool = False,
-) -> pl.DataFrame | pd.DataFrame:
+) -> pl.DataFrame:
     game_date_str = _handle_single_game_date(game_date)
-
-    with get_page() as page:
-        # Use the URL from the previous cell
-        page.goto(
-            STATCAST_SINGLE_GAME_EV_PV_WP_URL.format(
-                game_date=game_date_str, game_pk=game_pk, stat_type="exitVelocity"
+    try:
+        async with get_page_async() as page:
+            # Use the URL from the previous cell
+            await page.goto(
+                STATCAST_SINGLE_GAME_EV_PV_WP_URL.format(
+                    game_date=game_date_str, game_pk=game_pk, stat_type="exitVelocity"
+                )
             )
+
+            # Wait for the chart to load
+            await page.wait_for_selector(f"#exitVelocityTable_{game_pk}", timeout=10000)
+            ev_table_html = await page.locator(
+                f"#exitVelocityTable_{game_pk}"
+            ).inner_html()
+    except Exception as e:
+        print(f"Error fetching data for game_pk {game_pk} on {game_date_str}: {e}")
+        print(
+            "Ensure that the game_pk and game_date are correct. Returning empty DataFrame."
         )
-
-        # Wait for the chart to load
-        page.wait_for_selector(f"#exitVelocityTable_{game_pk}", timeout=10000)
-        ev_table_html = page.locator(f"#exitVelocityTable_{game_pk}").inner_html()
-
+        return pl.DataFrame()
     soup = BeautifulSoup(ev_table_html, "html.parser")
     table = soup.find("table")
     assert table is not None, "Could not find table"
@@ -185,25 +198,36 @@ def get_statcast_single_game_exit_velocity(
         ]
     )
 
-    return df if not return_pandas else df.to_pandas()
+    return df
 
 
-def get_statcast_single_game_pitch_velocity(
+def single_game_pitch_velocity(game_pk: int, game_date: str) -> pl.DataFrame:
+    return _run_in_loop(_single_game_pitch_velocity_async(game_pk, game_date))
+
+
+async def _single_game_pitch_velocity_async(
     game_pk: int,
     game_date: str,
-    return_pandas: bool = False,
-) -> pl.DataFrame | pd.DataFrame:
+) -> pl.DataFrame:
     game_date_str = _handle_single_game_date(game_date)
-    with get_page() as page:
-        page.goto(
-            STATCAST_SINGLE_GAME_EV_PV_WP_URL.format(
-                game_date=game_date_str, game_pk=game_pk, stat_type="pitchVelocity"
+    try:
+        async with get_page_async() as page:
+            # Use the URL from the previous cell
+            await page.goto(
+                STATCAST_SINGLE_GAME_EV_PV_WP_URL.format(
+                    game_date=game_date_str, game_pk=game_pk, stat_type="pitchVelocity"
+                )
             )
-        )
 
-        # Wait for the chart to load
-        page.wait_for_selector(f"#pitchVelocity_{game_pk}", timeout=10000)
-        pv_table_html = page.locator(f"#pitchVelocity_{game_pk}").inner_html()
+            # Wait for the chart to load
+            await page.wait_for_selector(f"#pitchVelocity_{game_pk}", timeout=10000)
+            pv_table_html = await page.locator(f"#pitchVelocity_{game_pk}").inner_html()
+    except Exception as e:
+        print(f"Error fetching data for game_pk {game_pk} on {game_date_str}: {e}")
+        print(
+            "Ensure that the game_pk and game_date are correct. Returning empty DataFrame."
+        )
+        return pl.DataFrame()
 
     soup = BeautifulSoup(pv_table_html, "html.parser")
     table = soup.find("table")
@@ -296,26 +320,40 @@ def get_statcast_single_game_pitch_velocity(
             pl.col("horizontal_break").cast(pl.Float32),
         ]
     )
-    return df if not return_pandas else df.to_pandas()
+    return df
 
 
-def get_statcast_single_game_wp_table(
+def single_game_win_probability(game_pk: int, game_date: str) -> pl.DataFrame:
+    return _run_in_loop(_single_game_win_probability_async(game_pk, game_date))
+
+
+async def _single_game_win_probability_async(
     game_pk: int,
     game_date: str,
-    return_pandas: bool = False,
-) -> pl.DataFrame | pd.DataFrame:
+) -> pl.DataFrame:
     game_date_str = _handle_single_game_date(game_date)
-    with get_page() as page:
-        # Use the URL from the previous cell
-        page.goto(
-            STATCAST_SINGLE_GAME_EV_PV_WP_URL.format(
-                game_date=game_date_str, game_pk=game_pk, stat_type="winProbability"
+    try:
+        async with get_page_async() as page:
+            # Use the URL from the previous cell
+            await page.goto(
+                STATCAST_SINGLE_GAME_EV_PV_WP_URL.format(
+                    game_date=game_date_str, game_pk=game_pk, stat_type="winProbability"
+                )
             )
-        )
 
-        # Wait for the chart to load
-        page.wait_for_selector(f"#tableWinProbability_{game_pk}", timeout=10000)
-        wp_table_html = page.locator(f"#tableWinProbability_{game_pk}").inner_html()
+            # Wait for the chart to load
+            await page.wait_for_selector(
+                f"#tableWinProbability_{game_pk}", timeout=10000
+            )
+            wp_table_html = await page.locator(
+                f"#tableWinProbability_{game_pk}"
+            ).inner_html()
+    except Exception as e:
+        print(f"Error fetching data for game_pk {game_pk} on {game_date_str}: {e}")
+        print(
+            "Ensure that the game_pk and game_date are correct. Returning empty DataFrame."
+        )
+        return pl.DataFrame()
 
     soup = BeautifulSoup(wp_table_html, "html.parser")
     table = soup.find("table")
@@ -390,4 +428,4 @@ def get_statcast_single_game_wp_table(
             pl.col("Away WP%").cast(pl.Float32),
         ]
     )
-    return df if not return_pandas else df.to_pandas()
+    return df

@@ -95,9 +95,6 @@ def single_player_standard_batting(player_code: str) -> pl.DataFrame:
     standard_stats_df = standard_stats_df.select(
         pl.all().name.map(lambda col_name: col_name.replace("_abbr", ""))
     )
-    standard_stats_df = standard_stats_df.with_columns(
-        pl.lit(player_code).alias("key_bbref")
-    )
     return standard_stats_df
 
 
@@ -158,9 +155,6 @@ def single_player_value_batting(player_code: str) -> pl.DataFrame:
                 "war_def",
             ]
         ).cast(pl.Float32),
-    )
-    value_batting_df = value_batting_df.with_columns(
-        pl.lit(player_code).alias("key_bbref")
     )
     return value_batting_df
 
@@ -226,9 +220,7 @@ def single_player_advanced_batting(player_code: str) -> pl.DataFrame:
         pl.col("gfratio").cast(pl.Float32).alias("gb_fb_ratio"),
         pl.col("cwpa_bat").str.replace("%", "").cast(pl.Float32),
     ).drop(["gperc", "fperc", "gfratio"])
-    advanced_batting_df = advanced_batting_df.with_columns(
-        pl.lit(player_code).alias("key_bbref")
-    )
+
     return advanced_batting_df
 
 
@@ -291,9 +283,6 @@ def single_player_standard_fielding(player_code: str) -> pl.DataFrame:
             ]
         ).cast(pl.Float32),
     )
-    standard_fielding_df = standard_fielding_df.with_columns(
-        pl.lit(player_code).alias("key_bbref")
-    )
     return standard_fielding_df
 
 
@@ -326,9 +315,6 @@ def single_player_sabermetric_fielding(player_code: str) -> pl.DataFrame:
     sabermetric_fielding_df = sabermetric_fielding_df.fill_null(0)
     sabermetric_fielding_df = sabermetric_fielding_df.with_columns(
         pl.all().exclude(["team_ID", "pos", "lg_ID"]).cast(pl.Int32)
-    )
-    sabermetric_fielding_df = sabermetric_fielding_df.with_columns(
-        pl.lit(player_code).alias("key_bbref")
     )
     return sabermetric_fielding_df
 

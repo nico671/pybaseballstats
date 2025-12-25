@@ -281,10 +281,3 @@ def ejections_data(
             raise ValueError("Inning must be between -1 and 20")
 
     return df
-
-
-if __name__ == "__main__":
-    df = player_lookup(
-        first_name=None, last_name="Miller", fuzzy=True, fuzzy_threshold=80
-    )
-    print(df)

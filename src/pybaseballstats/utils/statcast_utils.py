@@ -1,12 +1,10 @@
 import asyncio
-from contextlib import contextmanager
 from datetime import date, timedelta
 from typing import Iterator, Tuple
 
 import aiohttp
 import dateparser
 import polars as pl
-from playwright.sync_api import sync_playwright
 from rich.progress import MofNCompleteColumn, Progress, SpinnerColumn, TimeElapsedColumn
 
 from pybaseballstats.consts.statcast_consts import (
@@ -14,65 +12,6 @@ from pybaseballstats.consts.statcast_consts import (
 )
 
 
-# region statcast_single_game helpers
-@contextmanager
-def get_page():
-    """Context manager for Playwright page without rate limiting for statcast."""
-    # Always create a fresh browser/context for each call
-    playwright = sync_playwright().start()
-    browser = None
-    context = None
-    page = None
-
-    try:
-        browser = playwright.chromium.launch(
-            headless=True,
-            args=[
-                "--no-sandbox",
-                "--disable-dev-shm-usage",
-                "--disable-blink-features=AutomationControlled",
-                "--disable-web-security",
-                "--disable-features=VizDisplayCompositor",
-                "--disable-background-networking",
-                "--disable-sync",
-                "--disable-translate",
-                "--disable-logging",
-                "--memory-pressure-off",
-            ],
-        )
-
-        context = browser.new_context(
-            user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            viewport={"width": 1920, "height": 1080},
-        )
-
-        # Block unnecessary resources for faster loading
-        context.route(
-            "**/*.{png,jpg,jpeg,gif,svg,woff,woff2,ttf,css}",
-            lambda route: route.abort(),
-        )
-
-        page = context.new_page()
-        page.set_default_navigation_timeout(30000)
-        page.set_default_timeout(15000)
-
-        yield page
-
-    finally:
-        # Always cleanup in reverse order
-        if page:
-            page.close()
-        if context:
-            context.close()
-        if browser:
-            browser.close()
-        playwright.stop()
-
-
-# endregion statcast_single_game helpers
-
-
-# region statcast_date_range helpers
 async def _fetch_data(session, url, retries=3):
     for attempt in range(retries):
         try:
@@ -243,6 +182,3 @@ def _create_date_ranges(
         high = min(low + timedelta(step - 1), stop)
         yield low, high
         low += timedelta(days=step)
-
-
-# endregion statcast_date_range helpers

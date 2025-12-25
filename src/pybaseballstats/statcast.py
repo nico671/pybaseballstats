@@ -1,11 +1,10 @@
 import asyncio
+from typing import Optional
 
 import polars as pl
 
-from typing import Optional
-
 from pybaseballstats.consts.statcast_consts import (
-    STATCAST_DATE_RANGE_URL, 
+    STATCAST_DATE_RANGE_URL,
     StatcastTeams,
 )
 from pybaseballstats.utils.statcast_utils import (
@@ -85,16 +84,14 @@ def pitch_by_pitch_data(
     Raises:
         ValueError: If start_date or end_date is invalid or if start_date > end_date.
         ValueError: If team is provided but not found in TEAM_ABBR.
-
-    Example:
-        >>> data = pitch_by_pitch_data("2024-04-01", "2024-04-03")
-        >>> collected_data = pitch_by_pitch_data("2024-04-01", "2024-04-03", force_collect=True)
     """
     if start_date is None or end_date is None:
         raise ValueError("Both start_date and end_date must be provided")
 
     if not isinstance(team, StatcastTeams) and team is not None:
-        raise ValueError("Team must be a valid StatcastTeams enum value. See StatcastTeams class for valid values.")
+        raise ValueError(
+            "Team must be a valid StatcastTeams enum value. See StatcastTeams class for valid values."
+        )
 
     try:
         loop = asyncio.get_running_loop()  # noqa: F841
@@ -110,7 +107,7 @@ def pitch_by_pitch_data(
         )
     else:
         # Event loop already running - Jupyter notebooks, existing async context
-        import nest_asyncio # type: ignore
+        import nest_asyncio  # type: ignore
 
         nest_asyncio.apply()
         return asyncio.run(

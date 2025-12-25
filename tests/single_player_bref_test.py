@@ -6,7 +6,7 @@ from pybaseballstats import bref_single_player as bsp
 def test_single_player_standard_batting():
     df = bsp.single_player_standard_batting("suzukse01")
     assert df.shape[0] >= 4
-    assert df.shape[1] == 34
+    assert df.shape[1] == 33
     assert df.head(4).select(pl.col("team_name").n_unique()).item() == 1
     assert df.head(4).select(pl.col("team_name").unique()).item() == "CHC"
     assert df.head(4).select(pl.col("age").min()).item() == 27
@@ -45,14 +45,13 @@ def test_single_player_standard_batting():
         "ibb",
         "pos",
         "awards",
-        "key_bbref",
     ]
 
 
 def test_single_player_value_batting():
     df = bsp.single_player_value_batting("suzukse01")
     assert df.shape[0] >= 4
-    assert df.shape[1] == 23
+    assert df.shape[1] == 22
     assert df.head(4).select(pl.col("team_name").n_unique()).item() == 1
     assert df.head(4).select(pl.col("team_name").unique()).item() == "CHC"
     assert df.head(4).select(pl.col("age").min()).item() == 27
@@ -80,14 +79,13 @@ def test_single_player_value_batting():
         "rar_off",
         "pos",
         "awards",
-        "key_bbref",
     ]
 
 
 def test_single_player_advanced_batting():
     df = bsp.single_player_advanced_batting("suzukse01")
     assert df.shape[0] >= 4
-    assert df.shape[1] == 30
+    assert df.shape[1] == 29
     assert df.head(4).select(pl.col("team_name").n_unique()).item() == 1
     assert df.head(4).select(pl.col("team_name").unique()).item() == "CHC"
     assert df.head(4).select(pl.col("age").min()).item() == 27
@@ -122,14 +120,13 @@ def test_single_player_advanced_batting():
         "gb_perc",
         "fb_perc",
         "gb_fb_ratio",
-        "key_bbref",
     ]
 
 
 def test_single_player_standard_fielding():
     df = bsp.single_player_standard_fielding("suzukse01")
     assert df.shape[0] >= 15
-    assert df.shape[1] == 26
+    assert df.shape[1] == 25
     assert df.head(15).select(pl.col("team_name").n_unique()).item() == 1
     assert df.head(15).select(pl.col("team_name").unique()).item() == "CHC"
     assert df.head(15).select(pl.col("age").min()).item() == 27
@@ -160,14 +157,13 @@ def test_single_player_standard_fielding():
         "range_factor_per_game",
         "range_factor_per_game_lg",
         "awards",
-        "key_bbref",
     ]
 
 
 def test_single_player_sabermetric_fielding():
     df = bsp.single_player_sabermetric_fielding("suzukse01")
     assert df.shape[0] >= 4
-    assert df.shape[1] == 28
+    assert df.shape[1] == 27
     assert df.head(4).select(pl.col("team_ID").n_unique()).item() == 1
     assert df.head(4).select(pl.col("team_ID").unique()).item() == "CHC"
     assert df.select(pl.col("age").min()).item() == 27
@@ -200,7 +196,6 @@ def test_single_player_sabermetric_fielding():
         "bis_runs_catcher_sb",
         "bis_runs_catcher_sz",
         "bis_runs_pitcher_sb",
-        "key_bbref",
     ]
 
 
