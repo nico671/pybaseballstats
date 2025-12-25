@@ -2,7 +2,7 @@ import asyncio
 import io
 from typing import Dict, List
 
-import nest_asyncio
+import nest_asyncio  # type: ignore
 import polars as pl
 import requests
 from bs4 import BeautifulSoup
