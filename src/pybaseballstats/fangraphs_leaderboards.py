@@ -128,7 +128,7 @@ def fangraphs_batting_leaderboard(
     # handle stat_types filtering
 
     wanted_stats = {}
-    if not stat_types:
+    if not stat_types or len(stat_types) == 0:
         for stat_type in FangraphsBattingStatType:
             for stat in stat_type.value:
                 if stat in start_cols:

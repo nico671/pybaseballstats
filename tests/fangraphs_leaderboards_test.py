@@ -283,3 +283,200 @@ def test_fangraphs_batting_leaderboard_stat_types_variations():
     assert df.select(pl.col("Season").unique()).item() == 2023
     assert df.select(pl.col("Name").n_unique()).item() == 134
     assert df.select(pl.col("Team").n_unique()).item() == 31
+    with pytest.raises(AttributeError):
+        # invalid stat in stat types
+        fg.fangraphs_batting_leaderboard(
+            start_season=2023,
+            end_season=2023,
+            stat_types=[
+                fg.FangraphsBattingStatType.std,
+                fg.FangraphsBattingStatType.advanced,
+            ],
+        )
+    df2 = fg.fangraphs_batting_leaderboard(
+        start_season=2023,
+        end_season=2023,
+        stat_types=[],
+    )
+    df3 = fg.fangraphs_batting_leaderboard(
+        start_season=2023,
+        end_season=2023,
+    )
+    assert df2.shape == df3.shape
+
+
+def test_fangraphs_batting_leaderboard_batter_handedness_variations():
+    # valid batter handedness L
+    df = fg.fangraphs_batting_leaderboard(
+        start_season=2023,
+        end_season=2023,
+        batter_handedness="L",
+    )
+    assert df.select(pl.col("Bats").unique()).item() == "L"
+    # valid batter handedness R
+    df = fg.fangraphs_batting_leaderboard(
+        start_season=2023,
+        end_season=2023,
+        batter_handedness="R",
+    )
+    assert df.select(pl.col("Bats").unique()).item() == "R"
+    # valid batter handedness S
+    df = fg.fangraphs_batting_leaderboard(
+        start_season=2023,
+        end_season=2023,
+        batter_handedness="S",
+    )
+    assert df.select(pl.col("Bats").unique()).item() == "B"
+
+
+def test_fangraphs_leaderboard_teams_variations():
+    # valid team
+    df = fg.fangraphs_batting_leaderboard(
+        start_season=2023,
+        end_season=2023,
+        team=fg.FangraphsLeaderboardTeams.YANKEES,
+    )
+    assert df.select(pl.col("Team").unique()).item() == "NYY"
+    assert df.shape[0] == 3
+
+
+def test_fangraphs_batting_leaderboard_stat_split_variations():
+    # valid stat split team
+    df = fg.fangraphs_batting_leaderboard(
+        start_season=2023,
+        end_season=2023,
+        stat_split="team",
+    )
+    assert df.select(pl.col("Name").unique()).shape[0] == 30  # 30 teams in 2023
+    # valid stat split league
+    df = fg.fangraphs_batting_leaderboard(
+        start_season=2023,
+        end_season=2023,
+        stat_split="league",
+    )
+    assert df.shape[0] == 1  # league summary only one row
+    assert (
+        df.select(pl.col("Name").unique()).shape[0] == 1
+    )  # league always returns single row df
+
+
+def test_fangraphs_batting_leaderboard_active_roster_only_variations():
+    # valid active roster only true
+    df = fg.fangraphs_batting_leaderboard(
+        start_season=2023,
+        end_season=2023,
+        active_roster_only=True,
+    )
+    current_year = datetime.now().year
+    assert df.select(pl.col("Season").unique()).item() == 2023
+    assert df.select(pl.col("Name").n_unique()).item() < 134  # fewer than total players
+    # valid active roster only false
+    df = fg.fangraphs_batting_leaderboard(
+        start_season=2023,
+        end_season=2023,
+        active_roster_only=False,
+    )
+    assert df.select(pl.col("Season").unique()).item() == 2023
+    assert df.select(pl.col("Name").n_unique()).item() == 134  # all players
+
+
+def test_fangraphs_batting_leaderboard_age_variations():
+    # valid min age only
+    df = fg.fangraphs_batting_leaderboard(
+        start_season=2023,
+        end_season=2023,
+        min_age=30,
+    )
+    assert df.select(pl.col("Age").min()).item() >= 30
+    # valid max age only
+    df = fg.fangraphs_batting_leaderboard(
+        start_season=2023,
+        end_season=2023,
+        max_age=25,
+    )
+    assert df.select(pl.col("Age").max()).item() <= 25
+    # valid min and max age
+    df = fg.fangraphs_batting_leaderboard(
+        start_season=2023,
+        end_season=2023,
+        min_age=25,
+        max_age=30,
+    )
+    assert df.select(pl.col("Age").min()).item() >= 25
+    assert df.select(pl.col("Age").max()).item() <= 30
+
+
+def test_fangraphs_batting_leaderboard_position_variations():
+    # valid position C
+    df = fg.fangraphs_batting_leaderboard(
+        start_season=2023,
+        end_season=2023,
+        position=fg.FangraphsBattingPosTypes.CATCHER,
+    )
+    for item in df.select(pl.col("position").unique()).to_series().to_list():
+        assert "C" in item
+
+
+def test_fangraphs_batting_leaderboard_season_type_variations():
+    # valid season type regular
+    df = fg.fangraphs_batting_leaderboard(
+        start_season=2023,
+        end_season=2023,
+        season_type="regular",
+    )
+    assert df.select(pl.col("Season").unique()).item() == 2023
+    # valid season type all_postseason
+    df2 = fg.fangraphs_batting_leaderboard(
+        start_season=2023,
+        end_season=2023,
+        season_type="all_postseason",
+    )
+    assert df2.select(pl.col("Season").unique()).item() == 2023
+    assert df2.shape[0] < df.shape[0]
+    # valid season type world_series
+    df3 = fg.fangraphs_batting_leaderboard(
+        start_season=2023,
+        end_season=2023,
+        season_type="world_series",
+    )
+    assert df3.select(pl.col("Season").unique()).item() == 2023
+    assert df3.shape[0] < df2.shape[0]
+    assert df3.select(pl.col("Team").n_unique()).item() == 2
+
+
+def test_fangraphs_batting_leaderboard_league_variations():
+    # valid league AL
+    df = fg.fangraphs_batting_leaderboard(
+        start_season=2023,
+        end_season=2023,
+        league="al",
+    )
+
+    assert len(df.select(pl.col("Team").unique()).to_series().to_list()) == 15
+
+
+def test_fangraphs_batting_leaderboard_minpa_variations():
+    # valid min_pa 100
+    df = fg.fangraphs_batting_leaderboard(
+        start_season=2023,
+        end_season=2023,
+        min_pa=100,
+    )
+    assert df.select(pl.col("PA").min()).item() >= 100
+    # valid min_pa "y" (qualified)
+    df2 = fg.fangraphs_batting_leaderboard(
+        start_season=2023,
+        end_season=2023,
+        min_pa="y",
+    )
+    assert df2.select(pl.col("PA").min()).item() >= 502  # qualified in 2023 is 502 PA
+
+
+def test_fangraphs_batting_leaderboard_split_seasons_variations():
+    # valid split_seasons true
+    df = fg.fangraphs_batting_leaderboard(
+        start_season=2023,
+        end_season=2025,
+        split_seasons=True,
+    )
+    assert df.select(pl.col("Season").n_unique()).item() == 3
