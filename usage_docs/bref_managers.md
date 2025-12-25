@@ -31,6 +31,5 @@ print(tendencies_data)
 
 ## Final Notes
 
-1. This package uses the `polars` library for data manipulation. If you wish to convert the returned DataFrame to a pandas DataFrame, you can use the `.to_pandas()` method on the returned DataFrame to convert it.
-2. The functions handle missing data by filling empty strings and null values with appropriate defaults (typically 0).
-3. All functions will automatically handle Baseball Reference's rate limiting (max of 10 requests per minute) by waiting and retrying as needed, please be patient.
+1. The functions handle missing data by filling empty strings and null values with appropriate defaults (typically 0).
+2. All functions will automatically handle Baseball Reference's rate limiting (max of 10 requests per minute) by waiting and retrying as needed, please be patient.
