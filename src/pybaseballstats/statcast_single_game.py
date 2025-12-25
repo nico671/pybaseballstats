@@ -17,6 +17,14 @@ from pybaseballstats.utils.statcast_single_game_utils import (
     get_page_async,
 )
 
+__all__ = [
+    "get_available_game_pks_for_date",
+    "single_game_pitch_by_pitch",
+    "single_game_exit_velocity",
+    "single_game_pitch_velocity",
+    "single_game_win_probability",
+]
+
 
 # helper for running async code in sync functions
 def _run_in_loop(coro):
@@ -36,6 +44,14 @@ def _run_in_loop(coro):
 def get_available_game_pks_for_date(
     game_date: str,
 ) -> List[Dict[str, str]]:
+    """Returns a list of all available gamePKs for a given date, as well as information on the home and away team for each game.
+
+    Args:
+        game_date (str): Date to get available gamePKs for in 'YYYY-MM-DD' format.
+
+    Returns:
+        List[Dict[str, str]]: A list of dictionaries containing gamePKs and information on the home and away teams for each game on the specified date.
+    """
     available_games: List[Dict[str, str]] = []
 
     df = pitch_by_pitch_data(
@@ -66,11 +82,9 @@ def single_game_pitch_by_pitch(game_pk: int) -> pl.DataFrame:
 
     Args:
         game_pk (int): game_pk of the game you want to pull data for
-        extra_stats (bool): whether or not to include extra stats
-        return_pandas (bool, optional): whether or not to return as a Pandas DataFrame. Defaults to False (returns Polars LazyFrame).
 
     Returns:
-        pl.DataFrame: DataFrame of statcast data for the game
+        pl.DataFrame: DataFrame of pitch-by-pitch statcast data for the game
     """
     response = requests.get(
         STATCAST_SINGLE_GAME_URL.format(game_pk=game_pk),
@@ -81,6 +95,15 @@ def single_game_pitch_by_pitch(game_pk: int) -> pl.DataFrame:
 
 
 def single_game_exit_velocity(game_pk: int, game_date: str) -> pl.DataFrame:
+    """Returns a dataframe containing exit velocity information for every ball put in play in a specific game on a specfic date.
+
+    Args:
+        game_pk (int): Baseball Savant game id for the desired game. Can be found using the available_game_pks_for_date function.
+        game_date (str): A string representing the date of the game in 'YYYY-MM-DD' format. Must match the date of the game_pk.
+
+    Returns:
+        pl.DataFrame: DataFrame containing exit velocity information for every ball put in play in the specified game.
+    """
     return _run_in_loop(_single_game_exit_velocity_async(game_pk, game_date))
 
 
@@ -202,6 +225,15 @@ async def _single_game_exit_velocity_async(
 
 
 def single_game_pitch_velocity(game_pk: int, game_date: str) -> pl.DataFrame:
+    """Returns a dataframe containing information on each pitch thrown in a specfic game on a specific date.
+
+    Args:
+        game_pk (int): Baseball Savant game id for the desired game. Can be found using the available_game_pks_for_date function.
+        game_date (str): A string representing the date of the game in 'YYYY-MM-DD' format. Must match the date of the game_pk.
+
+    Returns:
+        pl.DataFrame: DataFrame containing information on each pitch thrown in the specified game.
+    """
     return _run_in_loop(_single_game_pitch_velocity_async(game_pk, game_date))
 
 
@@ -324,6 +356,15 @@ async def _single_game_pitch_velocity_async(
 
 
 def single_game_win_probability(game_pk: int, game_date: str) -> pl.DataFrame:
+    """Returns a dataframe containing win probability information prior to every pitch in a specific game on a specific date.
+
+    Args:
+        game_pk (int): Baseball Savant game id for the desired game. Can be found using the available_game_pks_for_date function.
+        game_date (str): A string representing the date of the game in 'YYYY-MM-DD' format. Must match the date of the game_pk.
+
+    Returns:
+        pl.DataFrame: DataFrame containing win probability information prior to every pitch in the specified game.
+    """
     return _run_in_loop(_single_game_win_probability_async(game_pk, game_date))
 
 
