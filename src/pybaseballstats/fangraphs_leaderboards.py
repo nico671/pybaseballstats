@@ -50,6 +50,29 @@ def fangraphs_batting_leaderboard(
     min_age: Optional[int] = None,
     max_age: Optional[int] = None,
 ) -> pl.DataFrame:
+    """Returns a DataFrame containing Fangraphs batting leaderboard data based on the provided parameters.
+
+    Args:
+        start_season (Optional[int], optional): The first year from which to retrieve data. Defaults to None.
+        end_season (Optional[int], optional): The last year from which to retrieve data. Defaults to None.
+        start_date (Optional[str], optional): The starting date from which to retrieve data in YYYY-MM-DD format. Defaults to None.
+        end_date (Optional[str], optional): The ending date from which to retrieve data in YYYY-MM-DD format. Defaults to None.
+        stat_types (Optional[list[FangraphsBattingStatType]], optional): List of stat types to include. Use FangraphsBattingStatType.show_options() to see available enum options. Defaults to None.
+        position (FangraphsBattingPosTypes, optional): The player position to filter by. Defaults to FangraphsBattingPosTypes.ALL.
+        season_type (Literal[ "regular", "all_postseason", "world_series", "championship_series", "division_series", "wild_card", ], optional): The type of season to filter by. Defaults to "regular".
+        split_seasons (bool, optional): Whether to split seasons. Defaults to False.
+        league (Literal["", "al", "nl"], optional): The league to filter by. Defaults to "".
+        min_pa (str | int, optional): The minimum plate appearances. Defaults to "y".
+        batter_handedness (Literal["", "L", "R", "S"], optional): The handedness of the batter. Defaults to "".
+        team (FangraphsLeaderboardTeams, optional): The team to filter by. Defaults to FangraphsLeaderboardTeams.ALL.
+        active_roster_only (bool, optional): Whether to include only active roster players. Defaults to False.
+        stat_split (Literal["player", "team", "league"], optional): The statistic split type. Defaults to "player".
+        min_age (Optional[int], optional): The minimum age of players to include. Defaults to None.
+        max_age (Optional[int], optional): The maximum age of players to include. Defaults to None.
+
+    Returns:
+        pl.DataFrame: _description_
+    """
     using_seasons = validate_seasons_and_dates_together(
         start_season, end_season, start_date, end_date
     )
