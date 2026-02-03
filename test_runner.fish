@@ -1,5 +1,5 @@
 #!/usr/bin/env fish
-# filepath: /Users/nicocarbone/Documents/dev/pybaseballstats/run_coverage.fish
+# filepath: /Users/nicocarbone/Documents/dev/pybaseballstats/test_runner.fish
 
 # Clear previous coverage data
 echo "Cleaning up previous coverage data..."

@@ -79,3 +79,6 @@ packages = { find = { where = ["src/"] } }
 asyncio_mode = "auto"                                        # automatically detect async tests
 asyncio_default_fixture_loop_scope = "function"
 filterwarnings = ["ignore::DeprecationWarning:dateparser.*"]
+
+[tool.coverage.run]
+concurrency = ["greenlet", "thread"]
