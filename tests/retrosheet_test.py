@@ -145,7 +145,7 @@ def test_ejection_data_umpire_name():
     df = rs.ejections_data(
         start_date="04/01/2016", end_date="10/01/2025", umpire_name="Alfonso Marquez"
     )
-    assert df.shape[0] == 22
+    assert df.shape[0] == 23
     assert df.shape[1] == 11
     assert (
         df.select(pl.col("DATE").min()).item()
@@ -157,7 +157,7 @@ def test_ejection_data_umpire_name():
     )
     assert df.select(pl.col("UMPIRE").n_unique()).item() == 1
     assert df.select(pl.col("UMPIRENAME").unique()).item() == "Alfonso Marquez"
-    assert df.select(pl.col("EJECTEENAME").n_unique()).item() == 21
+    assert df.select(pl.col("EJECTEENAME").n_unique()).item() == 22
     df = rs.ejections_data(
         start_date="04/01/2016", end_date="10/01/2025", umpire_name="sdvjbs"
     )
@@ -167,7 +167,7 @@ def test_ejection_data_umpire_name():
 
 def test_ejection_data_inning():
     df = rs.ejections_data(start_date="04/01/2016", end_date="10/01/2025", inning=7)
-    assert df.shape[0] == 248
+    assert df.shape[0] == 278
     assert df.shape[1] == 11
     assert (
         df.select(pl.col("DATE").min()).item()

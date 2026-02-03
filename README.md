@@ -14,14 +14,15 @@ A Python package for scraping baseball statistics from the web. Inspired by the 
 
 1. [Baseball Savant](https://baseballsavant.mlb.com/)
     - This source provides high quality pitch-by-pitch data for all MLB games since 2015 as well as interesting leaderboards for various categories.
-2. [Fangraphs](https://www.fangraphs.com/)
-    - This source provides leaderboards for pitching, batting and fielding statistics for all MLB players since 1871.
-3. [Umpire Scorecards](https://umpscorecards.com/home/)
+2. [Umpire Scorecards](https://umpscorecards.com/home/)
     - This source provides umpire game logs and statistics for all MLB games since 2008.
-4. [Baseball Reference](https://www.baseball-reference.com/)
+3. [Baseball Reference](https://www.baseball-reference.com/)
     - This source provides comprehensive, high detail stats for all MLB players and teams since 1871.
-5. [Retrosheet](https://retrosheet.org/)
+4. [Retrosheet](https://retrosheet.org/)
     - This source provides play-by-play data for all MLB games since 1871. This data is primarily used for the player_lookup function as well as ejection data. I am considering adding support for the play by play data as well.
+
+> [!NOTE]
+> Due to recent changes on the Fangraphs website, the Fangraphs source has been temporarily disabled.Any users using an older version will likely find that the Fangraphs functions are broken.
 
 ## Installation
 
@@ -57,7 +58,7 @@ df_pandas = df_polars.to_pandas()
 
 ## Contributing
 
-Improvements and bug fixes are welcome! Please open an issue or submit a pull request. If you are opening an issue please keep in mind that I am enrolled in university full-time and may not be able to respond immediately. I work on this in my free time, but I will do my best to fix any issues that are opened. To submit a pull request, please fork the repository and make your changes on a new branch. Make your changes and please create new tests if you are adding new functionality (updates to my own tests are more than welcome as well). Make sure all tests pass and once you are finished, submit a pull request and I will review your changes. Please include a detailed description of the changes you made and why you made them as a part of your pull request.
+Improvements and bug fixes are welcome! Please open an issue or submit a pull request. If you are opening an issue please keep in mind that I am enrolled in university full-time and may not be able to respond immediately. I work on this in my free time, but I will do my best to fix any issues that are opened. To submit a pull request, please fork the repository and make your changes on a new branch. Make your changes and please create new tests if you are adding new functionality (updates to my own tests are more than welcome as well). Make sure all tests pass and once you are finished, submit a pull request and I will review your changes. Please include a detailed description of the changes you made and why you made them as a part of your pull request. Finally, before submitting any changes, please use the `precommit_checker.fish` script to ensure that all tests pass and that coverage is maintained or improved.
 
 ## Credit and Acknowledgement
 
