@@ -1,11 +1,11 @@
 import json
+from datetime import datetime
 from typing import Literal
 
-import dateparser
 import polars as pl
 import requests
 
-from .consts.umpire_scorecard_consts import (
+from pybaseballstats.consts.umpire_scorecard_consts import (
     UMPIRE_SCORECARD_GAMES_URL,
     UMPIRE_SCORECARD_TEAMS_URL,
     UMPIRE_SCORECARD_UMPIRES_URL,
@@ -47,8 +47,8 @@ def game_data(
     """Fetches umpire scorecard data for individual games within a given date range. Essentially functions as a wrapper around the following URL: https://umpscorecards.com/data/games
 
     Args:
-        start_date (str): The first date to start fetching data from.
-        end_date (str): The last date to fetch data from.
+        start_date (str): The first date to start fetching data from. Required format is YYYY-MM-DD.
+        end_date (str): The last date to fetch data from. Required format is YYYY-MM-DD.
         game_type (Literal["*", "R", "A", "P", "F", "D", "L", "W"], optional): The type of game to filter by. To see a description on the different game type options call the `game_type_options` function Defaults to "*".
         focus_team (UmpireScorecardTeams, optional): The team to return data on. To see all team options call the `available_teams` function. Defaults to UmpireScorecardTeams.ALL.
         focus_team_home_away (Literal["h", "a", "*"], optional): Whether to return home or away games for the focus team. To see a description on the different game type options call the `game_type_options` function Defaults to "*".
@@ -72,16 +72,18 @@ def game_data(
     # Input validation
     if start_date is None or end_date is None:
         raise ValueError("Both start_date and end_date must be provided.")
-    start_dt = dateparser.parse(start_date)
-    end_dt = dateparser.parse(end_date)
+    start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+    end_dt = datetime.strptime(end_date, "%Y-%m-%d")
     assert start_dt is not None, "Failed to parse start_date"
     assert end_dt is not None, "Failed to parse end_date"
     if start_dt > end_dt:
         raise ValueError("start_date must be before end_date.")
     if start_dt.year < 2015 or end_dt.year < 2015:
         raise ValueError("start_date and end_date must be after 2015.")
-    start_date = start_dt.strftime("%Y-%m-%d")
-    end_date = end_dt.strftime("%Y-%m-%d")
+    if start_dt.year > datetime.now().year or end_dt.year > datetime.now().year:
+        raise ValueError("start_date and end_date must be before the current year.")
+    start_date_str = start_dt.strftime("%Y-%m-%d")
+    end_date_str = end_dt.strftime("%Y-%m-%d")
 
     if game_type not in ["*", "R", "A", "P", "F", "D", "L", "W"]:
         raise ValueError(
@@ -111,8 +113,8 @@ def game_data(
     # call to the internal Umpire Scorecard API
     resp = requests.get(
         UMPIRE_SCORECARD_GAMES_URL.format(
-            start_date=start_date,
-            end_date=end_date,
+            start_date=start_date_str,
+            end_date=end_date_str,
             game_type=game_type,
             team=team_string,
         )
@@ -148,8 +150,8 @@ def umpire_data(
     """Returns information on umpires who have officiated games within a given date range. Essentially functions as a wrapper around the following URL: https://umpscorecards.com/data/umpires
 
     Args:
-        start_date (str): The start date for the query.
-        end_date (str): The end date for the query.
+        start_date (str): The start date for the query. Format: YYYY-MM-DD.
+        end_date (str): The end date for the query. Format: YYYY-MM-DD.
         game_type (Literal["*", "R", "A", "P", "F", "D", "L", "W"], optional): The type of game to filter by. To see a description on the different game type options call the `game_type_options` function Defaults to "*".
         focus_team (UmpireScorecardTeams, optional): The team to focus on. To see all team options call the `available_teams` function. Defaults to UmpireScorecardTeams.ALL.
         focus_team_home_away (Literal["h", "a", "*"], optional): Whether to focus on home or away games. To see a description on the different game type options call the `game_type_options` function Defaults to "*".
@@ -176,18 +178,18 @@ def umpire_data(
     """
     if start_date is None or end_date is None:
         raise ValueError("Both start_date and end_date must be provided.")
-    start_dt = dateparser.parse(start_date)
-    end_dt = dateparser.parse(end_date)
+    start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+    end_dt = datetime.strptime(end_date, "%Y-%m-%d")
     assert start_dt is not None, "Failed to parse start_date"
     assert end_dt is not None, "Failed to parse end_date"
     if start_dt > end_dt:
         raise ValueError("start_date must be before end_date.")
     if start_dt.year < 2015 or end_dt.year < 2015:
         raise ValueError("start_date and end_date must be after 2015.")
-    if start_dt.year > 2025 or end_dt.year > 2025:
-        raise ValueError("start_date and end_date must be before 2024.")
-    start_date = start_dt.strftime("%Y-%m-%d")
-    end_date = end_dt.strftime("%Y-%m-%d")
+    if start_dt.year > datetime.now().year or end_dt.year > datetime.now().year:
+        raise ValueError("start_date and end_date must be before the current year.")
+    start_date_str = start_dt.strftime("%Y-%m-%d")
+    end_date_str = end_dt.strftime("%Y-%m-%d")
 
     if game_type not in ["*", "R", "A", "P", "F", "D", "L", "W"]:
         raise ValueError(
@@ -220,8 +222,8 @@ def umpire_data(
         raise ValueError("min_games_called must be greater than or equal to 0")
     resp = requests.get(
         UMPIRE_SCORECARD_UMPIRES_URL.format(
-            start_date=start_date,
-            end_date=end_date,
+            start_date=start_date_str,
+            end_date=end_date_str,
             game_type=game_type,
             team=team_string,
         )
@@ -269,18 +271,19 @@ def team_data(
     """
     if start_date is None or end_date is None:
         raise ValueError("Both start_date and end_date must be provided.")
-    start_dt = dateparser.parse(start_date)
-    end_dt = dateparser.parse(end_date)
+    start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+    end_dt = datetime.strptime(end_date, "%Y-%m-%d")
+
     assert start_dt is not None, "Failed to parse start_date"
     assert end_dt is not None, "Failed to parse end_date"
     if start_dt > end_dt:
         raise ValueError("start_date must be before end_date.")
     if start_dt.year < 2015 or end_dt.year < 2015:
         raise ValueError("start_date and end_date must be after 2015.")
-    if start_dt.year > 2025 or end_dt.year > 2025:
-        raise ValueError("start_date and end_date must be before 2024.")
-    start_date = start_dt.strftime("%Y-%m-%d")
-    end_date = end_dt.strftime("%Y-%m-%d")
+    if start_dt.year > datetime.now().year or end_dt.year > datetime.now().year:
+        raise ValueError("start_date and end_date must be before the current year.")
+    start_date_str = start_dt.strftime("%Y-%m-%d")
+    end_date_str = end_dt.strftime("%Y-%m-%d")
 
     if game_type not in ["*", "R", "A", "P", "F", "D", "L", "W"]:
         raise ValueError(
@@ -289,8 +292,8 @@ def team_data(
 
     resp = requests.get(
         UMPIRE_SCORECARD_TEAMS_URL.format(
-            start_date=start_date,
-            end_date=end_date,
+            start_date=start_date_str,
+            end_date=end_date_str,
             game_type=game_type,
         )
     )
