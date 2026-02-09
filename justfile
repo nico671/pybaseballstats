@@ -1,7 +1,8 @@
-default:
-    @just --list
-
 set shell := ["fish"]
+
+default:
+    #!/usr/bin/env fish
+    just --list
 
 mypy:
     #!/usr/bin/env fish
@@ -17,7 +18,34 @@ mypy:
 set dotenv-load := true
 
 release:
-    uv build && uv publish --token $PYPI_TOKEN 
+    #!/usr/bin/env fish
+    echo "Starting release process..."
+    echo "Step 1: Running mypy type checking..."
+    just mypy
+    if test $status -ne 0
+        echo "Release aborted: mypy type checking failed!"
+        exit 1
+    end
+    echo "Step 2: Running tests..."
+    just test
+    if test $status -ne 0
+        echo "Release aborted: tests failed!"
+        exit 1
+    end
+    echo "Step 3: Building package..."
+    uv build
+    if test $status -ne 0
+        echo "Release aborted: build failed!"
+        exit 1
+    end
+    echo "Step 4: Publishing to PyPI..."
+    uv publish --token $PYPI_TOKEN
+    if test $status -eq 0
+        echo "Release complete!"
+    else
+        echo "Release failed: publish failed!"
+        exit 1
+    end 
 
 build:
     uv build
