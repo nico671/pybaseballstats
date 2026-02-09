@@ -4,7 +4,7 @@ A Python package for scraping baseball statistics from the web. Inspired by the 
 
 ---
 
-[![PyPI Downloads](https://static.pepy.tech/badge/pybaseballstats)](https://pepy.tech/projects/pybaseballstats) | ![Coverage](https://github.com/nico671/pybaseballstats/blob/coverage-badge/badges/coverage.svg)
+[![PyPI Downloads](https://static.pepy.tech/badge/pybaseballstats)](https://pepy.tech/projects/pybaseballstats)  ![Coverage](https://github.com/nico671/pybaseballstats/blob/coverage-badge/badges/coverage.svg)
 
 ---
 
