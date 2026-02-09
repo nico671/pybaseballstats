@@ -17,9 +17,9 @@ mypy:
 
 set dotenv-load := true
 
-release:
+release version:
     #!/usr/bin/env fish
-    echo "Starting release process..."
+    echo "Starting release process for version {{ version }}..."
     echo "Step 1: Running mypy type checking..."
     just mypy
     if test $status -ne 0
@@ -32,16 +32,34 @@ release:
         echo "Release aborted: tests failed!"
         exit 1
     end
-    echo "Step 3: Building package..."
+    echo "Step 3: Committing changes..."
+    git add .
+    git commit -m "Bump version to {{ version }}"
+    if test $status -ne 0
+        echo "Note: No changes to commit or commit failed"
+    end
+    echo "Step 4: Creating and pushing tag..."
+    git tag -a v{{ version }} -m "Release version {{ version }}"
+    if test $status -ne 0
+        echo "Release aborted: tag creation failed!"
+        exit 1
+    end
+    git push origin main
+    git push origin v{{ version }}
+    if test $status -ne 0
+        echo "Release aborted: push failed!"
+        exit 1
+    end
+    echo "Step 5: Building package..."
     uv build
     if test $status -ne 0
         echo "Release aborted: build failed!"
         exit 1
     end
-    echo "Step 4: Publishing to PyPI..."
+    echo "Step 6: Publishing to PyPI..."
     uv publish --token $PYPI_TOKEN
     if test $status -eq 0
-        echo "Release complete!"
+        echo "Release v{{ version }} complete!"
     else
         echo "Release failed: publish failed!"
         exit 1

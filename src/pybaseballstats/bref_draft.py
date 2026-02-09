@@ -31,6 +31,9 @@ def draft_order_by_year_round(year: int, draft_round: int) -> pl.DataFrame:
     if draft_round < 1 or draft_round > 60:
         raise ValueError("Draft round must be between 1 and 60")
     resp = session.get(BREF_DRAFT_YEAR_ROUND_URL.format(year=year, round=draft_round))
+    assert resp is not None, (
+        "Failed to retrieve data from Baseball Reference. Please check your internet connection and try again."
+    )
     soup = BeautifulSoup(resp.content, "html.parser")
     table = soup.find("table", {"id": "draft_stats"})
     df = pl.DataFrame(_extract_table(table))
