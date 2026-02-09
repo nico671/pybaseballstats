@@ -14,37 +14,81 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Check if relevant files changed
+      - name: Check for relevant changes
+        id: changes
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            # For PRs, check changed files between base and head
+            changed_files=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+          else
+            # For pushes, check changed files in the last commit
+            changed_files=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || echo "src/ tests/")
+          fi
+
+          if echo "$changed_files" | grep -qE '^(src/|tests/|pyproject\.toml|uv\.lock)'; then
+            echo "run_tests=true" >> $GITHUB_OUTPUT
+            echo "Tests will run - relevant files changed"
+          else
+            echo "run_tests=false" >> $GITHUB_OUTPUT
+            echo "Tests skipped - no relevant files changed"
+          fi
+
       # Set up python environment using uv
       - name: Install uv
+        if: steps.changes.outputs.run_tests == 'true'
         uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
 
       - name: Set up Python
+        if: steps.changes.outputs.run_tests == 'true'
         run: uv python install
 
       - name: Install dependencies
+        if: steps.changes.outputs.run_tests == 'true'
         run: uv sync --locked --all-extras --dev
 
+      # Cache Playwright browsers to speed up workflow
+      - name: Get Playwright version
+        if: steps.changes.outputs.run_tests == 'true'
+        id: playwright-version
+        run: echo "version=$(uv run python -c 'import playwright; print(playwright.__version__)')" >> $GITHUB_OUTPUT
+
+      - name: Cache Playwright browsers
+        if: steps.changes.outputs.run_tests == 'true'
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ steps.playwright-version.outputs.version }}
+
       - name: Install playwright browsers
-        run: uv run playwright install --with-deps chromium
+        if: steps.changes.outputs.run_tests == 'true' && steps.playwright-cache.outputs.cache-hit != 'true'
+        run: uv run playwright install chromium
+
+      - name: Install playwright browser dependencies
+        if: steps.changes.outputs.run_tests == 'true'
+        run: uv run playwright install-deps chromium
 
       # Run tests with coverage
       - name: Run tests
+        if: steps.changes.outputs.run_tests == 'true'
         run: uv run coverage run --source=src/pybaseballstats -m pytest tests/
 
       - name: Generate coverage report
+        if: steps.changes.outputs.run_tests == 'true'
         run: |
           uv run coverage report -m
           uv run coverage json -o coverage.json
 
       # Install jq for JSON parsing (only on main branch)
       - name: Install jq
-        if: github.ref == 'refs/heads/main'
+        if: steps.changes.outputs.run_tests == 'true' && github.ref == 'refs/heads/main'
         run: sudo apt-get update && sudo apt-get install -y jq
 
       - name: Convert coverage.json to badge
-        if: github.ref == 'refs/heads/main'
+        if: steps.changes.outputs.run_tests == 'true' && github.ref == 'refs/heads/main'
         run: |
           # Extract percentage from coverage.json and round it
           percent=$(jq '.totals.percent_covered | round' coverage.json)
@@ -66,7 +110,7 @@ jobs:
 
       # Only commit badge to separate branch (NOT main)
       - name: Commit and push coverage badge
-        if: github.ref == 'refs/heads/main'
+        if: steps.changes.outputs.run_tests == 'true' && github.ref == 'refs/heads/main'
         run: |
           git config --local user.email "actions@github.com"
           git config --local user.name "github-actions"
