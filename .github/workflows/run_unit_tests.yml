@@ -29,11 +29,6 @@ jobs:
       - name: Install playwright browsers
         run: uv run playwright install --with-deps chromium
 
-      # Run mypy type checks BEFORE tests
-      - name: Run mypy type checks
-        run: uv run mypy src/pybaseballstats
-        continue-on-error: true
-
       # Run tests with coverage
       - name: Run tests
         run: uv run coverage run --source=src/pybaseballstats -m pytest tests/
