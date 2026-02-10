@@ -57,7 +57,9 @@ def test_pitch_by_pitch_data_team_filtering():
     assert df.select(pl.col("game_date").max()).item() == "2023-07-03"
 
     dodgers_games = (pl.col("home_team") == "LAD") | (pl.col("away_team") == "LAD")
-    assert df.filter(~dodgers_games).is_empty() # Filters out non Dodger rows and there should be none
+    assert df.filter(
+        ~dodgers_games
+    ).is_empty()  # Filters out non Dodger rows and there should be none
     assert df.shape[0] > 0
 
 
@@ -67,5 +69,5 @@ def test_pitch_by_pitch_data_invalid_team():
         sc.pitch_by_pitch_data(
             start_date="2023-07-01",
             end_date="2023-07-03",
-            team=sc.StatcastTeams.METZ, 
+            team=sc.StatcastTeams.METZ,
         )

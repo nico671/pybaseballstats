@@ -21,8 +21,6 @@ def test_player_lookup_errors():
         rs.player_lookup(first_name=123, last_name="Ruth")
     with pytest.raises(TypeError):
         rs.player_lookup(first_name="Babe", last_name=456)
-    with pytest.raises(ValueError):
-        rs.player_lookup(first_name="Babe", fuzzy=True, fuzzy_threshold=150)
 
 
 def test_player_lookup():
@@ -47,43 +45,6 @@ def test_player_lookup():
     assert df.select(pl.col("key_mlbam").unique()).item() == 121578
     assert df.select(pl.col("key_retro").unique()).item() == "ruthb101"
     assert df.select(pl.col("key_bbref").unique()).item() == "ruthba01"
-
-
-def test_player_lookup_fuzzy():
-    # test looking up babe ruth with fuzzy matching
-    df = rs.player_lookup(
-        first_name="Babe", last_name="Ruth", fuzzy=True, fuzzy_threshold=80
-    )
-
-    assert df.shape[0] >= 32
-    assert df.shape[1] == 11
-    assert (
-        df.select(pl.col("key_fangraphs").unique()).to_series().to_list().count(1011327)
-        == 1
-    )
-    assert (
-        df.select(pl.col("name_first").unique()).to_series().to_list().count("Babe")
-        == 1
-    )
-    assert (
-        df.select(pl.col("name_last").unique()).to_series().to_list().count("Ruth") == 1
-    )
-    assert (
-        df.select(pl.col("key_mlbam").unique()).to_series().to_list().count(121578) == 1
-    )
-    assert (
-        df.select(pl.col("key_retro").unique()).to_series().to_list().count("ruthb101")
-        == 1
-    )
-    assert (
-        df.select(pl.col("key_bbref").unique()).to_series().to_list().count("ruthba01")
-        == 1
-    )
-    df = rs.player_lookup(
-        first_name=None, last_name="Miller", fuzzy=True, fuzzy_threshold=80
-    )
-    assert df.shape[0] >= 102
-    assert df.shape[1] == 11
 
 
 def test_ejections_data_errors():

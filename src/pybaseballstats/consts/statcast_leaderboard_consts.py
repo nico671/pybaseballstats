@@ -1,27 +1,3 @@
-from enum import Enum
-
-
-#  ENUMS
-class StatcastPitchTypes(Enum):
-    FOUR_SEAM_FASTBALL = "FF"
-    SINKER = "SI"
-    CUTTER = "FC"
-    CHANGEUP = "CH"
-    SPLITTER = "FS"
-    FORKBALL = "FO"
-    SCREWBALL = "SC"
-    CURVEBALL = "CU"
-    KNUCKLE_CURVE = "KC"
-    SLOW_CURVE = "CS"
-    SLIDER = "SL"
-    SWEEPER = "ST"
-    SLURVE = "SV"
-    KNUCKLEBALL = "KN"
-
-    @classmethod
-    def show_options(cls):
-        return "\n".join([f"{team.name}: {team.value}" for team in cls])
-
-
-# URLS
-PITCH_TIMER_INFRACTIONS_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/pitch-timer-infractions?type={stat_type}&season={season}&min_pitches={min_pitches}&include_zeroes={include_pitchers_with_zeroes}&csv=true"
+PARK_FACTOR_DIMENSIONS_URL = "https://baseballsavant.mlb.com/leaderboard/statcast-park-factors?type=dimensions&year={season}&batSide=&stat=index_wOBA&condition=All&rolling=3&parks=mlb&fenceStatType={metric_type}"
+PARK_FACTOR_YEARLY_URL = "https://baseballsavant.mlb.com/leaderboard/statcast-park-factors?type=year&year={season}&batSide={bat_side}&stat=index_wOBA&condition={condition}&rolling={rolling_years}&parks=mlb"
+PARK_FACTOR_DISTANCE_URL = "http://baseballsavant.mlb.com/leaderboard/statcast-park-factors?type=distance&year={season}&parks=mlb"

@@ -3,7 +3,6 @@ from typing import Optional
 
 import polars as pl
 import requests
-from rapidfuzz import fuzz
 from unidecode import unidecode
 
 from pybaseballstats.consts.retrosheet_consts import (
@@ -19,8 +18,6 @@ def player_lookup(
     first_name: Optional[str] = None,
     last_name: Optional[str] = None,
     strip_accents: Optional[bool] = False,
-    fuzzy: Optional[bool] = False,
-    fuzzy_threshold: Optional[int] = 80,
 ) -> pl.DataFrame:
     """A function to look up players by first and/or last name from Retrosheet's player registry.
 
@@ -28,17 +25,14 @@ def player_lookup(
         first_name (str, optional): The first name of the player. Defaults to None.
         last_name (str, optional): The last name of the player. Defaults to None.
         strip_accents (bool, optional): Whether to strip accents from the names. Defaults to False.
-        fuzzy (bool, optional): Whether to use fuzzy matching with similarity scoring. Defaults to False.
-        fuzzy_threshold (int, optional): Minimum similarity score (0-100) for fuzzy matches. Defaults to 80.
 
     Raises:
         ValueError: If both first_name and last_name are None.
         TypeError: If first_name is not a string.
         TypeError: If last_name is not a string.
-        ValueError: If fuzzy_threshold is not between 0 and 100.
 
     Returns:
-        pl.DataFrame: A Polars DataFrame containing the player information, sorted by match quality if fuzzy=True.
+        pl.DataFrame: A Polars DataFrame containing the player information.
     """
     if not first_name and not last_name:
         raise ValueError("At least one of first_name or last_name must be provided")
@@ -46,9 +40,6 @@ def player_lookup(
         raise TypeError("first_name must be a string")
     if last_name and not isinstance(last_name, str):
         raise TypeError("last_name must be a string")
-
-    if fuzzy_threshold and not 0 <= fuzzy_threshold <= 100:
-        raise ValueError("fuzzy_threshold must be between 0 and 100")
 
     full_df = _get_people_data()
 
@@ -101,98 +92,19 @@ def player_lookup(
             ]
         )
 
-    # Build filter conditions
-    if fuzzy:
-        # Real fuzzy matching using rapidfuzz
-        def calculate_name_score(row):
-            """Calculate the best fuzzy match score across all name columns."""
-            scores = []
-
-            if first_name is not None and first_name != "":
-                # Check against first name columns
-                for col in ["name_first_lower", "name_given_lower", "name_nick_lower"]:
-                    name_val = row[col]
-                    if name_val:
-                        scores.append(fuzz.ratio(first_name, name_val))
-
-            if last_name is not None and last_name != "":
-                # Check against last name columns
-                for col in ["name_last_lower", "name_matrilineal_lower"]:
-                    name_val = row[col]
-                    if name_val:
-                        scores.append(fuzz.ratio(last_name, name_val))
-
-            if (
-                first_name is not None
-                and first_name != ""
-                and last_name is not None
-                and last_name != ""
-            ):
-                # Combine first and last name for a full name score
-                full_name_input = f"{first_name} {last_name}"
-                for fn_col in [
-                    "name_first_lower",
-                    "name_given_lower",
-                    "name_nick_lower",
-                ]:
-                    for ln_col in ["name_last_lower", "name_matrilineal_lower"]:
-                        fn_val = row[fn_col]
-                        ln_val = row[ln_col]
-                        if fn_val and ln_val:
-                            full_name_val = f"{fn_val} {ln_val}"
-
-                            scores.append(fuzz.ratio(full_name_input, full_name_val))
-
-                            # Also check with suffix if present
-                            suffix_val = row["name_suffix_lower"]
-                            if suffix_val:
-                                full_name_with_suffix = (
-                                    f"{fn_val} {ln_val} {suffix_val}"
-                                )
-                                scores.append(
-                                    fuzz.ratio(full_name_input, full_name_with_suffix)
-                                )
-
-            # Return the max score
-            return max(scores) if scores else 0.0
-
-        # Apply fuzzy matching
-        full_df = full_df.with_columns(
-            pl.struct(
-                [
-                    "name_first_lower",
-                    "name_given_lower",
-                    "name_nick_lower",
-                    "name_last_lower",
-                    "name_matrilineal_lower",
-                    "name_suffix_lower",
-                ]
-            )
-            .map_elements(calculate_name_score)
-            .alias("match_score")
+    # Exact matching
+    if first_name and last_name:
+        df = full_df.filter(
+            (pl.col("name_first_lower") == first_name)
+            & (pl.col("name_last_lower") == last_name)
         )
-
-        # Filter by threshold and sort by match quality
-        df = full_df.filter(pl.col("match_score") >= fuzzy_threshold).sort(
-            "match_score", descending=True
-        )
-
-    else:
-        # Exact matching
-        if first_name and last_name:
-            df = full_df.filter(
-                (pl.col("name_first_lower") == first_name)
-                & (pl.col("name_last_lower") == last_name)
-            )
-        elif first_name:
-            df = full_df.filter(pl.col("name_first_lower") == first_name)
-        else:  # last_name only
-            df = full_df.filter(pl.col("name_last_lower") == last_name)
+    elif first_name:
+        df = full_df.filter(pl.col("name_first_lower") == first_name)
+    else:  # last_name only
+        df = full_df.filter(pl.col("name_last_lower") == last_name)
 
     # Select only the original columns (not the lowercase/score columns)
     result_cols = RETROSHEET_KEEP_COLS.copy()
-    if fuzzy:
-        result_cols.append("match_score")  # Include match score for fuzzy results
 
     return df.select([col for col in result_cols if col in df.columns])
 

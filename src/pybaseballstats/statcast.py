@@ -22,35 +22,54 @@ async def _async_pitch_by_pitch_data(
     end_date: str,
     team: Optional[StatcastTeams] = None,
     force_collect: bool = False,
+    *,
+    chunk_size_days: int = 3,
+    show_progress: bool = True,
+    concurrency: int | None = None,
+    verbose: bool = False,
 ) -> pl.LazyFrame | pl.DataFrame | None:
     """Internal async implementation."""
     start_dt, end_dt = _handle_dates(start_date, end_date)
-    print(f"Pulling data for date range: {start_dt} to {end_dt}.")
-    print("Splitting date range into smaller chunks.")
-    date_ranges = list(_create_date_ranges(start_dt, end_dt, step=3))
+    if verbose:
+        print(f"Pulling data for date range: {start_dt} to {end_dt}.")
+        print("Splitting date range into smaller chunks.")
+
+    if chunk_size_days <= 0:
+        raise ValueError("chunk_size_days must be a positive integer")
+
+    date_ranges = list(_create_date_ranges(start_dt, end_dt, step=chunk_size_days))
     assert len(date_ranges) > 0, "No date ranges generated. Check your input dates."
 
     urls = []
-    for start_dt, end_dt in date_ranges:
+    for chunk_start_dt, chunk_end_dt in date_ranges:
         urls.append(
             STATCAST_DATE_RANGE_URL.format(
-                start_date=start_dt,
-                end_date=end_dt,
+                start_date=chunk_start_dt,
+                end_date=chunk_end_dt,
                 team=team.value if team else "",
             )
         )
 
-    date_range_total_days = (end_dt - start_dt).days
-    responses = await _fetch_all_data(urls, date_range_total_days)
-    data_list = _load_all_data(responses)
+    # inclusive days in the requested range (used only for concurrency heuristics)
+    date_range_total_days = (end_dt - start_dt).days + 1
+    responses = await _fetch_all_data(
+        urls,
+        date_range_total_days,
+        concurrency=concurrency,
+        show_progress=show_progress,
+    )
+    data_list = _load_all_data(responses, show_progress=show_progress)
 
     if not data_list:
-        print("No data was successfully retrieved.")
+        if verbose:
+            print("No data was successfully retrieved.")
         return None
 
-    print("Concatenating data.")
+    if verbose:
+        print("Concatenating data.")
     df = pl.concat(data_list)
-    print("Data retrieval complete.")
+    if verbose:
+        print("Data retrieval complete.")
 
     if force_collect:
         return df.collect()
@@ -62,6 +81,11 @@ def pitch_by_pitch_data(
     end_date: str,
     team: Optional[StatcastTeams] = None,
     force_collect: bool = False,
+    *,
+    chunk_size_days: int = 3,
+    show_progress: bool = True,
+    concurrency: int | None = None,
+    verbose: bool = False,
 ) -> pl.LazyFrame | pl.DataFrame | None:
     """Returns pitch-by-pitch data from Statcast for a given date range.
 
@@ -93,28 +117,25 @@ def pitch_by_pitch_data(
             "Team must be a valid StatcastTeams enum value. See StatcastTeams class for valid values."
         )
 
+    coro = _async_pitch_by_pitch_data(
+        start_date=start_date,
+        end_date=end_date,
+        team=team,
+        force_collect=force_collect,
+        chunk_size_days=chunk_size_days,
+        show_progress=show_progress,
+        concurrency=concurrency,
+        verbose=verbose,
+    )
+
     try:
-        loop = asyncio.get_running_loop()  # noqa: F841
+        loop = asyncio.get_running_loop()
     except RuntimeError:
         # No event loop running - normal case for CLI/scripts
-        return asyncio.run(
-            _async_pitch_by_pitch_data(
-                start_date=start_date,
-                end_date=end_date,
-                team=team,
-                force_collect=force_collect,
-            )
-        )
+        return asyncio.run(coro)
     else:
         # Event loop already running - Jupyter notebooks, existing async context
         import nest_asyncio  # type: ignore
 
         nest_asyncio.apply()
-        return asyncio.run(
-            _async_pitch_by_pitch_data(
-                start_date=start_date,
-                end_date=end_date,
-                team=team,
-                force_collect=force_collect,
-            )
-        )
+        return loop.run_until_complete(coro)

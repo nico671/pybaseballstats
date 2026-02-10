@@ -59,9 +59,10 @@ def get_available_game_pks_for_date(
         game_date,
         force_collect=True,  # we force collect here bc we only have one day, dataframe shouldnt be too large
     )  # don't need game date string conversion here, the pitch_by_pitch_data function handles that
-    assert df is not None, "Dataframe is None"
+    if df is None:
+        return available_games
     assert isinstance(df, pl.DataFrame), "Dataframe is not a Polars DataFrame"
-    if df is None or df.shape[0] == 0 or df.shape[1] == 0:
+    if df.shape[0] == 0 or df.shape[1] == 0:
         print(
             "No games found for the specified date. Please check the date format / date and try again."
         )
