@@ -421,20 +421,20 @@ def timer_infractions_leaderboard(
     perspective: Literal["Pit", "Bat", "Cat", "Team"] = "Pit",
     min_pitches: int = 1,
 ) -> pl.DataFrame:
-    """
+    """Returns timer infraction leaderboard data from Baseball Savant
 
     Args:
-        season (int): _description_
-        perspective (Literal[&quot;Pit&quot;, &quot;Bat&quot;, &quot;Cat&quot;, &quot;Team&quot;], optional): _description_. Defaults to "Pit".
-        min_pitches (int, optional): _description_. Defaults to 1.
+        season (int): Which season to return data for. Must be between 2023 and the current season.
+        perspective (Literal["Pit", "Bat", "Cat", "Team"], optional): Which perspective to return data for. Defaults to "Pit".
+        min_pitches (int, optional): Minimum number of pitches to include in the leaderboard. Defaults to 1.
 
     Raises:
-        ValueError: _description_
-        ValueError: _description_
-        ValueError: _description_
+        ValueError: If perspective is not "Pit", "Bat", "Cat", or "Team".
+        ValueError: If min_pitches is less than 1.
+        ValueError: If season is not between 2023 and the current season.
 
     Returns:
-        pl.DataFrame: _description_
+        pl.DataFrame: Timer infraction leaderboard data.
     """
     if perspective not in ["Pit", "Bat", "Cat", "Team"]:
         raise ValueError("perspective must be one of 'Pit', 'Bat', 'Cat', or 'Team'")
@@ -444,7 +444,7 @@ def timer_infractions_leaderboard(
         datetime.now().year if datetime.now().month >= 3 else datetime.now().year - 1
     )
     if season < 2023 or season > curr_season:
-        raise ValueError(f"Season must be between 2015 and {curr_season}")
+        raise ValueError(f"Season must be between 2023 and {curr_season}")
 
     resp = requests.get(
         TIMER_INFRACTIONS_LEADERBOARD_URL.format(
