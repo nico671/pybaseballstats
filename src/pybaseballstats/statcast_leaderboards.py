@@ -1,7 +1,9 @@
+import io
 from datetime import datetime
 from typing import Literal
 
 import polars as pl
+import requests
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
 
@@ -9,10 +11,11 @@ from pybaseballstats.consts.statcast_leaderboard_consts import (
     PARK_FACTOR_DIMENSIONS_URL,
     PARK_FACTOR_DISTANCE_URL,
     PARK_FACTOR_YEARLY_URL,
+    TIMER_INFRACTIONS_LEADERBOARD_URL,
 )
 
 
-def park_factor_dimensions(
+def park_factor_dimensions_leaderboard(
     season: int, metric: Literal["distance", "height"] = "distance"
 ):
     """Returns park dimension data from Baseball Savant
@@ -206,7 +209,7 @@ def park_factor_dimensions(
     return df
 
 
-def park_factor_yearly(
+def park_factor_yearly_leaderboard(
     season: int,
     bat_side: Literal["L", "R", ""] = "",
     conditions: Literal["All", "Day", "Night", "Open Air", "Roof Closed"] = "All",
@@ -308,7 +311,7 @@ def park_factor_yearly(
     return df
 
 
-def park_factor_distance(season: int) -> pl.DataFrame:
+def park_factor_distance_leaderboard(season: int) -> pl.DataFrame:
     """Returns park factor distance data from Baseball Savant
 
     Args:
@@ -409,5 +412,54 @@ def park_factor_distance(season: int) -> pl.DataFrame:
     df = df.with_columns(
         pl.col(int_cols).str.replace(r",", "").cast(pl.Int64),
         pl.col(float_cols).str.replace(r",", "").cast(pl.Float64),
+    )
+    return df
+
+
+def timer_infractions_leaderboard(
+    season: int,
+    perspective: Literal["Pit", "Bat", "Cat", "Team"] = "Pit",
+    min_pitches: int = 1,
+) -> pl.DataFrame:
+    """
+
+    Args:
+        season (int): _description_
+        perspective (Literal[&quot;Pit&quot;, &quot;Bat&quot;, &quot;Cat&quot;, &quot;Team&quot;], optional): _description_. Defaults to "Pit".
+        min_pitches (int, optional): _description_. Defaults to 1.
+
+    Raises:
+        ValueError: _description_
+        ValueError: _description_
+        ValueError: _description_
+
+    Returns:
+        pl.DataFrame: _description_
+    """
+    if perspective not in ["Pit", "Bat", "Cat", "Team"]:
+        raise ValueError("perspective must be one of 'Pit', 'Bat', 'Cat', or 'Team'")
+    if min_pitches < 1:
+        raise ValueError("min_pitches must be at least 1")
+    curr_season = (
+        datetime.now().year if datetime.now().month >= 3 else datetime.now().year - 1
+    )
+    if season < 2023 or season > curr_season:
+        raise ValueError(f"Season must be between 2015 and {curr_season}")
+
+    resp = requests.get(
+        TIMER_INFRACTIONS_LEADERBOARD_URL.format(
+            perspective=perspective, season=season, min_pitches=min_pitches
+        )
+    )
+    df = pl.read_csv(io.StringIO(resp.text))
+    df = df.rename(
+        {
+            "entity_name": "player_name"
+            if perspective in ["Pit", "Bat", "Cat"]
+            else "team_name",
+            "entity_id": "player_id"
+            if perspective in ["Pit", "Bat", "Cat"]
+            else "team_id",
+        }
     )
     return df
