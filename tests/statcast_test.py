@@ -16,6 +16,21 @@ def test_pitch_by_pitch_data_errors():
     assert isinstance(df, pl.LazyFrame)
 
 
+def test_pitch_by_pitch_data_fails_gracefully_when_chunk_fails(monkeypatch):
+    async def _mock_fetch_all_data(*args, **kwargs):
+        raise RuntimeError(
+            "Statcast download failed to retrieve all requested chunks after retries. "
+            "1/2 chunk(s) failed. Data integrity policy prevented returning partial data."
+        )
+
+    monkeypatch.setattr(sc, "_fetch_all_data", _mock_fetch_all_data)
+
+    with pytest.raises(
+        RuntimeError, match="Unable to complete Statcast pitch-by-pitch"
+    ):
+        sc.pitch_by_pitch_data(start_date="2023-07-01", end_date="2023-07-02")
+
+
 def test_pitch_by_pitch_data_general():
     """Test general functionality of pitch_by_pitch_data."""
     df = sc.pitch_by_pitch_data(

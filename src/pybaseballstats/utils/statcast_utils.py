@@ -1,5 +1,6 @@
 import asyncio
 import io
+from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from typing import Iterator, List, Optional, Tuple
 
@@ -12,20 +13,35 @@ from pybaseballstats.consts.statcast_consts import (
 )
 
 
+@dataclass
+class ChunkFetchResult:
+    url: str
+    dataframe: Optional[pl.DataFrame]
+    error: Optional[str] = None
+
+
 async def _fetch_and_parse_chunk(
     session: aiohttp.ClientSession,
     url: str,
     semaphore: asyncio.Semaphore,
     max_retries: int = 3,
-) -> Optional[pl.DataFrame]:
+) -> ChunkFetchResult:
     async with semaphore:
-        for attempt in range(max_retries):
+        last_error = "Unknown error"
+
+        for attempt in range(1, max_retries + 1):
             try:
                 async with session.get(url) as response:
                     if response.status == 200:
                         raw_bytes = await response.read()
                         if not raw_bytes:
-                            return None
+                            last_error = "Empty response body"
+                            if attempt < max_retries:
+                                await asyncio.sleep(1 * attempt)
+                                continue
+                            return ChunkFetchResult(
+                                url=url, dataframe=None, error=last_error
+                            )
                         try:
                             df = pl.read_csv(
                                 io.BytesIO(raw_bytes),
@@ -34,29 +50,52 @@ async def _fetch_and_parse_chunk(
                                 infer_schema_length=10000,
                             )
                             if df.height > 0:
-                                return df
-                            return None
-                        except Exception:
+                                return ChunkFetchResult(url=url, dataframe=df)
+                            elif df.height == 0:
+                                return ChunkFetchResult(
+                                    url=url, dataframe=pl.DataFrame(), error=None
+                                )
+
+                            last_error = "Parsed CSV contained zero rows"
+                            if attempt < max_retries:
+                                await asyncio.sleep(1 * attempt)
+                                continue
+                            return ChunkFetchResult(
+                                url=url, dataframe=None, error=last_error
+                            )
+                        except Exception as e:
                             # Sometimes empty or malformed CSVs come back
-                            return None
+                            last_error = f"CSV parse error: {type(e).__name__}: {e}"
+                            if attempt < max_retries:
+                                await asyncio.sleep(1 * attempt)
+                                continue
+                            return ChunkFetchResult(
+                                url=url, dataframe=None, error=last_error
+                            )
                     # Handle Non-200
-                    elif response.status in {429, 500, 502, 503, 504}:
-                        # Server side issues, backoff and retry
-                        await asyncio.sleep(1.5 * (attempt + 1))
-                        continue
                     else:
-                        # Client side issues (404, 403), likely fatal for this URL
-                        print(f"Failed {url} [{response.status}]")
-                        return None
+                        # Retry all HTTP errors for data integrity guarantees.
+                        last_error = f"HTTP {response.status}"
+                        if attempt < max_retries:
+                            await asyncio.sleep(1.5 * attempt)
+                            continue
+                        return ChunkFetchResult(
+                            url=url, dataframe=None, error=last_error
+                        )
 
-            except (aiohttp.ClientError, asyncio.TimeoutError):
-                await asyncio.sleep(1 * (attempt + 1))
-                continue
             except Exception as e:
-                print(f"Unexpected error fetching {url}: {e}")
-                return None
+                # Retry all transport/runtime errors for data integrity guarantees.
+                last_error = f"{type(e).__name__}: {e}"
+                if attempt < max_retries:
+                    await asyncio.sleep(1 * attempt)
+                    continue
+                return ChunkFetchResult(url=url, dataframe=None, error=last_error)
 
-        return None
+        return ChunkFetchResult(
+            url=url,
+            dataframe=None,
+            error=f"Failed after {max_retries} retries. Last error: {last_error}",
+        )
 
 
 async def _fetch_all_data(
@@ -78,6 +117,7 @@ async def _fetch_all_data(
 
     semaphore = asyncio.Semaphore(concurrency)
     results: List[pl.DataFrame] = []
+    failed_chunks: List[ChunkFetchResult] = []
 
     if show_progress:
         print(
@@ -105,18 +145,31 @@ async def _fetch_all_data(
                 # as_completed yields futures as they finish, allowing us to update progress
                 for future in asyncio.as_completed(tasks):
                     result = await future
-                    if result is not None:
-                        results.append(result)
+                    if result.dataframe is not None:
+                        results.append(result.dataframe)
+                    else:
+                        failed_chunks.append(result)
                     progress.update(task_id, advance=1)
         else:
             gathered = await asyncio.gather(*tasks)
-            results.extend([r for r in gathered if r is not None])
+            results.extend([r.dataframe for r in gathered if r.dataframe is not None])
+            failed_chunks.extend([r for r in gathered if r.dataframe is None])
 
-    # We do NOT raise an error if some fail. We return what we have.
-    failed_count = len(urls) - len(results)
-    if show_progress and failed_count > 0:
-        print(
-            f"Completed with {failed_count} missing chunks ({failed_count / len(urls):.1%})."
+    if failed_chunks:
+        failed_count = len(failed_chunks)
+        sample_failures = failed_chunks[:5]
+        details = "\n".join(
+            f"  - {chunk.url} -> {chunk.error or 'Unknown error'}"
+            for chunk in sample_failures
+        )
+        if failed_count > 5:
+            details += f"\n  - ... and {failed_count - 5} more failed chunk(s)."
+
+        raise RuntimeError(
+            "Statcast download failed to retrieve all requested chunks after retries. "
+            f"{failed_count}/{len(urls)} chunk(s) failed. "
+            "Data integrity policy prevented returning partial data. "
+            f"\nFailure details:\n{details}"
         )
 
     return results

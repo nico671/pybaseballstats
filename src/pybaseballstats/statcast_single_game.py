@@ -5,24 +5,18 @@ from typing import Dict, List
 import nest_asyncio  # type: ignore
 import polars as pl
 import requests
-from bs4 import BeautifulSoup
 
 from pybaseballstats.consts.statcast_consts import (
-    STATCAST_SINGLE_GAME_EV_PV_WP_URL,
     STATCAST_SINGLE_GAME_URL,
 )
 from pybaseballstats.statcast import pitch_by_pitch_data
-from pybaseballstats.utils.statcast_single_game_utils import (
-    _handle_single_game_date,
-    get_page_async,
-)
 
 __all__ = [
     "get_available_game_pks_for_date",
     "single_game_pitch_by_pitch",
-    "single_game_exit_velocity",
-    "single_game_pitch_velocity",
-    "single_game_win_probability",
+    # "single_game_exit_velocity",
+    # "single_game_pitch_velocity",
+    # "single_game_win_probability",
 ]
 
 
@@ -95,379 +89,414 @@ def single_game_pitch_by_pitch(game_pk: int) -> pl.DataFrame:
     return df
 
 
-def single_game_exit_velocity(game_pk: int, game_date: str) -> pl.DataFrame:
-    """Returns a dataframe containing exit velocity information for every ball put in play in a specific game on a specfic date.
+# def single_game_exit_velocity(game_pk: int, game_date: str) -> pl.DataFrame:
+#     """Returns a dataframe containing exit velocity information for every ball put in play in a specific game on a specfic date.
 
-    Args:
-        game_pk (int): Baseball Savant game id for the desired game. Can be found using the available_game_pks_for_date function.
-        game_date (str): A string representing the date of the game in 'YYYY-MM-DD' format. Must match the date of the game_pk.
+#     Args:
+#         game_pk (int): Baseball Savant game id for the desired game. Can be found using the available_game_pks_for_date function.
+#         game_date (str): A string representing the date of the game in 'YYYY-MM-DD' format. Must match the date of the game_pk.
 
-    Returns:
-        pl.DataFrame: DataFrame containing exit velocity information for every ball put in play in the specified game.
-    """
-    return _run_in_loop(_single_game_exit_velocity_async(game_pk, game_date))
-
-
-async def _single_game_exit_velocity_async(
-    game_pk: int,
-    game_date: str,
-) -> pl.DataFrame:
-    game_date_str = _handle_single_game_date(game_date)
-    try:
-        async with get_page_async() as page:
-            # Use the URL from the previous cell
-            await page.goto(
-                STATCAST_SINGLE_GAME_EV_PV_WP_URL.format(
-                    game_date=game_date_str, game_pk=game_pk, stat_type="exitVelocity"
-                )
-            )
-
-            # Wait for the chart to load
-            await page.wait_for_selector(f"#exitVelocityTable_{game_pk}", timeout=10000)
-            ev_table_html = await page.locator(
-                f"#exitVelocityTable_{game_pk}"
-            ).inner_html()
-    except Exception as e:
-        print(f"Error fetching data for game_pk {game_pk} on {game_date_str}: {e}")
-        print(
-            "Ensure that the game_pk and game_date are correct. Returning empty DataFrame."
-        )
-        return pl.DataFrame()
-    soup = BeautifulSoup(ev_table_html, "html.parser")
-    table = soup.find("table")
-    assert table is not None, "Could not find table"
-
-    # extract headers
-    thead = table.find("thead")
-    assert thead is not None, "Could not find table header"
-    headers_tr = thead.find("tr", {"class": "tr-component-row"})
-    assert headers_tr is not None, "Could not find header row"
-    headers = [th.text for th in headers_tr.find_all("th") if th.text != ""]
-
-    # extract data
-    tbody = table.find("tbody")
-    assert tbody is not None, "Could not find table body"
-    row_data: Dict[str, list[str]] = {header: [] for header in headers}
-
-    for tr in tbody.find_all("tr"):
-        cells = tr.find_all("td")
-
-        # Create a mapping of filtered cells to their corresponding headers
-        cell_data = {}
-        header_index = 0
-
-        for cell in cells:
-            if cell.find("img", {"class": "table-team-logo"}):
-                # # Skip team logo cells but increment header index
-                # header_index += 1
-                continue
-            else:
-                # Only process if we have a valid header
-                if header_index < len(headers):
-                    # Special handling for player name cells
-                    if "player-mug-wrapper" in str(cell):
-                        # Find the div that contains the player name
-                        name_div = cell.find("div", {"style": "margin-left: 2px;"})
-                        if name_div:
-                            cell_text = name_div.get_text(strip=True)
-                        else:
-                            cell_text = cell.get_text(strip=True)
-                    else:
-                        cell_text = cell.get_text(strip=True)
-                        link = cell.find("a")
-                        if link:
-                            cell_text = link.get_text(strip=True)
-
-                    header = headers[header_index]
-                    cell_data[header] = cell_text
-
-                header_index += 1
-
-        # Now add all the data from this row to row_data
-        for header, value in cell_data.items():
-            row_data[header].append(value)
-
-    # create df and clean df
-    df = pl.DataFrame(row_data)
-
-    df = df.drop("Rk.")
-    df = df.rename(
-        {
-            "Batter": "batter_name",
-            "PA": "num_pa",
-            "Inning": "inning",
-            "Result": "result",
-            "Exit VeloExit Velocity (MPH)": "exit_velo",
-            "LALaunch Angle (degrees)": "launch_angle",
-            "Hit Dist.Hit Distance (feet)": "hit_distance",
-            "BatSpeedBat Speed (mph)": "bat_speed",
-            "PitchVelocityPitch Velocity (MPH)": "pitch_velocity",
-            "xBAExpected Batting Average - based on exit velocity and launch angle": "xBA",
-            "HR / ParkNumber of Parks where this would be a Home Run": "hr_in_how_many_parks",
-        }
-    )
-    df = df.with_columns(
-        pl.all().replace("", None),
-    )
-    df = df.with_columns(
-        [
-            pl.col("num_pa").cast(pl.Int8),
-            pl.col("inning").cast(pl.Int8),
-            pl.col("exit_velo").cast(pl.Float32),
-            pl.col("launch_angle").cast(pl.Float32),
-            pl.col("hit_distance").cast(pl.Int16),
-            pl.col("bat_speed").str.replace("⚡", "").cast(pl.Float32),
-            pl.col("pitch_velocity").cast(pl.Float32),
-            pl.col("xBA").cast(pl.Float32),
-        ]
-    )
-
-    return df
+#     Returns:
+#         pl.DataFrame: DataFrame containing exit velocity information for every ball put in play in the specified game.
+#     """
+#     return _run_in_loop(_single_game_exit_velocity_async(game_pk, game_date))
 
 
-def single_game_pitch_velocity(game_pk: int, game_date: str) -> pl.DataFrame:
-    """Returns a dataframe containing information on each pitch thrown in a specfic game on a specific date.
+# async def _single_game_exit_velocity_async(
+#     game_pk: int,
+#     game_date: str,
+# ) -> pl.DataFrame:
+#     game_date_str = _handle_single_game_date(game_date)
+#     try:
+#         async with get_page_async() as page:
+#             # Use the URL from the previous cell
+#             await page.goto(
+#                 STATCAST_SINGLE_GAME_EV_PV_WP_URL.format(
+#                     game_date=game_date_str, game_pk=game_pk, stat_type="exitVelocity"
+#                 ),
+#                 timeout=60000,
+#             )
 
-    Args:
-        game_pk (int): Baseball Savant game id for the desired game. Can be found using the available_game_pks_for_date function.
-        game_date (str): A string representing the date of the game in 'YYYY-MM-DD' format. Must match the date of the game_pk.
+#             # Wait for the chart to load
+#             await page.wait_for_selector(f"#exitVelocityTable_{game_pk}", timeout=60000)
+#             ev_table_html = await page.locator(
+#                 f"#exitVelocityTable_{game_pk}"
+#             ).inner_html()
+#     except Exception as e:
+#         print(f"Error fetching data for game_pk {game_pk} on {game_date_str}: {e}")
+#         print(
+#             "Ensure that the game_pk and game_date are correct. Returning empty DataFrame."
+#         )
+#         return pl.DataFrame()
+#     soup = BeautifulSoup(ev_table_html, "html.parser")
+#     table = soup.find("table")
+#     assert table is not None, "Could not find table"
 
-    Returns:
-        pl.DataFrame: DataFrame containing information on each pitch thrown in the specified game.
-    """
-    return _run_in_loop(_single_game_pitch_velocity_async(game_pk, game_date))
+#     # extract headers
+#     thead = table.find("thead")
+#     assert thead is not None, "Could not find table header"
+#     headers_tr = thead.find("tr", {"class": "tr-component-row"})
+#     assert headers_tr is not None, "Could not find header row"
+#     dirty_headers = [
+#         th.text.strip() for th in headers_tr.find_all("th") if th.text.strip() != ""
+#     ]
+#     headers = []
+#     for header in dirty_headers:
+#         if "\n" in header:
+#             split_headers = header.split("\n")
+#             headers.append(split_headers[0].strip() + split_headers[1].strip())
+#         else:
+#             headers.append(header)
+#     # extract data
+#     tbody = table.find("tbody")
+#     assert tbody is not None, "Could not find table body"
+#     row_data: Dict[str, list[str]] = {header: [] for header in headers}
 
+#     for tr in tbody.find_all("tr"):
+#         cells = tr.find_all("td")
 
-async def _single_game_pitch_velocity_async(
-    game_pk: int,
-    game_date: str,
-) -> pl.DataFrame:
-    game_date_str = _handle_single_game_date(game_date)
-    try:
-        async with get_page_async() as page:
-            # Use the URL from the previous cell
-            await page.goto(
-                STATCAST_SINGLE_GAME_EV_PV_WP_URL.format(
-                    game_date=game_date_str, game_pk=game_pk, stat_type="pitchVelocity"
-                )
-            )
+#         # Create a mapping of filtered cells to their corresponding headers
+#         cell_data = {}
+#         header_index = 0
 
-            # Wait for the chart to load
-            await page.wait_for_selector(f"#pitchVelocity_{game_pk}", timeout=10000)
-            pv_table_html = await page.locator(f"#pitchVelocity_{game_pk}").inner_html()
-    except Exception as e:
-        print(f"Error fetching data for game_pk {game_pk} on {game_date_str}: {e}")
-        print(
-            "Ensure that the game_pk and game_date are correct. Returning empty DataFrame."
-        )
-        return pl.DataFrame()
+#         for cell in cells:
+#             if cell.find("img", {"class": "table-team-logo"}):
+#                 # # Skip team logo cells but increment header index
+#                 # header_index += 1
+#                 continue
+#             else:
+#                 # Only process if we have a valid header
+#                 if header_index < len(headers):
+#                     # Special handling for player name cells
+#                     if "player-mug-wrapper" in str(cell):
+#                         # Find the div that contains the player name
+#                         name_div = cell.find("div", {"style": "margin-left: 2px;"})
+#                         if name_div:
+#                             cell_text = name_div.get_text(strip=True)
+#                         else:
+#                             cell_text = cell.get_text(strip=True)
+#                     else:
+#                         cell_text = cell.get_text(strip=True)
+#                         link = cell.find("a")
+#                         if link:
+#                             cell_text = link.get_text(strip=True)
 
-    soup = BeautifulSoup(pv_table_html, "html.parser")
-    table = soup.find("table")
-    assert table is not None, "Could not find table"
+#                     header = headers[header_index]
+#                     cell_data[header] = cell_text
 
-    # extract headers
-    thead = table.find("thead")
-    assert thead is not None, "Could not find table header"
-    headers_tr = thead.find("tr", {"class": "tr-component-row"})
-    assert headers_tr is not None, "Could not find header row"
-    headers = [th.text for th in headers_tr.find_all("th") if th.text != ""]
-    headers = headers[:-1]
+#                 header_index += 1
 
-    # extract data
-    tbody = table.find("tbody")
-    assert tbody is not None, "Could not find table body"
-    row_data: Dict[str, list[str]] = {header: [] for header in headers}
+#         # Now add all the data from this row to row_data
+#         for header, value in cell_data.items():
+#             row_data[header].append(value)
+#     # create df and clean df
+#     df = pl.DataFrame(row_data)
+#     df = df.drop("Rk.")
+#     df = df.rename(
+#         {
+#             "Batter": "batter_name",
+#             "PA": "num_pa",
+#             "Inning": "inning",
+#             "Result": "result",
+#             "Exit Velo": "exit_velo",
+#             "LA": "launch_angle",
+#             "Hit Dist.": "hit_distance",
+#             "BatSpeed": "bat_speed",
+#             "PitchVelocity": "pitch_velocity",
+#             "HR / Park": "hr_in_how_many_parks",
+#         }
+#     )
+#     df = df.with_columns(
+#         pl.all().replace("", None),
+#     )
+#     df = df.with_columns(
+#         [
+#             pl.col("num_pa").cast(pl.Int8),
+#             pl.col("inning").cast(pl.Int8),
+#             pl.col("exit_velo").cast(pl.Float32),
+#             pl.col("launch_angle").cast(pl.Float32),
+#             pl.col("hit_distance").cast(pl.Int16),
+#             pl.col("bat_speed").str.replace("⚡", "").cast(pl.Float32),
+#             pl.col("pitch_velocity").cast(pl.Float32),
+#             pl.col("xBA").cast(pl.Float32),
+#         ]
+#     )
 
-    for tr in tbody.find_all("tr"):
-        cells = tr.find_all("td")
-
-        # Create a mapping of filtered cells to their corresponding headers
-        cell_data = {}
-        header_index = 0
-
-        for cell in cells:
-            if cell.find("img", {"class": "table-team-logo"}):
-                # # Skip team logo cells but increment header index
-                # header_index += 1
-                continue
-            else:
-                # Only process if we have a valid header
-                if header_index < len(headers):
-                    # Special handling for player name cells
-                    if "player-mug-wrapper" in str(cell):
-                        # Find the div that contains the player name
-                        name_div = cell.find("div", {"style": "margin-left: 2px;"})
-                        if name_div:
-                            cell_text = name_div.get_text(strip=True)
-                        else:
-                            cell_text = cell.get_text(strip=True)
-                    elif "→" in str(cell) or "↑" in str(cell) or "↓" in str(cell):
-                        continue
-                    else:
-                        cell_text = cell.get_text(strip=True)
-                        link = cell.find("a")
-                        if link:
-                            cell_text = link.get_text(strip=True)
-
-                    header = headers[header_index]
-                    cell_data[header] = cell_text
-
-                header_index += 1
-
-        # Now add all the data from this row to row_data
-        for header, value in cell_data.items():
-            row_data[header].append(value)
-
-    # create df and clean df
-    df = pl.DataFrame(row_data)
-    df = df.drop(["Rk."])
-    df = df.rename(
-        {
-            "Pitcher": "pitcher_name",
-            "Batter": "batter_name",
-            "Game Pitch #": "game_pitch_number",
-            "Pitch": "pitcher_pitch_number",
-            "PA": "game_pa_number",
-            "Pitch Type": "pitch_type",
-            "Pitch Vel  (MPH)": "pitch_velocity_mph",
-            "Spin (RPM)": "spin_rate_rpm",
-            "IVBInduced Vertical Break": "induced_vertical_break",
-            "DropVertical Break": "drop_vertical_break",
-            "HBreakHorizontal Break": "horizontal_break",
-        }
-    )
-    df = df.with_columns(
-        pl.all().replace("", None),
-    )
-    df = df.with_columns(
-        [
-            pl.col("Inning").cast(pl.Int8),
-            pl.col("game_pitch_number").cast(pl.Int32),
-            pl.col("pitcher_pitch_number").cast(pl.Int16),
-            pl.col("game_pa_number").cast(pl.Int16),
-            pl.col("pitch_velocity_mph").cast(pl.Float32),
-            pl.col("spin_rate_rpm").cast(pl.Float32),
-            pl.col("induced_vertical_break").cast(pl.Float32),
-            pl.col("drop_vertical_break").cast(pl.Float32),
-            pl.col("horizontal_break").cast(pl.Float32),
-        ]
-    )
-    return df
+#     return df
 
 
-def single_game_win_probability(game_pk: int, game_date: str) -> pl.DataFrame:
-    """Returns a dataframe containing win probability information prior to every pitch in a specific game on a specific date.
+# def single_game_pitch_velocity(game_pk: int, game_date: str) -> pl.DataFrame:
+#     """Returns a dataframe containing information on each pitch thrown in a specfic game on a specific date.
 
-    Args:
-        game_pk (int): Baseball Savant game id for the desired game. Can be found using the available_game_pks_for_date function.
-        game_date (str): A string representing the date of the game in 'YYYY-MM-DD' format. Must match the date of the game_pk.
+#     Args:
+#         game_pk (int): Baseball Savant game id for the desired game. Can be found using the available_game_pks_for_date function.
+#         game_date (str): A string representing the date of the game in 'YYYY-MM-DD' format. Must match the date of the game_pk.
 
-    Returns:
-        pl.DataFrame: DataFrame containing win probability information prior to every pitch in the specified game.
-    """
-    return _run_in_loop(_single_game_win_probability_async(game_pk, game_date))
+#     Returns:
+#         pl.DataFrame: DataFrame containing information on each pitch thrown in the specified game.
+#     """
+#     return _run_in_loop(_single_game_pitch_velocity_async(game_pk, game_date))
 
 
-async def _single_game_win_probability_async(
-    game_pk: int,
-    game_date: str,
-) -> pl.DataFrame:
-    game_date_str = _handle_single_game_date(game_date)
-    try:
-        async with get_page_async() as page:
-            # Use the URL from the previous cell
-            await page.goto(
-                STATCAST_SINGLE_GAME_EV_PV_WP_URL.format(
-                    game_date=game_date_str, game_pk=game_pk, stat_type="winProbability"
-                )
-            )
+# async def _single_game_pitch_velocity_async(
+#     game_pk: int,
+#     game_date: str,
+# ) -> pl.DataFrame:
+#     game_date_str = _handle_single_game_date(game_date)
+#     try:
+#         async with get_page_async() as page:
+#             # Use the URL from the previous cell
+#             await page.goto(
+#                 STATCAST_SINGLE_GAME_EV_PV_WP_URL.format(
+#                     game_date=game_date_str, game_pk=game_pk, stat_type="pitchVelocity"
+#                 ),
+#                 timeout=60000,
+#             )
 
-            # Wait for the chart to load
-            await page.wait_for_selector(
-                f"#tableWinProbability_{game_pk}", timeout=10000
-            )
-            wp_table_html = await page.locator(
-                f"#tableWinProbability_{game_pk}"
-            ).inner_html()
-    except Exception as e:
-        print(f"Error fetching data for game_pk {game_pk} on {game_date_str}: {e}")
-        print(
-            "Ensure that the game_pk and game_date are correct. Returning empty DataFrame."
-        )
-        return pl.DataFrame()
+#             # Wait for the chart to load
+#             await page.wait_for_selector(f"#pitchVelocity_{game_pk}", timeout=60000)
+#             pv_table_html = await page.locator(f"#pitchVelocity_{game_pk}").inner_html()
+#     except Exception as e:
+#         print(f"Error fetching data for game_pk {game_pk} on {game_date_str}: {e}")
+#         print(
+#             "Ensure that the game_pk and game_date are correct. Returning empty DataFrame."
+#         )
+#         return pl.DataFrame()
 
-    soup = BeautifulSoup(wp_table_html, "html.parser")
-    table = soup.find("table")
-    assert table is not None, "Could not find table"
+#     soup = BeautifulSoup(pv_table_html, "html.parser")
+#     table = soup.find("table")
+#     assert table is not None, "Could not find table"
 
-    thead = table.find("thead")
-    assert thead is not None, "Could not find table header"
-    headers_tr = thead.find("tr", {"class": "tr-component-row"})
-    assert headers_tr is not None, "Could not find header row"
-    headers = [th.text for th in headers_tr.find_all("th") if th.text != ""]
+#     # extract headers
+#     thead = table.find("thead")
+#     assert thead is not None, "Could not find table header"
+#     headers_tr = thead.find("tr", {"class": "tr-component-row"})
+#     assert headers_tr is not None, "Could not find header row"
+#     dirty_headers = [
+#         th.text.strip() for th in headers_tr.find_all("th") if th.text.strip() != ""
+#     ]
+#     dirty_headers = dirty_headers[:-1]
+#     headers = []
+#     for header in dirty_headers:
+#         if "\n" in header:
+#             split_headers = header.split("\n")
+#             headers.append(split_headers[0].strip() + split_headers[1].strip())
+#         else:
+#             headers.append(header)
+#     # extract data
+#     tbody = table.find("tbody")
+#     assert tbody is not None, "Could not find table body"
+#     row_data: Dict[str, list[str]] = {header: [] for header in headers}
 
-    tbody = table.find("tbody")
-    assert tbody is not None, "Could not find table body"
-    row_data: Dict[str, list[str]] = {header: [] for header in headers}
+#     for tr in tbody.find_all("tr"):
+#         cells = tr.find_all("td")
 
-    for tr in tbody.find_all("tr"):
-        cells = tr.find_all("td")
+#         # Create a mapping of filtered cells to their corresponding headers
+#         cell_data = {}
+#         header_index = 0
 
-        # Create a mapping of filtered cells to their corresponding headers
-        cell_data = {}
-        header_index = 0
+#         for cell in cells:
+#             if cell.find("img", {"class": "table-team-logo"}):
+#                 # # Skip team logo cells but increment header index
+#                 # header_index += 1
+#                 continue
+#             else:
+#                 # Only process if we have a valid header
+#                 if header_index < len(headers):
+#                     # Special handling for player name cells
+#                     if "player-mug-wrapper" in str(cell):
+#                         # Find the div that contains the player name
+#                         name_div = cell.find("div", {"style": "margin-left: 2px;"})
+#                         if name_div:
+#                             cell_text = name_div.get_text(strip=True)
+#                         else:
+#                             cell_text = cell.get_text(strip=True)
+#                     elif "→" in str(cell) or "↑" in str(cell) or "↓" in str(cell):
+#                         continue
+#                     else:
+#                         cell_text = cell.get_text(strip=True)
+#                         link = cell.find("a")
+#                         if link:
+#                             cell_text = link.get_text(strip=True)
 
-        for cell in cells:
-            if cell.find("img", {"class": "table-team-logo"}):
-                # # Skip team logo cells but increment header index
-                # header_index += 1
-                continue
-            else:
-                # Only process if we have a valid header
-                if header_index < len(headers):
-                    # Special handling for player name cells
-                    if "player-mug-wrapper" in str(cell):
-                        # Find the div that contains the player name
-                        name_div = cell.find("div", {"style": "margin-left: 2px;"})
-                        if name_div:
-                            cell_text = name_div.get_text(strip=True)
-                        else:
-                            cell_text = cell.get_text(strip=True)
-                    else:
-                        cell_text = cell.get_text(strip=True)
-                        link = cell.find("a")
-                        if link:
-                            cell_text = link.get_text(strip=True)
+#                     header = headers[header_index]
+#                     cell_data[header] = cell_text
 
-                    header = headers[header_index]
-                    cell_data[header] = cell_text
+#                 header_index += 1
 
-                header_index += 1
+#         # Now add all the data from this row to row_data
+#         for header, value in cell_data.items():
+#             row_data[header].append(value)
 
-        # Now add all the data from this row to row_data
-        for header, value in cell_data.items():
-            row_data[header].append(value)
+#     # create df and clean df
+#     df = pl.DataFrame(row_data)
+#     df = df.drop(["Rk."])
+#     df = df.rename(
+#         {
+#             "Pitcher": "pitcher_name",
+#             "Batter": "batter_name",
+#             "GamePitch #": "game_pitch_number",
+#             "Pitch": "pitcher_pitch_number",
+#             "PA": "game_pa_number",
+#             "Pitch Type": "pitch_type",
+#             "MPHPitchVelo": "pitch_velocity_mph",
+#             "RPMSpin": "spin_rate_rpm",
+#             "IVB": "induced_vertical_break",
+#             "Drop": "drop_vertical_break",
+#             "HBreak": "horizontal_break",
+#             "Inn.": "inning",
+#         }
+#     )
+#     df = df.with_columns(
+#         pl.all().replace("", None),
+#     )
+#     df = df.with_columns(
+#         [
+#             pl.col("inning").cast(pl.Int8),
+#             pl.col("game_pitch_number").cast(pl.Int32),
+#             pl.col("pitcher_pitch_number").cast(pl.Int16),
+#             pl.col("game_pa_number").cast(pl.Int16),
+#             pl.col("pitch_velocity_mph").cast(pl.Float32),
+#             pl.col("spin_rate_rpm").cast(pl.Float32),
+#             pl.col("induced_vertical_break").cast(pl.Float32),
+#             pl.col("drop_vertical_break").cast(pl.Float32),
+#             pl.col("horizontal_break").cast(pl.Float32),
+#         ]
+#     )
+#     return df
 
-    df = pl.DataFrame(row_data)
-    df = df.rename(
-        {
-            "#": "game_pa_number",
-            "Batter": "batter_name",
-            "Pitcher": "pitcher_name",
-            "Diff": "win_probability_diff",
-        }
-    )
-    df = df.with_columns(
-        pl.all().replace("", None),
-    )
 
-    df = df.with_columns(
-        [
-            pl.col("game_pa_number").cast(pl.Int16),
-            pl.col("win_probability_diff").cast(pl.Float32),
-            pl.col("Home WP%").cast(pl.Float32),
-            pl.col("Away WP%").cast(pl.Float32),
-        ]
-    )
-    return df
+# def single_game_win_probability(game_pk: int, game_date: str) -> pl.DataFrame:
+#     """Returns a dataframe containing win probability information prior to every pitch in a specific game on a specific date.
+
+#     Args:
+#         game_pk (int): Baseball Savant game id for the desired game. Can be found using the available_game_pks_for_date function.
+#         game_date (str): A string representing the date of the game in 'YYYY-MM-DD' format. Must match the date of the game_pk.
+
+#     Returns:
+#         pl.DataFrame: DataFrame containing win probability information prior to every pitch in the specified game.
+#     """
+#     return _run_in_loop(_single_game_win_probability_async(game_pk, game_date))
+
+
+# async def _single_game_win_probability_async(
+#     game_pk: int,
+#     game_date: str,
+# ) -> pl.DataFrame:
+#     game_date_str = _handle_single_game_date(game_date)
+#     try:
+#         async with get_page_async() as page:
+#             # Use the URL from the previous cell
+#             await page.goto(
+#                 STATCAST_SINGLE_GAME_EV_PV_WP_URL.format(
+#                     game_date=game_date_str, game_pk=game_pk, stat_type="winProbability"
+#                 ),
+#                 timeout=60000,
+#             )
+
+#             # Wait for the chart to load
+#             await page.wait_for_selector(
+#                 f"#tableWinProbability_{game_pk}", timeout=60000
+#             )
+#             wp_table_html = await page.locator(
+#                 f"#tableWinProbability_{game_pk}"
+#             ).inner_html()
+#     except Exception as e:
+#         print(f"Error fetching data for game_pk {game_pk} on {game_date_str}: {e}")
+#         print(
+#             "Ensure that the game_pk and game_date are correct. Returning empty DataFrame."
+#         )
+#         return pl.DataFrame()
+
+#     soup = BeautifulSoup(wp_table_html, "html.parser")
+#     table = soup.find("table")
+#     assert table is not None, "Could not find table"
+
+#     thead = table.find("thead")
+#     assert thead is not None, "Could not find table header"
+#     headers_tr = thead.find("tr", {"class": "tr-component-row"})
+#     assert headers_tr is not None, "Could not find header row"
+#     dirty_headers = [
+#         th.text.strip() for th in headers_tr.find_all("th") if th.text.strip() != ""
+#     ]
+#     headers = []
+#     for header in dirty_headers:
+#         if "\n" in header:
+#             split_headers = header.split("\n")
+#             headers.append(split_headers[0].strip() + split_headers[1].strip())
+#         else:
+#             headers.append(header)
+
+#     tbody = table.find("tbody")
+#     assert tbody is not None, "Could not find table body"
+#     row_data: Dict[str, list[str]] = {header: [] for header in headers}
+
+#     for tr in tbody.find_all("tr"):
+#         cells = tr.find_all("td")
+
+#         # Create a mapping of filtered cells to their corresponding headers
+#         cell_data = {}
+#         header_index = 0
+
+#         for cell in cells:
+#             if cell.find("img", {"class": "table-team-logo"}):
+#                 # # Skip team logo cells but increment header index
+#                 # header_index += 1
+#                 continue
+#             else:
+#                 # Only process if we have a valid header
+#                 if header_index < len(headers):
+#                     # Special handling for player name cells
+#                     if "player-mug-wrapper" in str(cell):
+#                         # Find the div that contains the player name
+#                         name_div = cell.find("div", {"style": "margin-left: 2px;"})
+#                         if name_div:
+#                             cell_text = name_div.get_text(strip=True)
+#                         else:
+#                             cell_text = cell.get_text(strip=True)
+#                     else:
+#                         cell_text = cell.get_text(strip=True)
+#                         link = cell.find("a")
+#                         if link:
+#                             cell_text = link.get_text(strip=True)
+
+#                     header = headers[header_index]
+#                     cell_data[header] = cell_text
+
+#                 header_index += 1
+
+#         # Now add all the data from this row to row_data
+#         for header, value in cell_data.items():
+#             row_data[header].append(value)
+
+#     df = pl.DataFrame(row_data)
+#     df = df.rename(
+#         {
+#             "#": "game_pa_number",
+#             "Batter": "batter_name",
+#             "Pitcher": "pitcher_name",
+#             "Diff": "win_probability_diff",
+#             "Inning": "inning",
+#         }
+#     )
+#     df = df.with_columns(
+#         pl.all().replace("", None),
+#     )
+
+#     df = df.with_columns(
+#         [
+#             pl.col("game_pa_number").cast(pl.Int16),
+#             pl.col("win_probability_diff").cast(pl.Float32),
+#             pl.col("Home WP%").cast(pl.Float32),
+#             pl.col("Away WP%").cast(pl.Float32),
+#         ]
+#     )
+#     return df
+
+
+# if __name__ == "__main__":
+#     import time
+
+#     start_time = time.time()
+#     print(single_game_win_probability(game_pk=776759, game_date="2025-08-13"))
+#     print(f"Execution time: {time.time() - start_time} seconds")

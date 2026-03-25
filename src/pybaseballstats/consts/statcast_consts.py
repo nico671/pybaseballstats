@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date
 from enum import Enum
 
 
@@ -57,7 +57,7 @@ STATCAST_YEAR_RANGES = {
     2023: (date(2023, 3, 15), date(2023, 11, 1)),
     2024: (date(2024, 3, 15), date(2024, 10, 25)),
     2025: (date(2025, 3, 18), date(2025, 11, 1)),
-    2026: (date(2026, 3, 25), datetime.now().date()),
+    2026: (date(2026, 3, 25), date(2026, 11, 1)),
 }
-STATCAST_SINGLE_GAME_EV_PV_WP_URL = "https://baseballsavant.mlb.com/gamefeed?date={game_date}&gamePk={game_pk}&chartType=pitch&legendType=pitchName&playerType=pitcher&inning=&count=&pitchHand=&batSide=&descFilter=&ptFilter=&resultFilter=&hf={stat_type}&sportId=1&liveAb=#{game_pk}"
+STATCAST_SINGLE_GAME_EV_PV_WP_URL = "https://baseballsavant.mlb.com/gamefeed?date={game_date}&gamePk={game_pk}&chartType=pitch&legendType=pitchName&playerType=pitcher&inning=&count=&pitchHand=&batSide=&descFilter=&ptFilter=&resultFilter=&hf={stat_type}&sportId=1"
 STATCAST_DATE_FORMAT = "%Y-%m-%d"

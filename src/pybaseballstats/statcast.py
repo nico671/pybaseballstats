@@ -38,7 +38,10 @@ async def _async_pitch_by_pitch_data(
         raise ValueError("chunk_size_days must be a positive integer")
 
     date_ranges = list(_create_date_ranges(start_dt, end_dt, step=chunk_size_days))
-    assert len(date_ranges) > 0, "No date ranges generated. Check your input dates."
+    if len(date_ranges) == 0:
+        if verbose:
+            print("No valid date ranges to pull. Returning empty DataFrame.")
+        return pl.DataFrame() if force_collect else pl.LazyFrame()
 
     urls = []
     for chunk_start_dt, chunk_end_dt in date_ranges:
@@ -52,18 +55,22 @@ async def _async_pitch_by_pitch_data(
 
     # inclusive days in the requested range (used only for concurrency heuristics)
     date_range_total_days = (end_dt - start_dt).days + 1
-    responses = await _fetch_all_data(
-        urls,
-        date_range_total_days,
-        concurrency=concurrency,
-        show_progress=show_progress,
-    )
+    try:
+        responses = await _fetch_all_data(
+            urls,
+            date_range_total_days,
+            concurrency=concurrency,
+            show_progress=show_progress,
+        )
+    except RuntimeError as e:
+        raise RuntimeError(
+            "Unable to complete Statcast pitch-by-pitch download for the requested "
+            f"range {start_dt} to {end_dt}. {e}"
+        ) from e
     data_list = _load_all_data(responses, show_progress=show_progress)
 
     if not data_list:
-        if verbose:
-            print("No data was successfully retrieved.")
-        return None
+        print("No data was successfully retrieved.")
 
     if verbose:
         print("Concatenating data.")

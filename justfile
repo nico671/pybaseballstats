@@ -19,7 +19,7 @@ set dotenv-load := true
 
 release version:
     #!/usr/bin/env fish
-    echo "Starting release process for version {{ version }}..."
+    echo "Starting release process for pybaseballstats v{{ version }}..."
     echo "Step 1: Running mypy type checking..."
     just mypy
     if test $status -ne 0
