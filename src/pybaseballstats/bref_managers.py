@@ -15,18 +15,18 @@ __all__ = ["managers_basic_data", "managers_tendencies_data"]
 
 
 def managers_basic_data(year: int) -> pl.DataFrame:
-    """Returns a DataFrame of manager data for a given year. NOTE: This function uses Playwright to scrape the data, so it may be slow.
+    """Return basic MLB manager statistics for a season.
 
     Args:
-        year (int): Which year to pull manager data from
+        year (int): Season year.
 
     Raises:
-        ValueError: If year is None
-        ValueError: If year is less than 1871
-        TypeError: If year is not an integer
+        ValueError: If ``year`` is not provided.
+        ValueError: If ``year`` is earlier than 1871.
+        TypeError: If ``year`` is not an integer.
 
     Returns:
-        pl.DataFrame: A Polars DataFrame of manager data for the given year.
+        pl.DataFrame: Manager-level season summary data.
     """
     if not year:
         raise ValueError("Year must be provided")
@@ -82,19 +82,18 @@ def managers_basic_data(year: int) -> pl.DataFrame:
 
 
 def managers_tendencies_data(year: int) -> pl.DataFrame:
-    """Returns a DataFrame of manager tendencies data for a given year. NOTE: This function uses Playwright to scrape the data, so it may be slow.
+    """Return MLB manager tendencies for a season.
 
     Args:
-        year (int): Which year to pull manager tendencies data from
+        year (int): Season year.
 
     Raises:
-        ValueError: If year is None
-        ValueError: If year is less than 1871
-        TypeError: If year is not an integer
-
+        ValueError: If ``year`` is not provided.
+        ValueError: If ``year`` is earlier than 1871.
+        TypeError: If ``year`` is not an integer.
 
     Returns:
-        pl.DataFrame: A DataFrame of manager tendencies data for the given year.
+        pl.DataFrame: Manager tendencies and strategic usage metrics.
     """
     if not year:
         raise ValueError("Year must be provided")

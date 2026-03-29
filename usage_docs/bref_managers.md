@@ -1,35 +1,46 @@
 # Baseball Reference Managers Data Documentation
 
-This module provides functionality to retrieve data from [Baseball Reference's managers pages](https://www.baseball-reference.com/leagues/majors/2025-managers.shtml) (these are year by year but I've linked the 2025 season page). It includes functions to get basic manager statistics as well as manager tendencies.
+This module provides functions for pulling MLB manager data from Baseball Reference.
 
 ## Available Functions
 
-- `managers_basic_data(year)`: Fetches basic manager statistics for a specific year including wins, losses, games managed, and postseason performance.
-- `manager_tendencies_data(year)`: Fetches manager tendencies data for a specific year including strategic decisions like stolen base attempts, sacrifice bunts, and pitching changes.
+- `managers_basic_data(year)`: Returns manager-level season records (wins/losses, games managed, replay/challenge outcomes, and postseason summary fields).
+- `managers_tendencies_data(year)`: Returns manager tendencies (steal attempts, bunting, IBB usage, and pitching usage tendencies).
+
+## Function Parameters
+
+Both functions use the same parameter:
+
+- `year` (int): MLB season year.
+
+Validation rules:
+
+- `year` must be provided.
+- `year` must be an integer.
+- `year` must be greater than or equal to `1871`.
 
 ## Example Usage
 
-Both of these functions take a single parameter, `year`, which is an integer representing the year for which you want to fetch data.
-
-### Fetching Basic Manager Data
+### Basic manager data
 
 ```python
 import pybaseballstats.bref_managers as bm
-# Fetch basic manager data for the year 2023
-basic_data = bm.managers_basic_data(2023)
-print(basic_data)
+
+basic_df = bm.managers_basic_data(2023)
+print(basic_df)
 ```
 
-### Fetching Manager Tendencies Data
+### Manager tendencies
 
 ```python
 import pybaseballstats.bref_managers as bm
-# Fetch manager tendencies data for the year 2023
-tendencies_data = bm.manager_tendencies_data(2023)
-print(tendencies_data)
+
+tendencies_df = bm.managers_tendencies_data(2023)
+print(tendencies_df)
 ```
 
-## Final Notes
+## Notes
 
-1. The functions handle missing data by filling empty strings and null values with appropriate defaults (typically 0).
-2. All functions will automatically handle Baseball Reference's rate limiting (max of 10 requests per minute) by waiting and retrying as needed, please be patient.
+1. `managers_basic_data` uses Playwright and can be slower than simple HTTP scraping.
+2. Both functions return Polars DataFrames.
+3. Baseball Reference rate limits are handled internally by the shared BREF session utilities.

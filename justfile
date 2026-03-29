@@ -17,7 +17,7 @@ mypy:
 
 set dotenv-load := true
 
-release version:
+release version commit_message:
     #!/usr/bin/env fish
     echo "Starting release process for pybaseballstats v{{ version }}..."
     echo "Step 1: Running mypy type checking..."
@@ -34,7 +34,7 @@ release version:
     end
     echo "Step 3: Committing changes..."
     git add .
-    git commit -m "Bump version to {{ version }}"
+    git commit -m "Bump version to {{ version }}; Message: {{ commit_message }}"
     if test $status -ne 0
         echo "Note: No changes to commit or commit failed"
     end

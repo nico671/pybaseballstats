@@ -8,6 +8,11 @@ This module provides functions to retrieve data from the [Umpire Scorecards](htt
 - `game_data(...)`: Fetches umpire performance data on a game by game basis over a specific date range and set of filters.
 - `umpire_data(...)`: Fetches umpire data for a specific date range and set of filters.
 - `team_data(...)`: Fetches team data for a specific date range and set of filters.
+- `player_data(...)`: Fetches player-level framing data for catchers (`C`), pitchers (`P`), or batters (`B`) over a specific date range and set of filters.
+
+## Function Parameters
+
+Parameter details are organized by function in the sections below.
 
 ## Example Usage
 
@@ -179,8 +184,67 @@ df = us.team_data(start_date="2023-04-01", end_date="2023-04-30")
 print(df)
 ```
 
-## Final Notes
+## Fetching Player Data
+
+If you want player-level umpire scorecard data, you can use the `player_data` function. This function allows you to filter by date range, player type, game type, and team.
+
+### Understanding the player data function parameters
+
+Only `start_date`, `end_date`, and `player_type` are required. The other parameters have defaults that return broader data when not specified.
+
+- `start_date` (str): The start date for the data in `YYYY-MM-DD` format.
+- `end_date` (str): The end date for the data in `YYYY-MM-DD` format.
+- `player_type` (str): The type of player data to return. Options are:
+  - `"C"` for catchers
+  - `"P"` for pitchers
+  - `"B"` for batters
+- `game_type` (str): The game type filter. Defaults to `"*"` (all game types). See the game type options section above.
+- `team` (UmpireScorecardTeams): Team filter. Defaults to `UmpireScorecardTeams.ALL`.
+
+#### Example 1: Fetch all regular season pitcher player data for a date range
+
+```python
+import pybaseballstats.umpire_scorecards as us
+
+df = us.player_data(
+    start_date="2025-01-01",
+    end_date="2025-10-01",
+    player_type="P",
+    game_type="R",
+)
+print(df)
+```
+
+#### Example 2: Fetch catcher data for a specific team
+
+```python
+import pybaseballstats.umpire_scorecards as us
+
+df = us.player_data(
+    start_date="2025-01-01",
+    end_date="2025-10-01",
+    player_type="C",
+    game_type="R",
+    team=us.UmpireScorecardTeams.ANGELS,
+)
+print(df)
+```
+
+#### Example 3: Fetch batter data across all game types
+
+```python
+import pybaseballstats.umpire_scorecards as us
+
+df = us.player_data(
+    start_date="2025-01-01",
+    end_date="2025-10-01",
+    player_type="B",
+)
+print(df)
+```
+
+## Notes
 
 1. Please note that some of the restrictions you can enable through the parameters may result in no data being returned. For example, if you try to filter by an umpire name that does not exist in the data for the specified date range, a warning will be printed and all umpires will be returned instead. In other cases, this may not be caught and an empty DataFrame will be returned. Please ensure that your filters are valid for the date range you are querying. I recommend starting with a broader query and then narrowing down your filters as needed.
 2. Please refer to the [Umpire Scorecard glossary](https://umpscorecards.com/page/info/glossary) provided by Umpire Scorecards for definitions of the columns in the returned DataFrame. There will be some extra columns that are not in the glossary, as they aren't available publicly on the website rather they are present in the API response. These columns are left in because they do have some value in understanding the data.
-3. This package uses the `polars` library for data manipulation. If you wish to convert the returned DataFrame to a pandas DataFrame, you can use the `.to_pandas()` method on the returned DataFrame to convert it.
+3. Team filters should use the `UmpireScorecardTeams` enum (view options via `UmpireScorecardTeams.show_options()`).

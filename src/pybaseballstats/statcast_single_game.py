@@ -22,9 +22,16 @@ __all__ = [
 
 # helper for running async code in sync functions
 def _run_in_loop(coro):
-    """
-    Runs an async coroutine synchronously.
-    Handles cases where an event loop is already running (e.g., Jupyter).
+    """Run an async coroutine in the current runtime context.
+
+    If an event loop is already active (e.g. notebooks), this function applies
+    ``nest_asyncio`` and reuses the running loop.
+
+    Args:
+        coro: Coroutine object to execute.
+
+    Returns:
+        Any: Result returned by ``coro``.
     """
     try:
         loop = asyncio.get_running_loop()
@@ -38,16 +45,16 @@ def _run_in_loop(coro):
 def get_available_game_pks_for_date(
     game_date: str,
 ) -> List[Dict[str, str]]:
-    """Returns a list of all available gamePKs for a given date, as well as information on the home and away team for each game.
+    """Return game IDs and teams for all games on a date.
 
     Args:
-        game_date (str): Date to get available gamePKs for in 'YYYY-MM-DD' format.
+        game_date (str): Date in ``YYYY-MM-DD`` format.
 
     Returns:
-        List[Dict[str, str]]: A list of dictionaries containing gamePKs and information on the home and away teams for each game on the specified date.
+        list[dict[str, str]]: One dictionary per game with ``game_pk``,
+        ``home_team``, and ``away_team``.
     """
     available_games: List[Dict[str, str]] = []
-
     df = pitch_by_pitch_data(
         game_date,
         game_date,
@@ -73,13 +80,13 @@ def get_available_game_pks_for_date(
 
 
 def single_game_pitch_by_pitch(game_pk: int) -> pl.DataFrame:
-    """Pulls statcast data for a single game.
+    """Return Statcast pitch-by-pitch data for one game.
 
     Args:
-        game_pk (int): game_pk of the game you want to pull data for
+        game_pk (int): Baseball Savant game identifier.
 
     Returns:
-        pl.DataFrame: DataFrame of pitch-by-pitch statcast data for the game
+        pl.DataFrame: Pitch-level Statcast data for the requested game.
     """
     response = requests.get(
         STATCAST_SINGLE_GAME_URL.format(game_pk=game_pk),

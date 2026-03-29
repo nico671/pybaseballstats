@@ -15,16 +15,18 @@ __all__ = ["BREFTeams", "draft_order_by_year_round", "franchise_draft_order"]
 
 
 def draft_order_by_year_round(year: int, draft_round: int) -> pl.DataFrame:
-    """Returns a DataFrame of draft data for a given year and round.
+    """Return MLB draft results for a specific year and round.
 
     Args:
-        year (int): The year of the draft.
-        draft_round (int): The round of the draft.
+        year (int): Draft year.
+        draft_round (int): Draft round number.
+
     Raises:
-        ValueError: If the year is before 1965
-        ValueError: If the draft round is not between 1 and 60
+        ValueError: If ``year`` is earlier than 1965.
+        ValueError: If ``draft_round`` is outside 1-60.
+
     Returns:
-        pl.DataFrame: A DataFrame containing the draft data.
+        pl.DataFrame: Draft data for the requested year/round.
     """
     if year < 1965:
         raise ValueError("Draft data is only available from 1965 onwards")
@@ -48,18 +50,18 @@ def draft_order_by_year_round(year: int, draft_round: int) -> pl.DataFrame:
 
 
 def franchise_draft_order(team: BREFTeams, year: int) -> pl.DataFrame:
-    """Returns a Dataframe of draft data for a given team and year. NOTE: This function uses requests to scrape the data.
+    """Return MLB draft results for a specific franchise and year.
 
     Args:
-        team (str): Which team to pull draft data from
-        year (int): Which year to pull draft data from
+        team (BREFTeams): Franchise filter.
+        year (int): Draft year.
 
     Raises:
-        ValueError: If the year is before 1965
-        ValueError: If the team abbreviation is not valid
+        ValueError: If ``year`` is earlier than 1965.
+        ValueError: If ``team`` is not a valid ``BREFTeams`` enum value.
 
     Returns:
-        pl.DataFrame: A DataFrame of draft data for the given team and year.
+        pl.DataFrame: Draft data for the requested franchise/year.
     """
     if year < 1965:
         raise ValueError("Draft data is only available from 1965 onwards")

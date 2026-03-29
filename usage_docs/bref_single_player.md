@@ -13,15 +13,33 @@ This module provides functions to retrieve data from the [Baseball Reference](ht
 - `single_player_advanced_pitching(...)`: Fetches advanced pitching statistics for a single player.
 - `single_player_value_pitching(...)`: Fetches value pitching statistics for a single player.
 
+## Function Parameters
+
+All functions in this module use:
+
+- `player_code` (str): Baseball Reference player identifier (example: `troutmi01`).
+
 ## Example Usage
 
-Note that all functions require a `player_id` parameter, which is the unique identifier for a player on Baseball Reference. This ID can either be found from the player's URL on Baseball Reference or by using the `player_lookup` function
-from the `retrosheet` module. Information on how to use the `player_lookup` function can be found in the [Retrosheet Documentation](./retrosheet.md).
+All functions require a `player_code` parameter (Baseball Reference player identifier, e.g. `troutmi01`).
+
+You can get a valid code from:
+
+- the player's Baseball Reference URL, or
+- `pybaseballstats.retrosheet.player_lookup`.
 
 Since all of these functions are so similar, we will only show an example of one of them here. The usage for the other functions is analogous.
 
 ```python
-# Assuming you have already looked up the player ID using the retrosheet player_lookup functions and it is stored in the variable `player_id`
+# Assuming you already looked up player_code (e.g. via retrosheet.player_lookup)
 import pybaseballstats.bref_single_player as bsp
-bsp.single_player_standard_batting(player_code=player_id)
+
+df = bsp.single_player_standard_batting(player_code="troutmi01")
+print(df)
 ```
+
+## Notes
+
+1. Each function returns a Polars DataFrame.
+2. These functions use Baseball Reference pages/tables and may be slower than API-backed endpoints.
+3. Some functions rely on Playwright-backed page loading for dynamic content.

@@ -1,12 +1,24 @@
 # Baseball Reference Draft Data Documentation
 
-This module provides functionality to retrieve data from the [Baseball Reference Draft](https://www.baseball-reference.com/draft/) website. Specifically it mimics the functionality of the picks by Year/Round search as well as the Franchise/Year search.
+This module retrieves MLB draft data from [Baseball Reference Draft](https://www.baseball-reference.com/draft/).
 
 ## Available Functions
 
-- `draft_order_by_year_round(...)`: Fetches draft pick data for a specific year and round, with optional filters for team and position.
-- `franchise_draft_order(...)`: Fetches draft pick data for a specific franchise and year, with optional filters for round and position.
-- `BREFTeams.show_options()`: Returns a list of all MLB teams that can be used as filters in other functions.
+- `draft_order_by_year_round(year, draft_round)`: Fetches draft data for one year/round combination.
+- `franchise_draft_order(team, year)`: Fetches draft data for one franchise/year combination.
+- `BREFTeams.show_options()`: Shows valid enum values for franchise filtering.
+
+## Function Parameters
+
+### `draft_order_by_year_round(year, draft_round)`
+
+- `year` (int): The year of the draft (e.g., 2020).
+- `draft_round` (int): The draft round (must be 1 through 60).
+
+### `franchise_draft_order(team, year)`
+
+- `team` (BREFTeams): Team enum value from `BREFTeams`.
+- `year` (int): The year of the draft (e.g., 2020).
 
 ## Example Usage
 
@@ -53,11 +65,7 @@ NATIONALS: WSN
 
 ### Fetching Draft Picks by Year and Round
 
-To get draft picks for a specific year and round, you can use the `draft_order_by_year_round` function. You can also filter by team and position if desired.
-The parameters are as follows:
-
-- `year` (int): The year of the draft (e.g., 2020).
-- `round` (int): The round of the draft (e.g., 1 for the first round).
+To get draft picks for a specific year and round, use `draft_order_by_year_round`.
 
 ```python
 import pybaseballstats.bref_draft as bd
@@ -68,10 +76,7 @@ print(bd.draft_order_by_year_round(2020, 1))  # will print all draft picks for t
 
 ### Fetching Draft Picks by Franchise and Year
 
-To get draft picks for a specific franchise and year, you can use the `franchise_draft_order` function. You can also filter by round and position if desired. The parameters are as follows:
-
-- `team` (BREFTeams): The team for which you want to fetch draft picks. This should be one of the values from the `BREFTeams` enum.
-- `year` (int): The year of the draft (e.g., 2020).
+To get draft picks for a specific franchise and year, use `franchise_draft_order`.
 
 ```python
 import pybaseballstats.bref_draft as bd
@@ -80,8 +85,10 @@ import pybaseballstats.bref_draft as bd
 print(bd.franchise_draft_order(bd.BREFTeams.ANGELS, 2020))  # will print all draft picks for the 2020 Angels
 ```
 
-## Final Notes
+## Notes
 
-1. Please note that some of the restrictions you can enable through the parameters may result in no data being returned.
-2. This package uses the `polars` library for data manipulation. If you wish to convert the returned DataFrame to a pandas DataFrame, you can use the `.to_pandas()` method on the returned DataFrame to convert it.
-3. All functions will automatically handle Baseball Reference's rate limiting (max of 10 requests per minute) by waiting and retrying as needed, please be patient.
+1. Draft data is only available from 1965 onward.
+2. `draft_order_by_year_round` requires `draft_round` between 1 and 60.
+3. `franchise_draft_order` requires `team` to be a valid `BREFTeams` enum value.
+4. This package uses the `polars` library for data manipulation. If you wish to convert the returned DataFrame to a pandas DataFrame, you can use the `.to_pandas()` method on the returned DataFrame to convert it.
+5. All functions will automatically handle Baseball Reference rate limiting via shared session utilities.

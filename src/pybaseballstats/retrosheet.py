@@ -19,20 +19,21 @@ def player_lookup(
     last_name: Optional[str] = None,
     strip_accents: Optional[bool] = False,
 ) -> pl.DataFrame:
-    """A function to look up players by first and/or last name from Retrosheet's player registry.
+    """Look up players in Retrosheet's people registry.
 
     Args:
-        first_name (str, optional): The first name of the player. Defaults to None.
-        last_name (str, optional): The last name of the player. Defaults to None.
-        strip_accents (bool, optional): Whether to strip accents from the names. Defaults to False.
+        first_name (str | None, optional): Player first name filter.
+        last_name (str | None, optional): Player last name filter.
+        strip_accents (bool | None, optional): Whether to normalize accents before
+            matching.
 
     Raises:
-        ValueError: If both first_name and last_name are None.
-        TypeError: If first_name is not a string.
-        TypeError: If last_name is not a string.
+        ValueError: If neither ``first_name`` nor ``last_name`` is provided.
+        TypeError: If ``first_name`` is provided and is not a string.
+        TypeError: If ``last_name`` is provided and is not a string.
 
     Returns:
-        pl.DataFrame: A Polars DataFrame containing the player information.
+        pl.DataFrame: Matching player rows with canonical Retrosheet columns.
     """
     if not first_name and not last_name:
         raise ValueError("At least one of first_name or last_name must be provided")
@@ -116,23 +117,23 @@ def ejections_data(
     umpire_name: Optional[str] = None,
     inning: Optional[int] = None,
 ) -> pl.DataFrame:
-    """Returns a DataFrame of MLB ejections from Retrosheet's ejections data.
+    """Return MLB ejections from Retrosheet with optional filters.
 
     Args:
-        start_date (Optional[str], optional): The start date for the ejections data in 'MM/DD/YYYY' format. Defaults to None.
-        end_date (Optional[str], optional): The end date for the ejections data in 'MM/DD/YYYY' format. Defaults to None.
-        ejectee_name (Optional[str], optional): The name of the ejectee. Defaults to None.
-        umpire_name (Optional[str], optional): The name of the ejecting umpire. Defaults to None.
-        inning (Optional[int], optional): The inning number, between -1 and 20 (not 0). Defaults to None.
+        start_date (str | None, optional): Inclusive start date in ``MM/DD/YYYY``.
+        end_date (str | None, optional): Inclusive end date in ``MM/DD/YYYY``.
+        ejectee_name (str | None, optional): Substring filter on ``EJECTEENAME``.
+        umpire_name (str | None, optional): Substring filter on ``UMPIRENAME``.
+        inning (int | None, optional): Inning filter from -1 to 20.
 
     Raises:
-        ValueError: If start_date is not in 'MM/DD/YYYY' format.
-        ValueError: If end_date is not in 'MM/DD/YYYY' format.
-        ValueError: If start_date is after end_date.
-        ValueError: If inning is not between -1 and 20.
+        ValueError: If ``start_date`` is not in ``MM/DD/YYYY`` format.
+        ValueError: If ``end_date`` is not in ``MM/DD/YYYY`` format.
+        ValueError: If ``start_date`` is after ``end_date``.
+        ValueError: If ``inning`` is outside -1 to 20.
 
     Returns:
-        pl.DataFrame: A DataFrame containing the ejections data.
+        pl.DataFrame: Ejection rows matching the provided filters.
     """
     df = pl.read_csv(
         requests.get(EJECTIONS_URL).content,

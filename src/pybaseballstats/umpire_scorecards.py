@@ -9,11 +9,13 @@ from pybaseballstats.consts.umpire_scorecard_consts import (
     UMPIRE_SCORECARD_GAMES_URL,
     UMPIRE_SCORECARD_TEAMS_URL,
     UMPIRE_SCORECARD_UMPIRES_URL,
+    UMPIRE_SCORECARDS_PLAYERS_URL,
     UmpireScorecardTeams,
 )
 
 __all__ = [
     "game_type_options",
+    "player_data",
     "game_data",
     "umpire_data",
     "team_data",
@@ -22,6 +24,7 @@ __all__ = [
 
 
 def game_type_options():
+    """Print supported game type filter codes for Umpire Scorecards endpoints."""
     print(
         """Game Type Options:
 * : All games
@@ -44,29 +47,26 @@ def game_data(
     opponent_team: UmpireScorecardTeams = UmpireScorecardTeams.ALL,
     umpire_name: str = "",
 ) -> pl.DataFrame:
-    """Fetches umpire scorecard data for individual games within a given date range. Essentially functions as a wrapper around the following URL: https://umpscorecards.com/data/games
+    """Return game-level Umpire Scorecards data for a date range.
 
     Args:
-        start_date (str): The first date to start fetching data from. Required format is YYYY-MM-DD.
-        end_date (str): The last date to fetch data from. Required format is YYYY-MM-DD.
-        game_type (Literal["*", "R", "A", "P", "F", "D", "L", "W"], optional): The type of game to filter by. To see a description on the different game type options call the `game_type_options` function Defaults to "*".
-        focus_team (UmpireScorecardTeams, optional): The team to return data on. To see all team options call the `available_teams` function. Defaults to UmpireScorecardTeams.ALL.
-        focus_team_home_away (Literal["h", "a", "*"], optional): Whether to return home or away games for the focus team. To see a description on the different game type options call the `game_type_options` function Defaults to "*".
-        opponent_team (UmpireScorecardTeams, optional): The opponent team to filter by. To see all team options call the `available_teams` function. Defaults to UmpireScorecardTeams.ALL.
-        umpire_name (str, optional): The name of the umpire to filter by. Defaults to "".
+        start_date (str): Inclusive start date in ``YYYY-MM-DD`` format.
+        end_date (str): Inclusive end date in ``YYYY-MM-DD`` format.
+        game_type (Literal["*", "R", "A", "P", "F", "D", "L", "W"], optional):
+            Season/game-type filter.
+        focus_team (UmpireScorecardTeams, optional): Team filter.
+        focus_team_home_away (Literal["h", "a", "*"], optional): Home/away
+            side for ``focus_team``.
+        opponent_team (UmpireScorecardTeams, optional): Opponent team filter.
+        umpire_name (str, optional): Optional substring match for umpire name.
 
     Raises:
-        ValueError: If both start_date and end_date are not provided.
-        ValueError: If start_date is after end_date.
-        ValueError: If start_date or end_date are before 2015.
-        ValueError: If game_type is not one of the allowed values.
-        ValueError: If focus_team and opponent_team are the same.
-        ValueError: If focus_team_home_away is not one of the allowed values.
-        ValueError: If focus_team is not a valid UmpireScorecardTeams value.
-        ValueError: If opponent_team is not a valid UmpireScorecardTeams value.
+        ValueError: If dates are missing or invalid.
+        ValueError: If date bounds are outside supported years.
+        ValueError: If team/game filters are invalid.
 
     Returns:
-        pl.DataFrame: A polars DataFrame containing the umpire scorecard data for individual games within the specified date range.
+        pl.DataFrame: Game-level Umpire Scorecards rows.
     """
 
     # Input validation
@@ -147,34 +147,28 @@ def umpire_data(
     umpire_name: str = "",
     min_games_called: int = 0,
 ) -> pl.DataFrame:
-    """Returns information on umpires who have officiated games within a given date range. Essentially functions as a wrapper around the following URL: https://umpscorecards.com/data/umpires
+    """Return umpire-level aggregated Umpire Scorecards data.
 
     Args:
-        start_date (str): The start date for the query. Format: YYYY-MM-DD.
-        end_date (str): The end date for the query. Format: YYYY-MM-DD.
-        game_type (Literal["*", "R", "A", "P", "F", "D", "L", "W"], optional): The type of game to filter by. To see a description on the different game type options call the `game_type_options` function Defaults to "*".
-        focus_team (UmpireScorecardTeams, optional): The team to focus on. To see all team options call the `available_teams` function. Defaults to UmpireScorecardTeams.ALL.
-        focus_team_home_away (Literal["h", "a", "*"], optional): Whether to focus on home or away games. To see a description on the different game type options call the `game_type_options` function Defaults to "*".
-        opponent_team (UmpireScorecardTeams, optional): The opponent team to filter by. To see all team options call the `available_teams` function. Defaults to UmpireScorecardTeams.ALL.
-        umpire_name (str, optional): The name of the umpire to filter by. Defaults to "".
-        min_games_called (int, optional): The minimum number of games the umpire must have called. Defaults to 0.
+        start_date (str): Inclusive start date in ``YYYY-MM-DD`` format.
+        end_date (str): Inclusive end date in ``YYYY-MM-DD`` format.
+        game_type (Literal["*", "R", "A", "P", "F", "D", "L", "W"], optional):
+            Season/game-type filter.
+        focus_team (UmpireScorecardTeams, optional): Team filter.
+        focus_team_home_away (Literal["h", "a", "*"], optional): Home/away
+            side for ``focus_team``.
+        opponent_team (UmpireScorecardTeams, optional): Opponent team filter.
+        umpire_name (str, optional): Optional substring match for umpire name.
+        min_games_called (int, optional): Minimum games threshold.
 
     Raises:
-        ValueError: If both start_date and end_date are not provided.
-        ValueError: If start_date is after end_date.
-        ValueError: If start_date or end_date are before 2015.
-        ValueError: If game_type is not one of the allowed values.
-        ValueError: If focus_team is not one of the allowed values.
-        ValueError: If focus_team_home_away is not one of the allowed values.
-        ValueError: If opponent_team is not one of the allowed values.
-        ValueError: If umpire_name is not a string.
-        ValueError: If min_games_called is not a positive integer.
-        ValueError: If focus_team is not provided.
-        ValueError: If focus_team_home_away is not provided.
-        ValueError: If opponent_team is not provided.
+        ValueError: If dates are missing or invalid.
+        ValueError: If date bounds are outside supported years.
+        ValueError: If team/game filters are invalid.
+        ValueError: If ``min_games_called`` is negative.
 
     Returns:
-        pl.DataFrame: A polars DataFrame containing information on umpires who have officiated games within the specified date range.
+        pl.DataFrame: Umpire-level aggregated rows.
     """
     if start_date is None or end_date is None:
         raise ValueError("Both start_date and end_date must be provided.")
@@ -252,22 +246,22 @@ def team_data(
     game_type: Literal["*", "R", "A", "P", "F", "D", "L", "W"] = "*",
     focus_team: UmpireScorecardTeams = UmpireScorecardTeams.ALL,
 ) -> pl.DataFrame:
-    """Retrieve umpire performance data for teams within a specified date range. Essentially functions as a wrapper around the following URL: https://umpscorecards.com/data/teams
+    """Return team-level aggregated Umpire Scorecards data.
 
     Args:
-        start_date (str): The start date for the data retrieval in YYYY-MM-DD format.
-        end_date (str): The end date for the data retrieval in YYYY-MM-DD format.
-        game_type (Literal["*", "R", "A", "P", "F", "D", "L", "W"], optional): The type of games to include. To see a description on the different game type options call the `game_type_options` function Defaults to "*".
-        focus_team (UmpireScorecardTeams, optional): The team to focus on. To see all team options call the `available_teams` function. Defaults to UmpireScorecardTeams.ALL.
+        start_date (str): Inclusive start date in ``YYYY-MM-DD`` format.
+        end_date (str): Inclusive end date in ``YYYY-MM-DD`` format.
+        game_type (Literal["*", "R", "A", "P", "F", "D", "L", "W"], optional):
+            Season/game-type filter.
+        focus_team (UmpireScorecardTeams, optional): Team filter.
 
     Raises:
-        ValueError: If start_date or end_date is not provided.
-        ValueError: If start_date is after end_date.
-        ValueError: If game_type is not one of the allowed values.
-        ValueError: If focus_team is not a valid UmpireScorecardTeams value.
+        ValueError: If dates are missing or invalid.
+        ValueError: If date bounds are outside supported years.
+        ValueError: If ``game_type`` is invalid.
 
     Returns:
-        pl.DataFrame: A DataFrame containing the requested team data.
+        pl.DataFrame: Team-level aggregated rows.
     """
     if start_date is None or end_date is None:
         raise ValueError("Both start_date and end_date must be provided.")
@@ -303,4 +297,81 @@ def team_data(
     )
     if focus_team != UmpireScorecardTeams.ALL:
         df = df.filter(pl.col("team").str.contains(focus_team.value))
+    return df
+
+
+def player_data(
+    start_date: str,
+    end_date: str,
+    player_type: Literal["C", "P", "B"],
+    game_type: Literal["*", "R", "A", "P", "F", "D", "L", "W"] = "*",
+    team: UmpireScorecardTeams = UmpireScorecardTeams.ALL,
+) -> pl.DataFrame:
+    """Return player-level Umpire Scorecards data.
+
+    Args:
+        start_date (str): Inclusive start date in ``YYYY-MM-DD`` format.
+        end_date (str): Inclusive end date in ``YYYY-MM-DD`` format.
+        player_type (Literal["C", "P", "B"]): Player group filter.
+        game_type (Literal["*", "R", "A", "P", "F", "D", "L", "W"], optional):
+            Season/game-type filter.
+        team (UmpireScorecardTeams, optional): Team filter.
+
+    Raises:
+        ValueError: If dates are missing or invalid.
+        ValueError: If date bounds are outside supported years.
+        ValueError: If ``game_type`` or ``player_type`` is invalid.
+        ValueError: If the upstream API responds with HTTP errors or no rows.
+
+    Returns:
+        pl.DataFrame: Player-level rows.
+    """
+    if start_date is None or end_date is None:
+        raise ValueError("Both start_date and end_date must be provided.")
+    try:
+        start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+    except ValueError:
+        raise ValueError("start_date must be in YYYY-MM-DD format.")
+    try:
+        end_dt = datetime.strptime(end_date, "%Y-%m-%d")
+    except ValueError:
+        raise ValueError("end_date must be in YYYY-MM-DD format.")
+    assert start_dt is not None, "Failed to parse start_date"
+    assert end_dt is not None, "Failed to parse end_date"
+    if start_dt > end_dt:
+        raise ValueError("start_date must be before end_date.")
+    if start_dt.year < 2015 or end_dt.year < 2015:
+        raise ValueError("start_date and end_date must be after 2015.")
+    if start_dt.year > datetime.now().year or end_dt.year > datetime.now().year:
+        raise ValueError("start_date and end_date must be before the current year.")
+    start_date_str = start_dt.strftime("%Y-%m-%d")
+    end_date_str = end_dt.strftime("%Y-%m-%d")
+
+    if game_type not in ["*", "R", "A", "P", "F", "D", "L", "W"]:
+        raise ValueError(
+            "game_type must be one of '*', 'R', 'A', 'P', 'F', 'D', 'L', or 'W'"
+        )
+    if player_type not in ["C", "P", "B"]:
+        raise ValueError("player_type must be one of 'C', 'P', or 'B'")
+    assert isinstance(team, UmpireScorecardTeams)
+
+    resp = requests.get(
+        UMPIRE_SCORECARDS_PLAYERS_URL.format(
+            player_type=player_type,
+            start_date=start_date_str,
+            end_date=end_date_str,
+            game_type=game_type,
+            team=team.value,
+        )
+    )
+    try:
+        resp.raise_for_status()
+    except requests.exceptions.HTTPError as e:
+        raise ValueError(f"HTTP error occurred: {e}")
+    try:
+        df = pl.DataFrame(
+            json.loads(resp.text)["rows"],
+        )
+    except KeyError:
+        raise ValueError("No data found for the given parameters.")
     return df

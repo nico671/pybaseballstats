@@ -17,22 +17,30 @@ from pybaseballstats.consts.statcast_leaderboard_consts import (
     StatcastLeaderboardsTeams,
 )
 
+__all__ = [
+    "park_factor_yearly_leaderboard",
+    "park_factor_distance_leaderboard",
+    "park_factor_dimensions_leaderboard",
+    "timer_infractions_leaderboard",
+    "arm_strength_leaderboard",
+]
+
 
 def park_factor_dimensions_leaderboard(
     season: int, metric: Literal["distance", "height"] = "distance"
 ):
-    """Returns park dimension data from Baseball Savant
+    """Return Baseball Savant park-dimension leaderboard data.
 
     Args:
-        season (int): Which season to return data for. Must be between 2015 and the current season.
-        metric (Literal["distance", "height"], optional): Which metric to return data for. Defaults to "distance".
+        season (int): Season year.
+        metric (Literal["distance", "height"], optional): Fence metric set.
 
     Raises:
-        ValueError: If the metric is not "distance" or "height".
-        ValueError: If the season is not between 2015 and the current season.
+        ValueError: If ``metric`` is not ``"distance"`` or ``"height"``.
+        ValueError: If ``season`` is outside valid supported years.
 
     Returns:
-        pl.DataFrame: A DataFrame containing the park dimension data.
+        pl.DataFrame: Park-dimension leaderboard data.
     """
     if metric not in ["distance", "height"]:
         raise ValueError("Metric must be either 'distance' or 'height'")
@@ -218,21 +226,23 @@ def park_factor_yearly_leaderboard(
     conditions: Literal["All", "Day", "Night", "Open Air", "Roof Closed"] = "All",
     rolling_years: int = 3,  # 1,2,3
 ) -> pl.DataFrame:
-    """Returns park specific statistics from Baseball Savant.
+    """Return Baseball Savant park-factor leaderboard data.
 
     Args:
-        season (int): Which season to return data for. Must be between 1999 and the current season.
-        bat_side (Literal["L", "R", ""], optional): Optional value to restrict data by batter side. Defaults to "".
-        conditions (Literal["All", "Day", "Night", "Open Air", "Roof Closed"], optional): Optional value to restrict data by game conditions. Defaults to "All".
-        rolling_years (int, optional): Number of rolling years to include in the calculation. Calculated as rolling years backward from season parameter. Defaults to 3.
+        season (int): Season year.
+        bat_side (Literal["L", "R", ""], optional): Batter-side filter.
+        conditions (Literal["All", "Day", "Night", "Open Air", "Roof Closed"], optional):
+            Game-condition filter.
+        rolling_years (int, optional): Rolling-year window.
 
     Raises:
-        ValueError: If bat_side is not "L", "R", or "".
-        ValueError: If conditions is not "All", "Day", "Night", "Open Air", or "Roof Closed".
-        ValueError: If rolling_years is not 1, 2, or 3.
-        ValueError: If season is not between 1999 and the current season.
+        ValueError: If ``bat_side`` is invalid.
+        ValueError: If ``conditions`` is invalid.
+        ValueError: If ``rolling_years`` is not 1, 2, or 3.
+        ValueError: If ``season`` is outside valid supported years.
+
     Returns:
-        pl.DataFrame: DataFrame containing park specific statistics.
+        pl.DataFrame: Park-factor leaderboard data.
     """
     if bat_side not in ["L", "R", ""]:
         raise ValueError("bat_side must be 'L', 'R', or ''")
@@ -315,15 +325,16 @@ def park_factor_yearly_leaderboard(
 
 
 def park_factor_distance_leaderboard(season: int) -> pl.DataFrame:
-    """Returns park factor distance data from Baseball Savant
+    """Return Baseball Savant park-factor distance leaderboard data.
 
     Args:
-        season (int): Which season to return data for. Must be between 2016 and the current season.
+        season (int): Season year.
 
     Raises:
-        ValueError: If the season is not between 2016 and the current season.
+        ValueError: If ``season`` is outside valid supported years.
+
     Returns:
-        pl.DataFrame: A DataFrame containing the park factor distance data.
+        pl.DataFrame: Park-factor distance leaderboard data.
     """
     curr_season = (
         datetime.now().year if datetime.now().month >= 3 else datetime.now().year - 1
@@ -424,20 +435,21 @@ def timer_infractions_leaderboard(
     perspective: Literal["Pit", "Bat", "Cat", "Team"] = "Pit",
     min_pitches: int = 1,
 ) -> pl.DataFrame:
-    """Returns timer infraction leaderboard data from Baseball Savant
+    """Return Baseball Savant pitch-timer infraction leaderboard data.
 
     Args:
-        season (int): Which season to return data for. Must be between 2023 and the current season.
-        perspective (Literal["Pit", "Bat", "Cat", "Team"], optional): Which perspective to return data for. Defaults to "Pit".
-        min_pitches (int, optional): Minimum number of pitches to include in the leaderboard. Defaults to 1.
+        season (int): Season year.
+        perspective (Literal["Pit", "Bat", "Cat", "Team"], optional):
+            Leaderboard perspective.
+        min_pitches (int, optional): Minimum pitch-count threshold.
 
     Raises:
-        ValueError: If perspective is not "Pit", "Bat", "Cat", or "Team".
-        ValueError: If min_pitches is less than 1.
-        ValueError: If season is not between 2023 and the current season.
+        ValueError: If ``perspective`` is invalid.
+        ValueError: If ``min_pitches`` is less than 1.
+        ValueError: If ``season`` is outside valid supported years.
 
     Returns:
-        pl.DataFrame: Timer infraction leaderboard data.
+        pl.DataFrame: Timer-infraction leaderboard data.
     """
     if perspective not in ["Pit", "Bat", "Cat", "Team"]:
         raise ValueError("perspective must be one of 'Pit', 'Bat', 'Cat', or 'Team'")
@@ -477,6 +489,25 @@ def arm_strength_leaderboard(
     ] = "All",
     team: StatcastLeaderboardsTeams | None = None,
 ) -> pl.DataFrame:
+    """Return Baseball Savant arm-strength leaderboard data.
+
+    Args:
+        stat_type (Literal["player", "team"], optional): Aggregate by player or team.
+        year (int | str, optional): Season year, or ``"All"`` for all available years.
+        min_throws (int, optional): Minimum throw threshold.
+        pos (Literal[...], optional): Position group filter.
+        team (StatcastLeaderboardsTeams | None, optional): Optional team filter.
+
+    Raises:
+        ValueError: If ``stat_type`` is invalid.
+        ValueError: If ``year`` is invalid.
+        ValueError: If ``min_throws`` is less than 1.
+        ValueError: If ``pos`` is invalid.
+        ValueError: If ``team`` is not ``None`` or ``StatcastLeaderboardsTeams``.
+
+    Returns:
+        pl.DataFrame: Arm-strength leaderboard data.
+    """
     if stat_type not in ["player", "team"]:
         raise ValueError("stat_type must be either 'player' or 'team'")
     if isinstance(year, int) and (year < 2020 or year > datetime.now().year):

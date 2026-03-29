@@ -70,7 +70,3 @@ dev = [
 
 [tool.setuptools]
 packages = { find = { where = ["src/"] } }
-
-
-# [tool.coverage.run]
-# concurrency = ["thread"]

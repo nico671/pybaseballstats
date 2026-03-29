@@ -24,13 +24,14 @@ __all__ = [
 
 
 def single_player_standard_batting(player_code: str) -> pl.DataFrame:
-    """Returns a DataFrame of a player's standard batting statistics.
+    """Return standard batting statistics for one player.
 
     Args:
-        player_code (str): The player's code from Baseball Reference. This can be found using the pybaseballstats.retrosheet.player_lookup function.
+        player_code (str): Baseball Reference player identifier (for example,
+            ``"troutmi01"``).
 
     Returns:
-        pl.DataFrame: A Polars dataframe containing the player's standard batting statistics.
+        pl.DataFrame: Standard batting statistics.
     """
     last_name_initial = player_code[0].lower()
     with session.get_page() as page:
@@ -99,14 +100,13 @@ def single_player_standard_batting(player_code: str) -> pl.DataFrame:
 
 
 def single_player_value_batting(player_code: str) -> pl.DataFrame:
-    """Returns a DataFrame of a player's value batting statistics.
+    """Return value batting statistics for one player.
 
     Args:
-        player_code (str): The player's code from Baseball Reference. This can be found using the pybaseballstats.retrosheet.player_lookup function.
-
+        player_code (str): Baseball Reference player identifier.
 
     Returns:
-        pl.DataFrame: A Polars dataframe containing the player's value batting statistics.
+        pl.DataFrame: Value batting statistics.
     """
     last_name_initial = player_code[0].lower()
     with session.get_page() as page:
@@ -160,13 +160,13 @@ def single_player_value_batting(player_code: str) -> pl.DataFrame:
 
 
 def single_player_advanced_batting(player_code: str) -> pl.DataFrame:
-    """Returns a DataFrame of a player's advanced batting statistics.
+    """Return advanced batting statistics for one player.
 
     Args:
-        player_code (str): The player's code from Baseball Reference. This can be found using the pybaseballstats.retrosheet.player_lookup function.
+        player_code (str): Baseball Reference player identifier.
 
     Returns:
-        pl.DataFrame: A Polars dataframe containing the player's advanced batting statistics.
+        pl.DataFrame: Advanced batting statistics.
     """
     last_name_initial = player_code[0].lower()
     with session.get_page() as page:
@@ -225,13 +225,13 @@ def single_player_advanced_batting(player_code: str) -> pl.DataFrame:
 
 
 def single_player_standard_fielding(player_code: str) -> pl.DataFrame:
-    """Returns a DataFrame of a player's standard fielding statistics.
+    """Return standard fielding statistics for one player.
 
     Args:
-        player_code (str): The player's code from Baseball Reference. This can be found using the pybaseballstats.retrosheet.player_lookup function.
+        player_code (str): Baseball Reference player identifier.
 
     Returns:
-        pl.DataFrame: A Polars dataframe containing the player's standard fielding statistics.
+        pl.DataFrame: Standard fielding statistics.
     """
     last_name_initial = player_code[0].lower()
     with session.get_page() as page:
@@ -287,12 +287,13 @@ def single_player_standard_fielding(player_code: str) -> pl.DataFrame:
 
 
 def single_player_sabermetric_fielding(player_code: str) -> pl.DataFrame:
-    """Returns a DataFrame of a player's advanced fielding statistics.
+    """Return sabermetric fielding statistics for one player.
 
     Args:
-        player_code (str): The player's code from Baseball Reference. This can be found using the pybaseballstats.retrosheet.player_lookup function.
+        player_code (str): Baseball Reference player identifier.
+
     Returns:
-        pl.DataFrame: A Polars dataframe containing the player's advanced fielding statistics.
+        pl.DataFrame: Sabermetric fielding statistics.
     """
     last_name_initial = player_code[0].lower()
     with session.get_page() as page:
@@ -320,13 +321,13 @@ def single_player_sabermetric_fielding(player_code: str) -> pl.DataFrame:
 
 
 def single_player_standard_pitching(player_code: str) -> pl.DataFrame:
-    """Returns a DataFrame of a player's standard pitching statistics.
+    """Return standard pitching statistics for one player.
 
     Args:
-        player_code (str): The player's code from Baseball Reference. This can be found using the pybaseballstats.retrosheet.player_lookup function.
+        player_code (str): Baseball Reference player identifier.
 
     Returns:
-        pl.DataFrame: A Polars DataFrame containing the player's standard pitching statistics.
+        pl.DataFrame: Standard pitching statistics.
     """
     last_name_initial = player_code[0].lower()
     with session.get_page() as page:
@@ -403,13 +404,13 @@ def single_player_standard_pitching(player_code: str) -> pl.DataFrame:
 
 
 def single_player_value_pitching(player_code: str) -> pl.DataFrame:
-    """Returns a DataFrame of a player's value pitching statistics.
+    """Return value pitching statistics for one player.
 
     Args:
-        player_code (str): The player's code from Baseball Reference. This can be found using the pybaseballstats.retrosheet.player_lookup function.
+        player_code (str): Baseball Reference player identifier.
 
     Returns:
-        pl.DataFrame : A Polars DataFrame containing the player's value pitching statistics.
+        pl.DataFrame: Value pitching statistics.
     """
     last_name_initial = player_code[0].lower()
     with session.get_page() as page:
@@ -457,13 +458,13 @@ def single_player_value_pitching(player_code: str) -> pl.DataFrame:
 
 
 def single_player_advanced_pitching(player_code: str) -> pl.DataFrame:
-    """Returns a DataFrame of a player's advanced pitching statistics.
+    """Return advanced pitching statistics for one player.
 
     Args:
-        player_code (str): The player's code from Baseball Reference. This can be found using the pybaseballstats.retrosheet.player_lookup function.
+        player_code (str): Baseball Reference player identifier.
 
     Returns:
-        pl.DataFrame: A polars DataFrame containing the player's advanced pitching statistics.
+        pl.DataFrame: Advanced pitching statistics.
     """
     last_name_initial = player_code[0].lower()
     with session.get_page() as page:

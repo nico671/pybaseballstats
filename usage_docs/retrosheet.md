@@ -7,21 +7,32 @@ This module provides functionality to retrieve data from the [Retrosheet](https:
 - `player_lookup`: Look up players by first and/or last name.
 - `ejections_data`: Retrieve ejection data for a specific date range, ejectee, umpire, or inning.
 
+## Function Parameters
+
+### `player_lookup(first_name=None, last_name=None, strip_accents=False)`
+
+- `first_name` (str, optional): The first name of the player.
+- `last_name` (str, optional): The last name of the player.
+- `strip_accents` (bool, optional): Whether to normalize accents before matching. Defaults to `False`.
+
+### `ejections_data(start_date=None, end_date=None, ejectee_name=None, umpire_name=None, inning=None)`
+
+- `start_date` (str, optional): Start date in `MM/DD/YYYY` format.
+- `end_date` (str, optional): End date in `MM/DD/YYYY` format.
+- `ejectee_name` (str, optional): Case-sensitive substring filter on ejected person name.
+- `umpire_name` (str, optional): Case-sensitive substring filter on umpire name.
+- `inning` (int, optional): Inning filter from -1 to 20 (excluding 0).
+
 ## Example Usage
 
 ### Player Lookup
 
-Note that this function is currently very slow, I am looking into strategies for improvement. This will most often be done to use the player information returned by this function as an input to other functions in this package. The inputs to this function are flexible. You can search by first name, last name, or both. You also have the option to strip accents from names to improve search results. The parameters are as follows:
-
-- `first_name` (str, optional): The first name of the player.
-- `last_name` (str, optional): The last name of the player.
-- `strip_accents` (bool, optional): Whether to strip accents from the names (default is True).
-- `fuzzy` (bool, optional): Whether to use fuzzy matching with similarity scoring. Defaults to False.
-- `fuzzy_threshold` (int, optional): Minimum similarity score (0-100) for fuzzy matches. Defaults to 80.
+This function is most commonly used to get a player's `key_bbref` value, which can then be passed into functions in `bref_single_player`.
 
 ```python
 import pybaseballstats.retrosheet as rs
 import pybaseballstats.bref_single_player as bsp
+import polars as pl
 
 # Lookup a player by first and last name
 player_info = rs.player_lookup(first_name="Mike", last_name="Trout")
@@ -31,20 +42,19 @@ bsp.single_player_standard_batting(player_code=key_bbref)
 ```
 
 ```python
-# Lookup a player by last name only with fuzzy matching
+# Lookup a player by last name only
 import pybaseballstats.retrosheet as rs
-player_info = rs.player_lookup(last_name="Rodriguez", fuzzy=True, fuzzy_threshold=90)
+player_info = rs.player_lookup(last_name="Rodriguez")
 ```
 
 ### Ejections Data
 
-This function allows you to retrieve ejection data for a specific date range, ejectee, umpire, or inning. You can combine these filters to narrow down your search. The parameters are as follows:
+This function allows you to retrieve ejection data for a specific date range, ejectee, umpire, or inning. You can combine filters to narrow your search.
 
-- `start_date` (str): The start date for the data in "MM/DD/YYYY" format.
-- `end_date` (str): The end date for the data in "MM/DD/YYYY" format.
-- `ejectee_name` (str, optional): The name of the player who was ejected (fuzzy matching).
-- `umpire_name` (str, optional): The name of the umpire involved in the ejection (fuzzy matching).
-- `inning` (int, optional): The inning during which the ejection occurred, between -1 and 20 (but not 0).
+## Notes
+
+- `start_date`/`end_date` must use `MM/DD/YYYY` format.
+- If you omit `start_date` and/or `end_date`, the full available range is used for that side of the filter.
 
 ```python
 import pybaseballstats.retrosheet as rs
