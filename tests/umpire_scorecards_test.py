@@ -50,6 +50,14 @@ def test_game_data_general():
             focus_team_home_away="h",
             opponent_team=us.UmpireScorecardTeams.ANGELS,
         )
+    with pytest.raises(ValueError):
+        us.game_data(
+            start_date="2023-07-01",
+            end_date="2028-07-07",
+            focus_team=us.UmpireScorecardTeams.ANGELS,
+            focus_team_home_away="a",
+            opponent_team=us.UmpireScorecardTeams.ANGELS,
+        )
     # general test
     df = us.game_data(start_date="2026-01-01", end_date="2026-03-27")
     assert df.shape[0] == 20
