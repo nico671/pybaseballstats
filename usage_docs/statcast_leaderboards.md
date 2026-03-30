@@ -8,6 +8,7 @@ This module provides access to several Baseball Savant leaderboard endpoints.
 - `park_factor_yearly_leaderboard(season, bat_side="", conditions="All", rolling_years=3)`
 - `park_factor_distance_leaderboard(season)`
 - `timer_infractions_leaderboard(season, perspective="Pit", min_pitches=1)`
+- `abs_challenges_leaderboard(season, challenge_type="batter", game_type="regular", challenging_teams=None, opposing_teams=None, pitch_types=None, attack_zone=None, in_zone=None, min_challenges=0, min_opp_challenges=0)`
 - `arm_strength_leaderboard(stat_type="player", year=2025, min_throws=50, pos="All", team=None)`
 
 ## Function Parameters
@@ -52,6 +53,25 @@ Validation:
 
 - `season` must be between `2023` and the current in-season year.
 - `min_pitches` must be at least `1`.
+
+### `abs_challenges_leaderboard`
+
+- `season` (int): Season year (`2025+`).
+- `challenge_type` (`"batter" | "batting-team" | "catcher" | "pitcher" | "catching-team" | "team-summary" | "league"`): Grouping mode.
+- `game_type` (`"regular" | "spring" | "playoff"`): Game-type filter.
+- `challenging_teams` (`list[StatcastLeaderboardsTeams] | None`): Optional challenging-team filter.
+- `opposing_teams` (`list[StatcastLeaderboardsTeams] | None`): Optional opposing-team filter.
+- `pitch_types` (`list[...] | None`): Optional pitch-type filter (`FF`, `SI`, `FC`, `CH`, `FS`, `FO`, `SC`, `CU`, `SL`, `ST`, `SV`, `KN`).
+- `attack_zone` (`list[...] | None`): Optional attack-zone filter (`11`, `12`, `13`, `14`, `16`, `17`, `18`, `19`).
+- `in_zone` (`bool | None`): `True` for in-zone, `False` for out-of-zone, `None` for no filter.
+- `min_challenges` (int): Minimum challenge count (`>= 0`).
+- `min_opp_challenges` (int): Minimum opponent challenge count (`>= 0`).
+
+Validation:
+
+- `season` must be `2025` or later.
+- Team filters must be lists of `StatcastLeaderboardsTeams` values or `None`.
+- `min_challenges` and `min_opp_challenges` must be non-negative integers.
 
 ### `arm_strength_leaderboard`
 
@@ -133,6 +153,26 @@ df = sl.arm_strength_leaderboard(
     min_throws=100,
     pos="rf",
     team=sl.StatcastLeaderboardsTeams.YANKEES,
+)
+print(df)
+```
+
+### ABS challenges leaderboard
+
+```python
+import pybaseballstats.statcast_leaderboards as sl
+
+df = sl.abs_challenges_leaderboard(
+    season=2025,
+    challenge_type="batter",
+    game_type="regular",
+    challenging_teams=[sl.StatcastLeaderboardsTeams.YANKEES],
+    opposing_teams=[sl.StatcastLeaderboardsTeams.RED_SOX],
+    pitch_types=["FF", "SL"],
+    attack_zone=["11", "19"],
+    in_zone=True,
+    min_challenges=5,
+    min_opp_challenges=2,
 )
 print(df)
 ```

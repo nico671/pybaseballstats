@@ -238,3 +238,85 @@ Jane Smith,456,CF,Center Field,120,20,100,87.4,91.1,BOS,90.0
     assert "fielder_name" not in df_team.columns
     assert "player_id" not in df_team.columns
     assert df_team.select(pl.col("metric").min()).item() == 89.5
+
+
+def test_abs_challenges_leaderboard_badinputs():
+    with pytest.raises(ValueError):
+        sl.abs_challenges_leaderboard(
+            season=2023,
+        )
+    with pytest.raises(ValueError):
+        sl.abs_challenges_leaderboard(
+            season=2025, challenge_type="invalid_challenge_type"
+        )
+    # invalid game_type
+    with pytest.raises(ValueError):
+        sl.abs_challenges_leaderboard(
+            season=2025, challenge_type="all", game_type="invalid_game_type"
+        )
+    # invalid challenging_teams (not list)
+    with pytest.raises(ValueError):
+        sl.abs_challenges_leaderboard(
+            season=2025, challenge_type="all", challenging_teams="NYY"
+        )
+    # invalid challenging teams (list but not of StatcastLeaderboardsTeams)
+    with pytest.raises(ValueError):
+        sl.abs_challenges_leaderboard(
+            season=2025,
+            challenge_type="all",
+            challenging_teams=[sl.StatcastLeaderboardsTeams.YANKEES, "BOS"],
+        )
+    # invalid opposing_teams (not list)
+    with pytest.raises(ValueError):
+        sl.abs_challenges_leaderboard(
+            season=2025, challenge_type="all", opposing_teams="BOS"
+        )
+    # invalid opposing teams (list but not of StatcastLeaderboardsTeams)
+    with pytest.raises(ValueError):
+        sl.abs_challenges_leaderboard(
+            season=2025,
+            challenge_type="all",
+            opposing_teams=[sl.StatcastLeaderboardsTeams.RED_SOX, "NYY"],
+        )
+    # invalid pitch_types
+    with pytest.raises(ValueError):
+        sl.abs_challenges_leaderboard(
+            season=2025, challenge_type="all", pitch_types=["invalid_pitch_type"]
+        )
+    with pytest.raises(ValueError):
+        sl.abs_challenges_leaderboard(
+            season=2025, challenge_type="all", pitch_types="FF,SL,CH"
+        )
+    # invalid attack_zone
+    with pytest.raises(ValueError):
+        sl.abs_challenges_leaderboard(
+            season=2025, challenge_type="all", attack_zone="invalid_attack_zone"
+        )
+    with pytest.raises(ValueError):
+        sl.abs_challenges_leaderboard(
+            season=2025, challenge_type="all", attack_zone="1,2,3"
+        )
+    # invalid in_zone
+    with pytest.raises(ValueError):
+        sl.abs_challenges_leaderboard(
+            season=2025, challenge_type="all", in_zone="invalid_in_zone"
+        )
+    # invalid min_challenges
+    with pytest.raises(ValueError):
+        sl.abs_challenges_leaderboard(
+            season=2025, challenge_type="all", min_challenges=-1
+        )
+    # invalid min_opp_challenges
+    with pytest.raises(ValueError):
+        sl.abs_challenges_leaderboard(
+            season=2025, challenge_type="all", min_opp_challenges=-1
+        )
+
+
+def test_abs_challenges_leaderboard_season():
+    df = sl.abs_challenges_leaderboard(
+        season=2026,
+    )
+    assert df.shape == (361, 35)
+    assert df.select(pl.col("level").unique()).item() == "MLB"
+    assert df.select(pl.col("team_abbr").n_unique()).item() == 30
