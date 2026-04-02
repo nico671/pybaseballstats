@@ -495,6 +495,7 @@ def abs_challenges_leaderboard(
         "league",
     ] = "batter",
     game_type: Literal["regular", "spring", "playoff"] = "regular",
+    level: Literal["mlb", "aaa"] = "mlb",
     challenging_teams: List[StatcastLeaderboardsTeams] | None = None,
     opposing_teams: List[StatcastLeaderboardsTeams] | None = None,
     pitch_types: List[
@@ -516,6 +517,7 @@ def abs_challenges_leaderboard(
             ``"catching-team"``, ``"team-summary"``, or ``"league"``.
         game_type (Literal["regular", "spring", "playoff"], optional):
             Game-type filter.
+        level (Literal["mlb", "aaa"], optional): Level filter.
         challenging_teams (List[StatcastLeaderboardsTeams], optional):
             Restrict to challenging organizations.
         opposing_teams (List[StatcastLeaderboardsTeams], optional):
@@ -540,6 +542,10 @@ def abs_challenges_leaderboard(
     # season must be greater than 2025
     if season < 2025:
         raise ValueError("Season must be 2025 or later")
+
+    # level must be one of the specified options
+    if level not in ["mlb", "aaa"]:
+        raise ValueError("Invalid level. Must be one of 'mlb' or 'aaa'")
 
     # challenge_type must be one of the specified options
     if challenge_type not in [
@@ -647,6 +653,7 @@ def abs_challenges_leaderboard(
         in_zone=in_zone_param_str,
         challenging_teams=challenging_teams_param_str,
         game_type=game_type,
+        level=level,
         opposing_teams=opposing_teams_param_str,
         pitch_types=pitch_types_param_str,
         attack_zone=attack_zone_param_str,

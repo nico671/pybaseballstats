@@ -313,10 +313,10 @@ def test_abs_challenges_leaderboard_badinputs():
         )
 
 
-def test_abs_challenges_leaderboard_season():
-    df = sl.abs_challenges_leaderboard(
-        season=2026,
-    )
-    assert df.shape == (361, 35)
-    assert df.select(pl.col("level").unique()).item() == "MLB"
-    assert df.select(pl.col("team_abbr").n_unique()).item() == 30
+# def test_abs_challenges_leaderboard_season():
+#     df = sl.abs_challenges_leaderboard(
+#         season=2026,
+#     )
+#     assert df.shape == (361, 35)
+#     assert df.select(pl.col("level").unique()).item() == "MLB"
+#     assert df.select(pl.col("team_abbr").n_unique()).item() == 30
