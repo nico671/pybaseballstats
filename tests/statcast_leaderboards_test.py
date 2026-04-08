@@ -313,10 +313,43 @@ def test_abs_challenges_leaderboard_badinputs():
         )
 
 
-# def test_abs_challenges_leaderboard_season():
-#     df = sl.abs_challenges_leaderboard(
-#         season=2026,
-#     )
-#     assert df.shape == (361, 35)
-#     assert df.select(pl.col("level").unique()).item() == "MLB"
-#     assert df.select(pl.col("team_abbr").n_unique()).item() == 30
+def test_abs_challenges_leaderboard_season():
+    df = sl.abs_challenges_leaderboard(
+        season=2026,
+    )
+    assert df.shape[0] >= 381
+    assert df.shape[1] == 35
+    assert df.select(pl.col("level").unique()).item() == "MLB"
+    assert df.select(pl.col("team_abbr").n_unique()).item() == 30
+
+
+def test_abs_challenges_leaderboard_challenge_type():
+    df_batter = sl.abs_challenges_leaderboard(
+        season=2026,
+        challenge_type="batter",
+    )
+    assert df_batter.shape[0] >= 381
+    assert df_batter.shape[1] == 35
+
+    df = sl.abs_challenges_leaderboard(
+        season=2026,
+        challenge_type="batting-team",
+    )
+    assert df.shape[0] == 30
+    assert df.shape[1] == 35
+    assert df.select(pl.col("team_abbr").n_unique()).item() == 30
+
+    df = sl.abs_challenges_leaderboard(
+        season=2026,
+        challenge_type="league",
+    )
+    assert df.shape[0] == 1
+    assert df.shape[1] == 27
+
+    df = sl.abs_challenges_leaderboard(
+        season=2026,
+        challenge_type="catcher",
+    )
+    assert df.shape[0] >= 63
+    assert df.shape[1] == 35
+    assert df.select(pl.col("team_abbr").n_unique()).item() == 30
