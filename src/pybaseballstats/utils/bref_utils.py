@@ -59,7 +59,7 @@ class BREFSession:
 
     def __init__(
         self,
-        max_req_per_minute=5,  # requests allowed per minute, technically 10 is the maximum but being conservative
+        max_req_per_minute=10,  # requests allowed per minute
     ) -> None:
         self.max_req_per_minute: int = max_req_per_minute
         self.request_timestamps: deque[datetime] = deque(maxlen=max_req_per_minute)
@@ -214,6 +214,13 @@ def _extract_table(table):
                 row_data[data_stat].append(td.find("span").string)
             elif td.find("strong"):
                 row_data[data_stat].append(td.find("strong").string)
+            elif (
+                data_stat == "homeORvis"
+            ):  # special case for schedule/results table to determine home vs away
+                if td.text.strip() == "@":
+                    row_data[data_stat].append("away")
+                else:
+                    row_data[data_stat].append("home")
             else:
                 row_data[data_stat].append(td.string)
     return row_data

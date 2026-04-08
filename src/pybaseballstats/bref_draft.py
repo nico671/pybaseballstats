@@ -5,6 +5,7 @@ from pybaseballstats.consts.bref_consts import (
     BREF_DRAFT_YEAR_ROUND_URL,
     TEAM_YEAR_DRAFT_URL,
     BREFTeams,
+    resolve_bref_team_code,
 )
 from pybaseballstats.utils.bref_utils import BREFSession, _extract_table
 
@@ -70,10 +71,25 @@ def franchise_draft_order(team: BREFTeams, year: int) -> pl.DataFrame:
             "Team must be a valid BREFTeams enum value. See BREFTeams class for valid values."
         )
 
-    resp = session.get(TEAM_YEAR_DRAFT_URL.format(year=year, team=team.value))
-    soup = BeautifulSoup(resp.content, "html.parser")
+    resolved_code = resolve_bref_team_code(team=team, year=year)
+    candidate_codes = [resolved_code]
+    if team.value != resolved_code:
+        candidate_codes.append(team.value)
 
-    table = soup.find("table", id="draft_stats")
+    table = None
+    for team_code in candidate_codes:
+        resp = session.get(TEAM_YEAR_DRAFT_URL.format(year=year, team=team_code))
+        if resp is None:
+            continue
+        soup = BeautifulSoup(resp.content, "html.parser")
+        table = soup.find("table", id="draft_stats")
+        if table is not None:
+            break
+
+    if table is None:
+        raise ValueError(
+            f"No draft table found for {team.name} in {year}. Tried team codes: {candidate_codes}"
+        )
 
     df = pl.DataFrame(_extract_table(table))
     df = df.with_columns(
