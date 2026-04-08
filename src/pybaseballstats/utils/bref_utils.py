@@ -9,6 +9,8 @@ from typing import Any
 from curl_cffi import requests
 from playwright.sync_api import sync_playwright
 
+from pybaseballstats.consts.bref_consts import BREF_TEAM_CODE_SWITCHES, BREFTeams
+
 
 # https://stackoverflow.com/questions/31875/is-there-a-simple-elegant-way-to-define-singletons
 class Singleton:
@@ -224,3 +226,35 @@ def _extract_table(table):
             else:
                 row_data[data_stat].append(td.string)
     return row_data
+
+
+def resolve_bref_team_code(team: BREFTeams, year: int) -> str:
+    """Resolve the Baseball Reference team code for a franchise/year.
+
+    Args:
+        team (BREFTeams): Stable franchise enum value.
+        year (int): Season year.
+
+    Raises:
+        ValueError: If no code mapping is available for ``team``/``year``.
+
+    Returns:
+        str: Baseball Reference team code for URL usage.
+    """
+    ranges = BREF_TEAM_CODE_SWITCHES.get(team.value)
+    if ranges is None:
+        return team.value
+
+    for start_year, end_year, team_code in ranges:
+        if start_year <= year <= end_year:
+            return team_code
+
+    # If outside known bounds (e.g., a future year), use nearest known code.
+    if year < ranges[0][0]:
+        return ranges[0][2]
+    if year > ranges[-1][1]:
+        return ranges[-1][2]
+
+    raise ValueError(
+        f"No Baseball Reference team code mapping found for {team.name} in {year}."
+    )

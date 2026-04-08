@@ -5,9 +5,12 @@ from pybaseballstats.consts.bref_consts import (
     BREF_DRAFT_YEAR_ROUND_URL,
     TEAM_YEAR_DRAFT_URL,
     BREFTeams,
+)
+from pybaseballstats.utils.bref_utils import (
+    BREFSession,
+    _extract_table,
     resolve_bref_team_code,
 )
-from pybaseballstats.utils.bref_utils import BREFSession, _extract_table
 
 session = BREFSession.instance()  # type: ignore[attr-defined]
 

@@ -87,38 +87,6 @@ BREF_TEAM_CODE_SWITCHES: dict[str, tuple[tuple[int, int, str], ...]] = {
 }
 
 
-def resolve_bref_team_code(team: BREFTeams, year: int) -> str:
-    """Resolve the Baseball Reference team code for a franchise/year.
-
-    Args:
-        team (BREFTeams): Stable franchise enum value.
-        year (int): Season year.
-
-    Raises:
-        ValueError: If no code mapping is available for ``team``/``year``.
-
-    Returns:
-        str: Baseball Reference team code for URL usage.
-    """
-    ranges = BREF_TEAM_CODE_SWITCHES.get(team.value)
-    if ranges is None:
-        return team.value
-
-    for start_year, end_year, team_code in ranges:
-        if start_year <= year <= end_year:
-            return team_code
-
-    # If outside known bounds (e.g., a future year), use nearest known code.
-    if year < ranges[0][0]:
-        return ranges[0][2]
-    if year > ranges[-1][1]:
-        return ranges[-1][2]
-
-    raise ValueError(
-        f"No Baseball Reference team code mapping found for {team.name} in {year}."
-    )
-
-
 # urls
 # bref_draft URLS
 BREF_DRAFT_YEAR_ROUND_URL = "https://www.baseball-reference.com/draft/index.fcgi?year_ID={year}&draft_round={round}&draft_type=junreg&query_type=year_round&from_type_4y=0&from_type_jc=0&from_type_hs=0&from_type_unk=0"
@@ -144,3 +112,7 @@ BREF_TEAMS_SCHEDULE_RESULTS_URL = (
     "https://www.baseball-reference.com/teams/{team_code}/{year}-schedule-scores.shtml"
 )
 BREF_TEAMS_ROSTER_URL = "https://www.baseball-reference.com/teams/{team_code}/{year}-roster.shtml#all_appearances"
+
+BREF_TEAMS_BATTING_BASE_URL = (
+    "https://www.baseball-reference.com/teams/{team_code}/{year}-batting.shtml"
+)

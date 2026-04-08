@@ -23,6 +23,7 @@ __all__ = [
 ]
 
 
+# TODO: same range of tables as bref_teams, but for single players. Will need to add some error handling for players who don't have all tables (for example, pitchers won't have batting tables). Also need to add some error handling for invalid player codes.
 def single_player_standard_batting(player_code: str) -> pl.DataFrame:
     """Return standard batting statistics for one player.
 
