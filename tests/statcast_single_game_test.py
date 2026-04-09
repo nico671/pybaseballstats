@@ -27,61 +27,61 @@ def test_statcast_single_game_pitch_by_pitch():
     assert df2.shape == (0, 118)
 
 
-# def test_statcast_single_game_exit_velocity():
-#     for i in range(2):
-#         try:
-#             df = ssg.single_game_exit_velocity(game_date="2025-08-13", game_pk=776759)
-#         except Exception as e:
-#             print(
-#                 f"Error occurred while fetching exit velocity data for game_pk 776759: {e}"
-#             )
-#             continue
+def test_statcast_single_game_exit_velocity():
+    for i in range(2):
+        try:
+            df = ssg.single_game_exit_velocity(game_date="2025-08-13", game_pk=776759)
+        except Exception as e:
+            print(
+                f"Error occurred while fetching exit velocity data for game_pk 776759: {e}"
+            )
+            continue
 
-#     assert not df.is_empty()
-#     assert df.shape == (61, 12)
-#     assert df.select(pl.col("num_pa").max()).item() == 89
-#     assert df.select(pl.col("inning").max()).item() == 9
-#     assert df.select(pl.col("exit_velo").max()).item() == 108.69999694824219
-#     df2 = ssg.single_game_exit_velocity(game_date="2025-08-13", game_pk=0)
+    assert not df.is_empty()
+    assert df.shape == (61, 12)
+    assert df.select(pl.col("num_pa").max()).item() == 89
+    assert df.select(pl.col("inning").max()).item() == 9
+    assert df.select(pl.col("exit_velo").max()).item() == 108.69999694824219
+    df2 = ssg.single_game_exit_velocity(game_date="2025-08-13", game_pk=0)
 
-#     assert df2.is_empty()
-#     assert df2.shape == (0, 0)
-
-
-# def test_statcast_single_game_pitch_velocity():
-#     df = ssg.single_game_pitch_velocity(game_date="2025-08-13", game_pk=776759)
-#     assert not df.is_empty()
-#     assert df.shape == (338, 13)
-#     assert set(df.select(pl.col("pitch_type").unique()).to_series().to_list()) == set(
-#         [
-#             "Slow Curve",
-#             "Changeup",
-#             "Slider",
-#             "Splitter",
-#             "Slurve",
-#             "Curveball",
-#             "Cutter",
-#             "4-Seam Fastball",
-#             "Sweeper",
-#             "Sinker",
-#         ]
-#     )
-#     assert df.select(pl.col("game_pitch_number").max()).item() == 338
-#     assert df.select(pl.col("inning").max()).item() == 9
-#     df2 = ssg.single_game_pitch_velocity(game_date="2025-08-13", game_pk=0)
-#     assert df2.is_empty()
-#     assert df2.shape == (0, 0)
+    assert df2.is_empty()
+    assert df2.shape == (0, 0)
 
 
-# def test_statcast_single_game_win_probability():
-#     df = ssg.single_game_win_probability(game_date="2025-08-13", game_pk=776759)
+def test_statcast_single_game_pitch_velocity():
+    df = ssg.single_game_pitch_velocity(game_date="2025-08-13", game_pk=776759)
+    assert not df.is_empty()
+    assert df.shape == (338, 13)
+    assert set(df.select(pl.col("pitch_type").unique()).to_series().to_list()) == set(
+        [
+            "Slow Curve",
+            "Changeup",
+            "Slider",
+            "Splitter",
+            "Slurve",
+            "Curveball",
+            "Cutter",
+            "4-Seam Fastball",
+            "Sweeper",
+            "Sinker",
+        ]
+    )
+    assert df.select(pl.col("game_pitch_number").max()).item() == 338
+    assert df.select(pl.col("inning").max()).item() == 9
+    df2 = ssg.single_game_pitch_velocity(game_date="2025-08-13", game_pk=0)
+    assert df2.is_empty()
+    assert df2.shape == (0, 0)
 
-#     assert not df.is_empty()
-#     assert df.shape == (90, 8)
-#     assert df.select(pl.col("inning").n_unique()).item() == 18  # 9 innings x top/bottom
-#     assert df.select(pl.col("Away WP%").max()).item() == 100.0  # away team won
-#     assert df.select(pl.col("Home WP%").min()).item() == 0.0
 
-#     df2 = ssg.single_game_win_probability(game_date="2025-08-13", game_pk=0)
-#     assert df2.is_empty()
-#     assert df2.shape == (0, 0)
+def test_statcast_single_game_win_probability():
+    df = ssg.single_game_win_probability(game_date="2025-08-13", game_pk=776759)
+
+    assert not df.is_empty()
+    assert df.shape == (90, 8)
+    assert df.select(pl.col("inning").n_unique()).item() == 18  # 9 innings x top/bottom
+    assert df.select(pl.col("Away WP%").max()).item() == 100.0  # away team won
+    assert df.select(pl.col("Home WP%").min()).item() == 0.0
+
+    df2 = ssg.single_game_win_probability(game_date="2025-08-13", game_pk=0)
+    assert df2.is_empty()
+    assert df2.shape == (0, 0)
