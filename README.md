@@ -68,3 +68,4 @@ This runs mypy + tests + coverage and updates badges before commit/push.
 This project was directly inspired by the pybaseball package by James LeDoux. The goal of this project is to provide a similar set of functionality with continual updates and improvements, as the original pybaseball package has lagged behind with updates and some key functionality has been broken.
 
 All of the data scraped by this package is publicly available and free to use. All credit for the data goes to the organizations from which it was scraped.
+ 
