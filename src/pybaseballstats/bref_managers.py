@@ -53,28 +53,11 @@ def managers_basic_data(year: int) -> pl.DataFrame:
 
     table = soup.find("table", {"id": "manager_record"})
     df = pl.DataFrame(_extract_table(table))
-    df = df.select(pl.all().replace("", "0"))
     df = df.drop("ranker")
     df = df.with_columns(
         [
-            pl.col("mgr_replay_success_rate")
-            .str.replace("%", "")
-            .str.replace("", "0")
-            .cast(pl.Float32),
-            pl.col(
-                [
-                    "W",
-                    "L",
-                    "ties",
-                    "G",
-                    "mgr_challenge_count",
-                    "mgr_overturn_count",
-                    "mgr_ejections",
-                ]
-            ).cast(pl.Int32),
-            pl.col(["win_loss_perc", "finish", "win_loss_perc_post"]).cast(pl.Float32),
-            pl.col("W_post").cast(pl.Int32).fill_null(0).alias("postseason_wins"),
-            pl.col("L_post").cast(pl.Int32).fill_null(0).alias("postseason_losses"),
+            pl.col("W_post").fill_null(0).alias("postseason_wins"),
+            pl.col("L_post").fill_null(0).alias("postseason_losses"),
         ]
     ).drop(["W_post", "L_post"])
     return df
@@ -105,42 +88,7 @@ def managers_tendencies_data(year: int) -> pl.DataFrame:
     soup = BeautifulSoup(resp.content, "html.parser")
     table = soup.find("table", {"id": "manager_tendencies"})
     df = pl.DataFrame(_extract_table(table))
-    df = df.select(pl.all().str.replace("", "0").str.replace("%", ""))
     df = df.drop("ranker")
-    df = df.with_columns(
-        pl.col(
-            [
-                "age",
-                "manager_games",
-                "steal_2b_chances",
-                "steal_2b_attempts",
-                "steal_2b_rate_plus",
-                "steal_3b_chances",
-                "steal_3b_attempts",
-                "steal_3b_rate_plus",
-                "sac_bunt_chances",
-                "sac_bunts",
-                "sac_bunt_rate_plus",
-                "ibb_chances",
-                "ibb",
-                "ibb_rate_plus",
-                "pinch_hitters_plus",
-                "pinch_runners_plus",
-                "pitchers_used_per_game_plus",
-            ]
-        ).cast(pl.Int32),
-        pl.col(
-            [
-                "steal_2b_rate",
-                "steal_3b_rate",
-                "sac_bunt_rate",
-                "ibb_rate",
-                "pinch_hitters",
-                "pinch_runners",
-                "pitchers_used_per_game",
-            ]
-        ).cast(pl.Float32),
-    )
     df = df.with_columns(
         pl.col(
             [

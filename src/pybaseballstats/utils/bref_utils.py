@@ -1,19 +1,29 @@
 import random
+import re
 import time
 from collections import deque
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from threading import Lock
-from typing import Any
+from typing import Any, Generic, Iterator, TypeVar
 
+import polars as pl
 from curl_cffi import requests
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import (
+    Browser,
+    BrowserContext,
+    Page,
+    Playwright,
+    sync_playwright,
+)
 
 from pybaseballstats.consts.bref_consts import BREF_TEAM_CODE_SWITCHES, BREFTeams
 
-
 # https://stackoverflow.com/questions/31875/is-there-a-simple-elegant-way-to-define-singletons
-class Singleton:
+T = TypeVar("T")
+
+
+class Singleton(Generic[T]):
     """
     A non-thread-safe helper class to ease implementing singletons.
     This should be used as a decorator -- not a metaclass -- to the
@@ -29,26 +39,25 @@ class Singleton:
 
     """
 
-    def __init__(self, decorated):
+    def __init__(self, decorated: type[T]) -> None:
         self._decorated = decorated
+        self._instance: T | None = None
 
-    def instance(self):
+    def instance(self) -> T:
         """
         Returns the singleton instance. Upon its first call, it creates a
         new instance of the decorated class and calls its `__init__` method.
         On all subsequent calls, the already created instance is returned.
 
         """
-        try:
-            return self._instance
-        except AttributeError:
+        if self._instance is None:
             self._instance = self._decorated()
-            return self._instance
+        return self._instance
 
-    def __call__(self):
+    def __call__(self) -> None:
         raise TypeError("Singletons must be accessed through `instance()`.")
 
-    def __instancecheck__(self, inst):
+    def __instancecheck__(self, inst: object) -> bool:
         return isinstance(inst, self._decorated)
 
 
@@ -67,10 +76,10 @@ class BREFSession:
         self.request_timestamps: deque[datetime] = deque(maxlen=max_req_per_minute)
         self.session: requests.Session = requests.Session()
         # Playwright browser management
-        self._playwright = None
-        self._browser = None
-        self._context = None
-        self._page = None
+        self._playwright: Playwright | None = None
+        self._browser: Browser | None = None
+        self._context: BrowserContext | None = None
+        self._page: Page | None = None
         self._lock = Lock()
         # Set common headers to appear more browser-like
         self.session.headers.update(
@@ -135,22 +144,27 @@ class BREFSession:
             print(f"Error fetching {url}: {e}")
         return None
 
-    def _ensure_browser_initialized(self):
+    def _ensure_browser_initialized(self) -> None:
         """Initialize browser if not already done."""
         if self._browser is None or not self._browser.is_connected():
             if self._browser:
                 self._cleanup_browser()
 
-            self._playwright = sync_playwright().start()
-            self._browser = self._playwright.chromium.launch(headless=True)
-            self._context = self._browser.new_context(
+            playwright = sync_playwright().start()
+            browser = playwright.chromium.launch(headless=True)
+            context = browser.new_context(
                 user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             )
-            self._page = self._context.new_page()
-            self._page.set_default_navigation_timeout(30000)
-            self._page.set_default_timeout(20000)
+            page = context.new_page()
+            page.set_default_navigation_timeout(30000)
+            page.set_default_timeout(20000)
 
-    def _cleanup_browser(self):
+            self._playwright = playwright
+            self._browser = browser
+            self._context = context
+            self._page = page
+
+    def _cleanup_browser(self) -> None:
         """Clean up browser resources."""
         if self._page:
             self._page.close()
@@ -166,13 +180,15 @@ class BREFSession:
             self._playwright = None
 
     @contextmanager
-    def get_page(self):
+    def get_page(self) -> Iterator[Page]:
         """Context manager for Playwright page with rate limiting."""
         self._rate_limit()
 
         with self._lock:
             try:
                 self._ensure_browser_initialized()
+                if self._page is None:
+                    raise RuntimeError("Failed to initialize Playwright page")
                 yield self._page
             except Exception as e:
                 print(f"Browser error occurred: {e}")
@@ -180,7 +196,7 @@ class BREFSession:
                 self._cleanup_browser()
                 raise
 
-    def close_browser(self):
+    def close_browser(self) -> None:
         """Manually close the browser session."""
         with self._lock:
             self._cleanup_browser()
@@ -190,13 +206,82 @@ class BREFSession:
         self._cleanup_browser()
 
 
+_INT_PATTERN = re.compile(r"^[+-]?\d+$")
+_FLOAT_PATTERN = re.compile(r"^[+-]?(?:\d+\.\d*|\d*\.\d+|\d+)(?:[eE][+-]?\d+)?$")
+_PERCENT_PATTERN = re.compile(r"^[+-]?(?:\d+\.\d*|\d*\.\d+|\d+)(?:[eE][+-]?\d+)?%$")
+
+
+def _safe_parse_cell_value(value: str | None) -> str | int | float | None:
+    """Parse a table cell value into int/float/string/None when safe.
+
+    - Handles thousands separators in numeric strings (for example ``"12,345"``).
+    - Handles percentages (for example ``"12.3%"`` and ``"-4%"``) as numeric values
+      without the percent sign.
+    - Preserves non-numeric content as strings.
+    """
+    if value is None:
+        return None
+
+    text = value.strip()
+    if text == "":
+        return None
+
+    normalized = text.replace("−", "-")
+
+    # Common non-values used in tables.
+    if normalized in {"-", "--", "—", "N/A", "n/a", "NA", "na", "null", "NULL"}:
+        return None
+
+    # Accounting style negatives, e.g. "(1.2)" -> -1.2
+    is_accounting_negative = normalized.startswith("(") and normalized.endswith(")")
+    if is_accounting_negative:
+        normalized = f"-{normalized[1:-1].strip()}"
+
+    numeric_candidate = normalized.replace(",", "")
+
+    if _PERCENT_PATTERN.match(numeric_candidate):
+        try:
+            return float(numeric_candidate[:-1])
+        except ValueError:
+            return text
+
+    if _INT_PATTERN.match(numeric_candidate):
+        try:
+            return int(numeric_candidate)
+        except ValueError:
+            return text
+
+    if _FLOAT_PATTERN.match(numeric_candidate):
+        try:
+            return float(numeric_candidate)
+        except ValueError:
+            return text
+
+    return text
+
+
+def _infer_series_dtype(values: list[str | int | float | None]) -> Any:
+    """Infer a stable Polars dtype for parsed values."""
+    non_null_values = [value for value in values if value is not None]
+    if not non_null_values:
+        return pl.Utf8
+
+    if all(isinstance(value, int) for value in non_null_values):
+        return pl.Int32
+
+    if all(isinstance(value, (int, float)) for value in non_null_values):
+        return pl.Float32
+
+    return pl.Utf8
+
+
 def _extract_table(table):
     """Extracts data from an HTML table into a dictionary of lists.
 
     Works specifically for Baseball Reference Tables
     """
     trs = table.tbody.find_all("tr")
-    row_data = {}
+    row_data: dict[str, list[str | int | float | None]] = {}
     for tr in trs:
         if tr.has_attr("class") and "thead" in tr["class"]:
             continue
@@ -209,13 +294,13 @@ def _extract_table(table):
             if data_stat not in row_data:
                 row_data[data_stat] = []
             if td.find("a") and data_stat != "player":  # special case for bref_draft
-                row_data[data_stat].append(td.find("a").text)
+                raw_value = td.find("a").text
             elif td.find("a") and data_stat == "player":
-                row_data[data_stat].append(td.text)
+                raw_value = td.text
             elif td.find("span"):
-                row_data[data_stat].append(td.find("span").string)
+                raw_value = td.find("span").string
             elif td.find("strong"):
-                row_data[data_stat].append(td.find("strong").string)
+                raw_value = td.find("strong").string
             elif (
                 data_stat == "homeORvis"
             ):  # special case for schedule/results table to determine home vs away
@@ -223,9 +308,26 @@ def _extract_table(table):
                     row_data[data_stat].append("away")
                 else:
                     row_data[data_stat].append("home")
+                continue
             else:
-                row_data[data_stat].append(td.string)
-    return row_data
+                raw_value = td.string
+
+            row_data[data_stat].append(_safe_parse_cell_value(raw_value))
+
+    typed_row_data: dict[str, pl.Series] = {}
+    for column_name, values in row_data.items():
+        dtype = _infer_series_dtype(values)
+        if dtype == pl.Utf8:
+            normalized_values: list[str | None] = [
+                None if value is None else str(value) for value in values
+            ]
+            typed_row_data[column_name] = pl.Series(
+                column_name, normalized_values, dtype=dtype
+            )
+        else:
+            typed_row_data[column_name] = pl.Series(column_name, values, dtype=dtype)
+
+    return typed_row_data
 
 
 def resolve_bref_team_code(team: BREFTeams, year: int) -> str:

@@ -47,9 +47,6 @@ def draft_order_by_year_round(year: int, draft_round: int) -> pl.DataFrame:
     df = df.with_columns(
         pl.col("player").str.replace_all(r"\s+\(minors\)$", "").alias("player")
     )
-    df = df.with_columns(
-        pl.col(["year_ID", "draft_round", "overall_pick", "round_pick"]).cast(pl.Int16)
-    )
     return df
 
 
@@ -99,7 +96,4 @@ def franchise_draft_order(team: BREFTeams, year: int) -> pl.DataFrame:
         pl.col("player").str.replace_all(r"\s+\(minors\)$", "").alias("player")
     )
     df = df.drop("draft_abb")
-    df = df.with_columns(
-        pl.col(["year_ID", "draft_round", "overall_pick", "round_pick"]).cast(pl.Int16)
-    )
     return df

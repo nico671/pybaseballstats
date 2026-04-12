@@ -1,6 +1,7 @@
 import polars as pl
 from bs4 import BeautifulSoup
 
+# TODO: same range of tables as bref_teams, but for single players. Will need to add some error handling for players who don't have all tables (for example, pitchers won't have batting tables). Also need to add some error handling for invalid player codes.
 from pybaseballstats.consts.bref_consts import (
     BREF_SINGLE_PLAYER_SABERMETRIC_FIELDING_URL,
     BREF_SINGLE_PLAYER_URL,
@@ -23,7 +24,6 @@ __all__ = [
 ]
 
 
-# TODO: same range of tables as bref_teams, but for single players. Will need to add some error handling for players who don't have all tables (for example, pitchers won't have batting tables). Also need to add some error handling for invalid player codes.
 def single_player_standard_batting(player_code: str) -> pl.DataFrame:
     """Return standard batting statistics for one player.
 
@@ -53,44 +53,6 @@ def single_player_standard_batting(player_code: str) -> pl.DataFrame:
 
     standard_stats_table_actual = standard_stats_table_div.find("table")
     standard_stats_df = pl.DataFrame(_extract_table(standard_stats_table_actual))
-    standard_stats_df = standard_stats_df.with_columns(
-        pl.col(
-            [
-                "age",
-                "b_hbp",
-                "b_ibb",
-                "b_sh",
-                "b_sf",
-                "b_games",
-                "b_pa",
-                "b_ab",
-                "b_r",
-                "b_h",
-                "b_doubles",
-                "b_triples",
-                "b_hr",
-                "b_rbi",
-                "b_sb",
-                "b_cs",
-                "b_bb",
-                "b_so",
-                "b_onbase_plus_slugging_plus",
-                "b_rbat_plus",
-                "b_tb",
-                "b_gidp",
-            ]
-        ).cast(pl.Int32),
-        pl.col(
-            [
-                "b_war",
-                "b_batting_avg",
-                "b_onbase_perc",
-                "b_slugging_perc",
-                "b_onbase_plus_slugging",
-                "b_roba",
-            ]
-        ).cast(pl.Float32),
-    )
     standard_stats_df = standard_stats_df.select(
         pl.all().name.map(lambda col_name: col_name.replace("b_", ""))
     )
@@ -130,33 +92,6 @@ def single_player_value_batting(player_code: str) -> pl.DataFrame:
     value_batting_df = value_batting_df.select(
         pl.all().name.map(lambda col_name: col_name.replace("_abbr", ""))
     )
-    value_batting_df = value_batting_df.with_columns(
-        pl.col(
-            [
-                "age",
-                "pa",
-                "runs_batting",
-                "runs_baserunning",
-                "runs_fielding",
-                "runs_double_plays",
-                "runs_position",
-                "raa",
-                "runs_replacement",
-                "rar",
-                "rar_off",
-            ]
-        ).cast(pl.Int32),
-        pl.col(
-            [
-                "waa",
-                "war",
-                "waa_win_perc",
-                "waa_win_perc_162",
-                "war_off",
-                "war_def",
-            ]
-        ).cast(pl.Float32),
-    )
     return value_batting_df
 
 
@@ -195,31 +130,9 @@ def single_player_advanced_batting(player_code: str) -> pl.DataFrame:
         pl.all().name.map(lambda col_name: col_name.replace("_abbr", ""))
     )
     advanced_batting_df = advanced_batting_df.with_columns(
-        pl.col(["year_id", "age", "pa", "rbat_plus"]).cast(pl.Int32),
-        pl.col(
-            [
-                "roba",
-                "batting_avg_bip",
-                "iso_slugging",
-                "home_run_perc",
-                "strikeout_perc",
-                "base_on_balls_perc",
-                "avg_exit_velo",
-                "hard_hit_perc",
-                "ld_perc",
-                "pull_perc",
-                "center_perc",
-                "oppo_perc",
-                "wpa_bat",
-                "baseout_runs",
-                "run_scoring_perc",
-                "extra_bases_taken_perc",
-            ]
-        ).cast(pl.Float32),
-        pl.col("gperc").cast(pl.Float64).alias("gb_perc"),
-        pl.col("fperc").cast(pl.Float64).alias("fb_perc"),
-        pl.col("gfratio").cast(pl.Float32).alias("gb_fb_ratio"),
-        pl.col("cwpa_bat").str.replace("%", "").cast(pl.Float32),
+        pl.col("gperc").alias("gb_perc"),
+        pl.col("fperc").alias("fb_perc"),
+        pl.col("gfratio").alias("gb_fb_ratio"),
     ).drop(["gperc", "fperc", "gfratio"])
 
     return advanced_batting_df
@@ -254,36 +167,6 @@ def single_player_standard_fielding(player_code: str) -> pl.DataFrame:
     standard_fielding_df = standard_fielding_df.select(
         pl.all().name.map(lambda col_name: col_name.replace("_abbr", ""))
     )
-    standard_fielding_df = standard_fielding_df.with_columns(
-        pl.col(
-            [
-                "age",
-                "games",
-                "games_started",
-                "cg",
-                "chances",
-                "po",
-                "assists",
-                "errors",
-                "dp",
-                "tz_runs_total",
-                "tz_runs_total_per_year",
-                "drs_total",
-                "drs_total_per_year",
-            ]
-        ).cast(pl.Int32),
-        pl.col(
-            [
-                "fielding_perc",
-                "innings",
-                "fielding_perc_lg",
-                "range_factor_per_nine",
-                "range_factor_per_nine_lg",
-                "range_factor_per_game",
-                "range_factor_per_game_lg",
-            ]
-        ).cast(pl.Float32),
-    )
     return standard_fielding_df
 
 
@@ -315,9 +198,6 @@ def single_player_sabermetric_fielding(player_code: str) -> pl.DataFrame:
     sabermetric_fielding_table = sabermetric_fielding_table.find("table")
     sabermetric_fielding_df = pl.DataFrame(_extract_table(sabermetric_fielding_table))
     sabermetric_fielding_df = sabermetric_fielding_df.fill_null(0)
-    sabermetric_fielding_df = sabermetric_fielding_df.with_columns(
-        pl.all().exclude(["team_ID", "pos", "lg_ID"]).cast(pl.Int32)
-    )
     return sabermetric_fielding_df
 
 
@@ -359,48 +239,6 @@ def single_player_standard_pitching(player_code: str) -> pl.DataFrame:
     standard_pitching_df = standard_pitching_df.select(
         pl.all().name.map(lambda col_name: col_name.replace("_abbr", ""))
     )
-    standard_pitching_df = standard_pitching_df.with_columns(
-        pl.col(
-            [
-                "age",
-                "w",
-                "l",
-                "g",
-                "gs",
-                "gf",
-                "cg",
-                "sho",
-                "sv",
-                "h",
-                "r",
-                "er",
-                "hr",
-                "bb",
-                "ibb",
-                "so",
-                "hbp",
-                "bk",
-                "wp",
-                "bfp",
-                "earned_run_avg_plus",
-            ]
-        ).cast(pl.Int32),
-        pl.col(
-            [
-                "war",
-                "win_loss_perc",
-                "earned_run_avg",
-                "ip",
-                "fip",
-                "whip",
-                "hits_per_nine",
-                "hr_per_nine",
-                "bb_per_nine",
-                "so_per_nine",
-                "strikeouts_per_base_on_balls",
-            ]
-        ).cast(pl.Float32),
-    )
     return standard_pitching_df
 
 
@@ -435,25 +273,6 @@ def single_player_value_pitching(player_code: str) -> pl.DataFrame:
     )
     value_pitching_df = value_pitching_df.select(
         pl.all().name.map(lambda col_name: col_name.replace("_abbr", ""))
-    )
-    value_pitching_df = value_pitching_df.with_columns(
-        pl.col(["age", "g", "gs", "r", "ppf_custom", "raa", "rar"]).cast(pl.Int32),
-        pl.col(
-            [
-                "ip",
-                "ra9",
-                "ra9_opp",
-                "ra9_role",
-                "ra9_extras",
-                "ra9_avg_pitcher",
-                "ra9_def",
-                "waa",
-                "waa_adj",
-                "war",
-                "waa_win_perc",
-                "waa_win_perc_162",
-            ]
-        ).cast(pl.Float32),
     )
     return value_pitching_df
 
@@ -490,38 +309,5 @@ def single_player_advanced_pitching(player_code: str) -> pl.DataFrame:
     )
     advanced_pitching_df = advanced_pitching_df.select(
         pl.all().name.map(lambda col_name: col_name.replace("_abbr", ""))
-    )
-    # allow for float conversions in this column
-    advanced_pitching_df = advanced_pitching_df.with_columns(
-        pl.col(pl.String).str.replace("%", "")
-    )
-    advanced_pitching_df = advanced_pitching_df.with_columns(
-        pl.col(
-            [
-                "age",
-            ]
-        ).cast(pl.Int32),
-        pl.col(
-            [
-                "ip",
-                "batting_avg",
-                "onbase_perc",
-                "slugging_perc",
-                "onbase_plus_slugging",
-                "batting_avg_bip",
-                "home_run_perc",
-                "strikeout_perc",
-                "base_on_balls_perc",
-                "avg_exit_velo",
-                "hard_hit_perc",
-                "ld_perc",
-                "gb_perc",
-                "fb_perc",
-                "gb_fb_ratio",
-                "wpa_def",
-                "cwpa_def",
-                "baseout_runs",
-            ]
-        ).cast(pl.Float32),
     )
     return advanced_pitching_df

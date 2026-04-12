@@ -116,3 +116,6 @@ BREF_TEAMS_ROSTER_URL = "https://www.baseball-reference.com/teams/{team_code}/{y
 BREF_TEAMS_BATTING_BASE_URL = (
     "https://www.baseball-reference.com/teams/{team_code}/{year}-batting.shtml"
 )
+BREF_TEAMS_PITCHING_BASE_URL = (
+    "https://www.baseball-reference.com/teams/{team_code}/{year}-pitching.shtml"
+)
