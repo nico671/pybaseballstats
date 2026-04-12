@@ -1,6 +1,14 @@
 name: Run Unit Tests
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+      - dev
+  pull_request:
+    branches:
+      - main
+      - dev
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -17,15 +25,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Check if relevant files changed
       - name: Check for relevant changes
         id: changes
         run: |
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            # For PRs, check changed files between base and head
             changed_files=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
           else
-            # For pushes, check changed files in the last commit
             changed_files=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || echo "src/ tests/")
           fi
 
@@ -37,7 +42,6 @@ jobs:
             echo "Tests skipped - no relevant files changed"
           fi
 
-      # Set up python environment using uv
       - name: Install uv
         if: steps.changes.outputs.run_tests == 'true'
         uses: astral-sh/setup-uv@v7
@@ -52,7 +56,6 @@ jobs:
         if: steps.changes.outputs.run_tests == 'true'
         run: uv sync --locked --all-extras --dev
 
-      # Cache Playwright browsers to speed up workflow
       - name: Get Playwright version
         if: steps.changes.outputs.run_tests == 'true'
         id: playwright-version
@@ -74,7 +77,6 @@ jobs:
         if: steps.changes.outputs.run_tests == 'true'
         run: uv run playwright install-deps chromium
 
-      # Run tests with coverage
       - name: Run tests
         if: steps.changes.outputs.run_tests == 'true'
         run: uv run coverage run -m pytest tests/
@@ -85,21 +87,16 @@ jobs:
           uv run coverage report -m
           uv run coverage json -o coverage.json
 
-      # Install jq for JSON parsing (only on main branch)
       - name: Install jq
-        if: steps.changes.outputs.run_tests == 'true' && github.ref == 'refs/heads/main'
+        if: steps.changes.outputs.run_tests == 'true' && github.ref == 'refs/heads/dev'
         run: sudo apt-get update && sudo apt-get install -y jq
 
       - name: Convert coverage.json to badge
-        if: steps.changes.outputs.run_tests == 'true' && github.ref == 'refs/heads/main'
+        if: steps.changes.outputs.run_tests == 'true' && github.ref == 'refs/heads/dev'
         run: |
-          # Extract percentage from coverage.json and round it
           percent=$(jq '.totals.percent_covered | round' coverage.json)
-
-          # Create the badges directory
           mkdir -p badges
 
-          # Determine color based on coverage percentage
           if [ "$percent" -ge 80 ]; then
             color="brightgreen"
           elif [ "$percent" -ge 60 ]; then
@@ -108,29 +105,22 @@ jobs:
             color="red"
           fi
 
-          # Download the badge from shields.io
           curl -o badges/coverage.svg "https://img.shields.io/badge/coverage-${percent}%25-${color}"
 
-      # Only commit badge to separate branch (NOT main)
       - name: Commit and push coverage badge
-        if: steps.changes.outputs.run_tests == 'true' && github.ref == 'refs/heads/main'
+        if: steps.changes.outputs.run_tests == 'true' && github.ref == 'refs/heads/dev'
         run: |
           git config --local user.email "actions@github.com"
           git config --local user.name "github-actions"
 
-          # Fetch and checkout coverage-badge branch
           git fetch origin coverage-badge || git checkout --orphan coverage-badge
           git checkout coverage-badge || git checkout --orphan coverage-badge
 
-          # Remove all files except badges
           git rm -rf . 2>/dev/null || true
           mkdir -p badges
           cp coverage.json badges/ 2>/dev/null || true
-
-          # Copy the badge
           cp badges/coverage.svg badges/coverage.svg 2>/dev/null || true
 
-          # Commit and push
           git add badges/
           git diff --cached --quiet || git commit -m "Update coverage badge [skip ci]"
           git push -u origin coverage-badge --force
