@@ -33,7 +33,8 @@ __all__ = [
 
 
 # region random functions
-# TODO: return results with converted dtypes and cleaned columns (e.g., opponent team code, home/away status, etc.)
+
+
 def game_by_game_schedule_results(team: BREFTeams, year: int) -> pl.DataFrame:
     """Return game-by-game schedule/results for a team season.
 
@@ -55,7 +56,6 @@ def game_by_game_schedule_results(team: BREFTeams, year: int) -> pl.DataFrame:
     url = BREF_TEAMS_SCHEDULE_RESULTS_URL.format(team_code=team_code, year=year)
     resp = session.get(url)
     if resp is None:
-        print(url)
         raise ValueError(f"Failed to fetch data for {team.name} in {year}.")
 
     soup = BeautifulSoup(resp.content, "html.parser")
@@ -67,10 +67,19 @@ def game_by_game_schedule_results(team: BREFTeams, year: int) -> pl.DataFrame:
     df = df.drop(
         "boxscore"
     )  # drop boxscore column since it just has a link to the boxscore page which isn't useful for our purposes
+
+    int_cols = ["team_game", "R", "RA", "rank"]
+    float_cols = ["cli"]
+    df = df.with_columns(
+        pl.col("attendance").str.replace(",", "").cast(pl.Int32),
+    )  # handle attendance seperately since commas are used as thousand seperators which causes polars conversion to fail
+    df = df.with_columns(
+        pl.col(int_cols).cast(pl.Int32),
+        pl.col(float_cols).cast(pl.Float32),
+    )
     return df
 
 
-# TODO: return results with converted dtypes and cleaned columns (e.g., position, games played/started as int, etc.)
 def roster_and_appearances(team: BREFTeams, year: int) -> pl.DataFrame:
     """Return roster and appearances data for a team season.
 
@@ -95,9 +104,6 @@ def roster_and_appearances(team: BREFTeams, year: int) -> pl.DataFrame:
         # page.wait_for_selector("#appearances > tbody")
         content = page.content()
         soup = BeautifulSoup(content, "html.parser")
-    print(
-        BREF_TEAMS_ROSTER_URL.format(team_code=team_code, year=year),
-    )
     table = soup.find("table", id="appearances")
     assert table is not None, (
         f"No roster/appearances table found for {team.name} in {year}."
@@ -105,6 +111,28 @@ def roster_and_appearances(team: BREFTeams, year: int) -> pl.DataFrame:
     data = _extract_table(table)
     df = pl.DataFrame(data)
     df = df.drop("ranker")
+    int_cols = [
+        "age",
+        "weight",
+        "games_all",
+        "games_started_all",
+        "games_batting",
+        "games_defense",
+        "games_at_p",
+        "games_at_c",
+        "games_at_1b",
+        "games_at_2b",
+        "games_at_3b",
+        "games_at_ss",
+        "games_at_lf",
+        "games_at_cf",
+        "games_at_rf",
+        "games_at_of",
+        "games_at_dh",
+        "games_at_ph",
+        "games_at_pr",
+    ]
+    df = df.with_columns(pl.col(int_cols).cast(pl.Int32))
     return df
 
 

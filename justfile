@@ -7,7 +7,7 @@ default:
 mypy:
     #!/usr/bin/env fish
     echo "Running mypy type checking..."
-    uv run mypy src/pybaseballstats tests/
+    uv run mypy src/pybaseballstats/ tests/
     if test $status -eq 0
         echo "Mypy type checking passed!"
     else

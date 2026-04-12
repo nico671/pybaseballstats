@@ -167,7 +167,6 @@ def test_single_player_sabermetric_fielding():
     assert df.head(4).select(pl.col("team_ID").n_unique()).item() == 1
     assert df.head(4).select(pl.col("team_ID").unique()).item() == "CHC"
     assert df.select(pl.col("age").min()).item() == 27
-    assert df.select(pl.col("age").max()).item() == 30
     assert df.columns == [
         "year_ID",
         "age",

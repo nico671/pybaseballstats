@@ -57,7 +57,7 @@ def park_factor_dimensions_leaderboard(
         browser = p.chromium.launch()
         page = browser.new_page()
         try:
-            page.goto(url)
+            page.goto(url, wait_until="networkidle")
             page.wait_for_selector("#parkFactors")
 
             table_html = page.inner_html("#parkFactors")
