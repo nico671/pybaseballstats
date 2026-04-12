@@ -1,0 +1,33 @@
+#!/usr/bin/env fish
+
+# Optional escape hatch for emergencies:
+# PYBASEBALLSTATS_SKIP_PREPUSH=1 git push origin main
+if test "$PYBASEBALLSTATS_SKIP_PREPUSH" = "1"
+    echo "Skipping pre-push checks because PYBASEBALLSTATS_SKIP_PREPUSH=1"
+    exit 0
+end
+
+set repo_root (git rev-parse --show-toplevel 2>/dev/null)
+if test -z "$repo_root"
+    echo "Unable to determine repository root. Aborting push."
+    exit 1
+end
+
+cd "$repo_root"
+
+echo "pre-push: running mypy checks..."
+just mypy
+if test $status -ne 0
+    echo "pre-push: mypy failed. Push aborted."
+    exit 1
+end
+
+echo "pre-push: running tests with coverage..."
+just test
+if test $status -ne 0
+    echo "pre-push: tests failed. Push aborted."
+    exit 1
+end
+
+echo "pre-push: all checks passed."
+exit 0

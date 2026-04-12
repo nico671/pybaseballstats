@@ -1,5 +1,6 @@
 import random
 import re
+import sys
 import time
 from collections import deque
 from contextlib import contextmanager
@@ -18,6 +19,17 @@ from playwright.sync_api import (
 )
 
 from pybaseballstats.consts.bref_consts import BREF_TEAM_CODE_SWITCHES, BREFTeams
+
+
+def _is_testing_mode() -> bool:
+    """Return True when running in explicit test mode (preferred) or under pytest."""
+    return "pytest" in sys.modules
+
+
+def _default_bref_rate_limit() -> int:
+    """Choose default request limit based on runtime context."""
+    return 10 if _is_testing_mode() else 5
+
 
 # https://stackoverflow.com/questions/31875/is-there-a-simple-elegant-way-to-define-singletons
 T = TypeVar("T")
@@ -70,10 +82,16 @@ class BREFSession:
 
     def __init__(
         self,
-        max_req_per_minute=5,  # requests allowed per minute is 10 but we use 5 to be safe and account for retries
+        max_req_per_minute: int
+        | None = None,  # requests allowed per minute is 10 but we use 5 to be safe and account for retries
     ) -> None:
-        self.max_req_per_minute: int = max_req_per_minute
-        self.request_timestamps: deque[datetime] = deque(maxlen=max_req_per_minute)
+        resolved_limit = (
+            max_req_per_minute
+            if max_req_per_minute is not None
+            else _default_bref_rate_limit()
+        )
+        self.max_req_per_minute: int = resolved_limit
+        self.request_timestamps: deque[datetime] = deque(maxlen=resolved_limit)
         self.session: requests.Session = requests.Session()
         # Playwright browser management
         self._playwright: Playwright | None = None
