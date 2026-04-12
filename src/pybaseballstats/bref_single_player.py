@@ -1,7 +1,7 @@
 import polars as pl
 from bs4 import BeautifulSoup
 
-# TODO: same range of tables as bref_teams, but for single players. Will need to add some error handling for players who don't have all tables (for example, pitchers won't have batting tables). Also need to add some error handling for invalid player codes.
+# TODO: same range of tables as bref_teams, but for this module
 from pybaseballstats.consts.bref_consts import (
     BREF_SINGLE_PLAYER_SABERMETRIC_FIELDING_URL,
     BREF_SINGLE_PLAYER_URL,
