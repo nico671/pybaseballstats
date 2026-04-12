@@ -4,22 +4,6 @@ default:
     #!/usr/bin/env fish
     just --list
 
-install-hooks:
-    #!/usr/bin/env fish
-    echo "Configuring repository git hooks path to .githooks..."
-    git config core.hooksPath .githooks
-    if test $status -ne 0
-        echo "Failed to configure git hooks path."
-        exit 1
-    end
-
-    if test -f .githooks/pre-push
-        chmod +x .githooks/pre-push
-        echo "pre-push hook is installed and executable."
-    else
-        echo "Warning: .githooks/pre-push not found."
-    end
-
 mypy:
     #!/usr/bin/env fish
     echo "Running mypy type checking..."
