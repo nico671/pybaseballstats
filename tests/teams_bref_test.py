@@ -47,6 +47,157 @@ def test_roster_and_appearances():
 # endregion
 
 
+# region pitching function tests
+def test_standard_pitching():
+    with pytest.raises(ValueError):
+        bt.standard_pitching(team="XXX", year=2023)
+    with pytest.raises(ValueError):
+        bt.standard_pitching(team=bt.BREFTeams.ANGELS, year=1800)
+    with pytest.raises(ValueError):
+        bt.standard_pitching(team=None, year=2025)
+    df = bt.standard_pitching(team=bt.BREFTeams.YANKEES, year=2025)
+    assert df.shape[0] == 34
+    assert df.shape[1] == 35
+    assert df.select(pl.col("name_display").n_unique()).item() == 34
+    assert df.select(pl.col("earned_run_avg").min()).item() == 0.0
+
+
+def test_value_pitching():
+    with pytest.raises(ValueError):
+        bt.value_pitching(team="XXX", year=2023)
+    with pytest.raises(ValueError):
+        bt.value_pitching(team=bt.BREFTeams.ANGELS, year=1800)
+    with pytest.raises(ValueError):
+        bt.value_pitching(team=None, year=2025)
+    df = bt.value_pitching(team=bt.BREFTeams.YANKEES, year=2025)
+    assert df.shape[0] == 34
+    assert df.shape[1] == 22
+    assert df.select(pl.col("name_display").n_unique()).item() == 34
+    assert df.select(pl.col("ip").max()).item() == 195.10000610351562
+
+
+def test_advanced_pitching():
+    with pytest.raises(ValueError):
+        bt.advanced_pitching(team="XXX", year=2023)
+    with pytest.raises(ValueError):
+        bt.advanced_pitching(team=bt.BREFTeams.ANGELS, year=1800)
+    with pytest.raises(ValueError):
+        bt.advanced_pitching(team=None, year=2025)
+    df = bt.advanced_pitching(team=bt.BREFTeams.YANKEES, year=2025)
+    assert df.shape[0] == 35
+    assert df.shape[1] == 21
+    assert df.select(pl.col("name_display").n_unique()).item() == 35
+    assert df.select(pl.col("home_run_perc").max()).item() == 16.700000762939453
+
+
+def test_ratio_pitching():
+    with pytest.raises(ValueError):
+        bt.ratio_pitching(team="XXX", year=2023)
+    with pytest.raises(ValueError):
+        bt.ratio_pitching(team=bt.BREFTeams.ANGELS, year=1800)
+    with pytest.raises(ValueError):
+        bt.ratio_pitching(team=None, year=2025)
+    df = bt.ratio_pitching(team=bt.BREFTeams.YANKEES, year=2025)
+    assert df.shape[0] == 34
+    assert df.shape[1] == 20
+    assert df.select(pl.col("player").n_unique()).item() == 34
+    assert df.select(pl.col("home_run_perc").max()).item() == 16.700000762939453
+    assert "League Average" not in df.select(pl.col("player")).to_series().to_list()
+
+
+def test_batting_against_pitching():
+    with pytest.raises(ValueError):
+        bt.batting_against_pitching(team="XXX", year=2023)
+    with pytest.raises(ValueError):
+        bt.batting_against_pitching(team=bt.BREFTeams.ANGELS, year=1800)
+    with pytest.raises(ValueError):
+        bt.batting_against_pitching(team=None, year=2025)
+    df = bt.batting_against_pitching(team=bt.BREFTeams.YANKEES, year=2025)
+    assert df.shape[0] == 34
+    assert df.shape[1] == 27
+    assert df.select(pl.col("player").n_unique()).item() == 34
+    assert df.select(pl.col("PA").max()).item() == 801
+    assert "League Average" not in df.select(pl.col("player")).to_series().to_list()
+
+
+def test_win_probability_pitching():
+    with pytest.raises(ValueError):
+        bt.win_probability_pitching(team="XXX", year=2023)
+    with pytest.raises(ValueError):
+        bt.win_probability_pitching(team=bt.BREFTeams.ANGELS, year=1800)
+    with pytest.raises(ValueError):
+        bt.win_probability_pitching(team=None, year=2025)
+    df = bt.win_probability_pitching(team=bt.BREFTeams.YANKEES, year=2025)
+    assert df.shape[0] == 34
+    assert df.shape[1] == 24
+    assert df.select(pl.col("player").n_unique()).item() == 34
+    assert df.select(pl.col("cli_avg").max()).item() == 3.190000057220459
+    assert "League Average" not in df.select(pl.col("player")).to_series().to_list()
+
+
+def test_starting_pitching():
+    with pytest.raises(ValueError):
+        bt.starting_pitching(team="XXX", year=2023)
+    with pytest.raises(ValueError):
+        bt.starting_pitching(team=bt.BREFTeams.ANGELS, year=1800)
+    with pytest.raises(ValueError):
+        bt.starting_pitching(team=None, year=2025)
+    df = bt.starting_pitching(team=bt.BREFTeams.YANKEES, year=2025)
+    assert df.shape[0] == 11
+    assert df.shape[1] == 35
+    assert df.select(pl.col("player").n_unique()).item() == 11
+    assert df.select(pl.col("GS").max()).item() == 33
+    assert "League Average" not in df.select(pl.col("player")).to_series().to_list()
+
+
+def test_relief_pitching():
+    with pytest.raises(ValueError):
+        bt.relief_pitching(team="XXX", year=2023)
+    with pytest.raises(ValueError):
+        bt.relief_pitching(team=bt.BREFTeams.ANGELS, year=1800)
+    with pytest.raises(ValueError):
+        bt.relief_pitching(team=None, year=2025)
+    df = bt.relief_pitching(team=bt.BREFTeams.YANKEES, year=2025)
+    assert df.shape[0] == 27
+    assert df.shape[1] == 33
+    assert df.select(pl.col("player").n_unique()).item() == 27
+    assert df.select(pl.col("SV").max()).item() == 18
+    assert "League Average" not in df.select(pl.col("player")).to_series().to_list()
+
+
+def test_baserunning_situational_pitching():
+    with pytest.raises(ValueError):
+        bt.baserunning_situational_pitching(team="XXX", year=2023)
+    with pytest.raises(ValueError):
+        bt.baserunning_situational_pitching(team=bt.BREFTeams.ANGELS, year=1800)
+    with pytest.raises(ValueError):
+        bt.baserunning_situational_pitching(team=None, year=2025)
+    df = bt.baserunning_situational_pitching(team=bt.BREFTeams.YANKEES, year=2025)
+    assert df.shape[0] == 34
+    assert df.shape[1] == 35
+    assert df.select(pl.col("player").n_unique()).item() == 34
+    assert df.select(pl.col("SB").max()).item() == 17
+    assert "League Average" not in df.select(pl.col("player")).to_series().to_list()
+
+
+def test_career_cumulative_pitching():
+    with pytest.raises(ValueError):
+        bt.career_cumulative_pitching(team="XXX", year=2023)
+    with pytest.raises(ValueError):
+        bt.career_cumulative_pitching(team=bt.BREFTeams.ANGELS, year=1800)
+    with pytest.raises(ValueError):
+        bt.career_cumulative_pitching(team=None, year=2025)
+    df = bt.career_cumulative_pitching(team=bt.BREFTeams.YANKEES, year=2025)
+    assert df.shape[0] == 37
+    assert df.shape[1] == 32
+    assert df.select(pl.col("player").n_unique()).item() == 37
+    assert df.select(pl.col("G").max()).item() == 727
+    assert "League Average" not in df.select(pl.col("player")).to_series().to_list()
+
+
+# endregion
+
+
 # region helper function tests
 def test_resolve_team_code_switches():
     assert resolve_bref_team_code(bt.BREFTeams.ANGELS, 2004) == "ANA"

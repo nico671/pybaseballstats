@@ -30,6 +30,16 @@ __all__ = [
     "situational_batting",
     "pitches_batting",
     "career_cumulative_batting",
+    "standard_pitching",
+    "value_pitching",
+    "advanced_pitching",
+    "ratio_pitching",
+    "batting_against_pitching",
+    "win_probability_pitching",
+    "starting_pitching",
+    "relief_pitching",
+    "baserunning_situational_pitching",
+    "career_cumulative_pitching",
 ]
 
 
@@ -596,7 +606,7 @@ def ratio_pitching(team: BREFTeams, year: int):
     return df
 
 
-def pitching_batting_against(team: BREFTeams, year: int):
+def batting_against_pitching(team: BREFTeams, year: int):
     """Return team pitching against batting statistics for one season.
 
     Args:
@@ -632,7 +642,7 @@ def pitching_batting_against(team: BREFTeams, year: int):
     return df
 
 
-def pitching_win_probability(team: BREFTeams, year: int):
+def win_probability_pitching(team: BREFTeams, year: int):
     """Return team pitching win probability statistics for one season.
 
     Args:
@@ -667,8 +677,157 @@ def pitching_win_probability(team: BREFTeams, year: int):
     return df
 
 
-if __name__ == "__main__":
-    df = ratio_pitching(BREFTeams.YANKEES, 2025)
-    print(df.head())
+def starting_pitching(team: BREFTeams, year: int):
+    """Return team starting pitching statistics for one season.
 
-# TODO: pitching, fielding, def lineups, batting orders,
+    Args:
+        team (BREFTeams): Team enum value.
+        year (int): MLB season year.
+    Raises:
+        ValueError: If ``team`` is not a ``BREFTeams`` value.
+        ValueError: If the starting pitching table is not found.
+    Returns:
+        pl.DataFrame: Starting pitching table with typed numeric columns.
+    """
+    if not isinstance(team, BREFTeams):
+        raise ValueError("Team must be a member of the BREFTeams enum")
+    url = BREF_TEAMS_PITCHING_BASE_URL.format(
+        team_code=resolve_bref_team_code(team, year=year), year=year
+    )
+    with session.get_page() as page:
+        page.goto(url, wait_until="networkidle")
+        content = page.content()
+        soup = BeautifulSoup(content, "html.parser")
+    table = soup.find("table", id="players_starter_pitching")
+    if table is None:
+        raise ValueError(f"No starting pitching table found for {team.name} in {year}.")
+    data = _extract_table(table)
+    df = pl.DataFrame(data)
+    df = df.select(pl.all().name.map(lambda col_name: col_name.replace("p_", "")))
+    df = df.select(pl.all().name.map(lambda col_name: col_name.replace("_abbr", "")))
+    df = df.filter(pl.col("player") != "League Average")
+    return df
+
+
+def relief_pitching(team: BREFTeams, year: int):
+    """Return team relief pitching statistics for one season.
+
+    Args:
+        team (BREFTeams): Team enum value.
+        year (int): MLB season year.
+    Raises:
+        ValueError: If ``team`` is not a ``BREFTeams`` value.
+        ValueError: If the relief pitching table is not found.
+    Returns:
+        pl.DataFrame: Relief pitching table with typed numeric columns.
+    """
+
+    if not isinstance(team, BREFTeams):
+        raise ValueError("Team must be a member of the BREFTeams enum")
+    url = BREF_TEAMS_PITCHING_BASE_URL.format(
+        team_code=resolve_bref_team_code(team, year=year), year=year
+    )
+    with session.get_page() as page:
+        page.goto(url, wait_until="networkidle")
+        content = page.content()
+        soup = BeautifulSoup(content, "html.parser")
+    table = soup.find("table", id="players_reliever_pitching")
+    if table is None:
+        raise ValueError(f"No relief pitching table found for {team.name} in {year}.")
+    data = _extract_table(table)
+    df = pl.DataFrame(data)
+    df = df.select(pl.all().name.map(lambda col_name: col_name.replace("p_", "")))
+    df = df.select(pl.all().name.map(lambda col_name: col_name.replace("_abbr", "")))
+    df = df.filter(pl.col("player") != "League Average")
+    return df
+
+
+def baserunning_situational_pitching(team: BREFTeams, year: int):
+    """Return team pitching baserunning statistics for one season.
+
+    Args:
+        team (BREFTeams): Team enum value.
+        year (int): MLB season year.
+    Raises:
+        ValueError: If ``team`` is not a ``BREFTeams`` value.
+        ValueError: If the pitching baserunning table is not found.
+    Returns:
+        pl.DataFrame: Pitching baserunning table with typed numeric columns.
+    """
+    if not isinstance(team, BREFTeams):
+        raise ValueError("Team must be a member of the BREFTeams enum")
+    url = BREF_TEAMS_PITCHING_BASE_URL.format(
+        team_code=resolve_bref_team_code(team, year=year), year=year
+    )
+    with session.get_page() as page:
+        page.goto(url, wait_until="networkidle")
+        content = page.content()
+        soup = BeautifulSoup(content, "html.parser")
+    table = soup.find("table", id="players_basesituation_pitching")
+    if table is None:
+        raise ValueError(
+            f"No pitching baserunning table found for {team.name} in {year}."
+        )
+    data = _extract_table(table)
+    df = pl.DataFrame(data)
+    df = df.select(pl.all().name.map(lambda col_name: col_name.replace("p_", "")))
+    df = df.select(pl.all().name.map(lambda col_name: col_name.replace("_abbr", "")))
+    df = df.filter(pl.col("player") != "League Average")
+    return df
+
+
+def career_cumulative_pitching(team: BREFTeams, year: int):
+    """Return cumulative career pitching summaries for the team roster.
+
+    Args:
+        team (BREFTeams): Team enum value.
+        year (int): MLB season year.
+    Raises:
+        ValueError: If ``team`` is not a ``BREFTeams`` value.
+        ValueError: If the cumulative pitching table is not found.
+    Returns:
+        pl.DataFrame: Cumulative pitching table with typed numeric columns.
+    """
+    if not isinstance(team, BREFTeams):
+        raise ValueError("Team must be a member of the BREFTeams enum")
+    url = BREF_TEAMS_PITCHING_BASE_URL.format(
+        team_code=resolve_bref_team_code(team, year=year), year=year
+    )
+    with session.get_page() as page:
+        page.goto(url, wait_until="networkidle")
+        content = page.content()
+        soup = BeautifulSoup(content, "html.parser")
+    table = soup.find("table", id="players_cumulative_pitching")
+    if table is None:
+        raise ValueError(
+            f"No cumulative pitching table found for {team.name} in {year}."
+        )
+    data = _extract_table(table)
+    # this table exposes a duplicated era column in the markup, which produces mismatched column lengths from raw extraction
+    # to work around this, we extract manually and normalize lengths to the player column length, keeping one of the duplicated columns if necessary
+    reference_row_count = len(data.get("player", []))
+    normalized_data: dict[str, list[str | int | float | None]] = {}
+    for column_name, series in data.items():
+        values = series.to_list()
+
+        if (
+            column_name == "earned_run_avg_plus"
+            and reference_row_count > 0
+            and len(values) == reference_row_count * 2
+        ):
+            # Keep one value per player row.
+            values = values[::2]
+
+        if reference_row_count > 0:
+            if len(values) > reference_row_count:
+                values = values[:reference_row_count]
+            elif len(values) < reference_row_count:
+                values = values + [None] * (reference_row_count - len(values))
+
+        normalized_data[column_name] = values
+
+    df = pl.DataFrame(normalized_data)
+    return df
+
+
+# TODO: fielding, def lineups, batting orders,

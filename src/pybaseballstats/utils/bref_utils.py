@@ -70,7 +70,7 @@ class BREFSession:
 
     def __init__(
         self,
-        max_req_per_minute=10,  # requests allowed per minute
+        max_req_per_minute=5,  # requests allowed per minute is 10 but we use 5 to be safe and account for retries
     ) -> None:
         self.max_req_per_minute: int = max_req_per_minute
         self.request_timestamps: deque[datetime] = deque(maxlen=max_req_per_minute)
