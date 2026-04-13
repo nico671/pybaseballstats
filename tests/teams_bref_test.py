@@ -52,7 +52,7 @@ def test_roster_and_appearances():
 def test_batting_orders():
     with pytest.raises(ValueError):
         bt.batting_orders(team="XXX", year=2023)
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         bt.batting_orders(team=bt.BREFTeams.ANGELS, year=1800)
     with pytest.raises(ValueError):
         bt.batting_orders(team=None, year=2025)

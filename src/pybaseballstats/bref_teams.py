@@ -32,7 +32,6 @@ __all__ = [
 ]
 
 
-# TODO: def lineups, batting orders
 # region random functions
 
 
@@ -82,7 +81,7 @@ def batting_orders(team: BREFTeams, year: int) -> pl.DataFrame:
             table = candidate
             break
 
-    if table is None:
+    if table is None or table.tbody is None:
         raise ValueError(
             f"No batting-orders grid table found for {team.name} in {year}."
         )
@@ -135,7 +134,7 @@ def batting_orders(team: BREFTeams, year: int) -> pl.DataFrame:
 
         opposing_starter_name: str | None = None
         if date_link is not None:
-            starter_title = date_link.get("title")
+            starter_title = str(date_link.get("title"))
             if starter_title:
                 starter_match = re.search(r"facing:\s*(.+)$", starter_title)
                 opposing_starter_name = (
@@ -164,7 +163,7 @@ def batting_orders(team: BREFTeams, year: int) -> pl.DataFrame:
             if batting_cell is not None:
                 player_link = batting_cell.find("a")
                 if player_link is not None:
-                    player_name = player_link.get("title") or player_link.get_text(
+                    player_name = str(player_link.get("title")) or player_link.get_text(
                         strip=True
                     )
 
