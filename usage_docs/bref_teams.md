@@ -16,6 +16,27 @@ Core APIs use a metric-selector convention:
 
 - `game_by_game_schedule_results(team, year)`
 - `roster_and_appearances(team, year)`
+- `batting_orders(team, year)`
+
+### Batting orders
+
+- `batting_orders(team, year)`
+
+Returns one row per game with:
+
+- game metadata:
+  - `game_number`
+  - `game_date` (ISO format when parseable)
+  - `home_or_away` (`"home"` for `vs`, `"away"` for `at`)
+  - `opponent_code`
+  - `result` (`"W"`/`"L"`)
+  - `won` (`bool`)
+  - `final_score` (for example `"4-2"`)
+  - `opposing_starter_left_handed` (`True` when score text ends with `#`)
+  - `opposing_starter_name` (parsed from game link title text when present)
+- batting-order slots:
+  - `batting_1_player` ... `batting_9_player`
+  - `batting_1_field_pos` ... `batting_9_field_pos`
 
 ### Batting
 
@@ -116,6 +137,21 @@ year = 2025
 
 schedule_df = bt.game_by_game_schedule_results(team, year)
 roster_df = bt.roster_and_appearances(team, year)
+batting_orders_df = bt.batting_orders(team, year)
+
+# quick peek at key metadata columns
+print(
+  batting_orders_df.select(
+    "game_number",
+    "game_date",
+    "home_or_away",
+    "opponent_code",
+    "result",
+    "final_score",
+    "opposing_starter_left_handed",
+    "opposing_starter_name",
+  ).head(5)
+)
 ```
 
 ### Batting + pitching tables

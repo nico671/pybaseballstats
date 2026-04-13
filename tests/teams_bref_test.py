@@ -49,6 +49,20 @@ def test_roster_and_appearances():
     assert df.select(pl.col("name_display").n_unique()).item() == 66
 
 
+def test_batting_orders():
+    with pytest.raises(ValueError):
+        bt.batting_orders(team="XXX", year=2023)
+    with pytest.raises(ValueError):
+        bt.batting_orders(team=bt.BREFTeams.ANGELS, year=1800)
+    with pytest.raises(ValueError):
+        bt.batting_orders(team=None, year=2025)
+    df = bt.batting_orders(team=bt.BREFTeams.YANKEES, year=2025)
+    assert df.shape[0] == 162
+    assert df.shape[1] == 27
+    assert df.select(pl.col("game_number").max()).item() == 162
+    assert df.select(pl.col("batting_9_player").n_unique()).item() == 12
+
+
 # endregion
 
 
