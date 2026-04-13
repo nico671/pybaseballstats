@@ -108,38 +108,7 @@ jobs:
           else
             echo "🚨 Smoke endpoint checks failed on both attempts (strong signal of endpoint/schema change)." >> $GITHUB_STEP_SUMMARY
 
-            python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
-            from pathlib import Path
-            import xml.etree.ElementTree as ET
-
-            paths = [Path("smoke-pass2-rerun.xml"), Path("smoke-pass1.xml")]
-            chosen = None
-            for path in paths:
-              if path.exists():
-                chosen = path
-                break
-
-            if chosen is None:
-              print("- Could not locate smoke JUnit XML diagnostics.")
-            else:
-              print(f"- Failure source file: `{chosen}`")
-              tree = ET.parse(chosen)
-              root = tree.getroot()
-              failed = []
-              for testcase in root.iter("testcase"):
-                has_failure = testcase.find("failure") is not None or testcase.find("error") is not None
-                if has_failure:
-                  classname = testcase.attrib.get("classname", "")
-                  name = testcase.attrib.get("name", "")
-                  failed.append(f"{classname}::{name}".strip(":"))
-
-              if not failed:
-                print("- No failing testcase names found in diagnostics XML.")
-              else:
-                print("- Failing smoke tests:")
-                for test in failed:
-                  print(f"  - `{test}`")
-            PY
+            python -c $'from pathlib import Path\nimport xml.etree.ElementTree as ET\npaths=[Path("smoke-pass2-rerun.xml"), Path("smoke-pass1.xml")]\nchosen=next((p for p in paths if p.exists()), None)\nif chosen is None:\n    print("- Could not locate smoke JUnit XML diagnostics.")\nelse:\n    print(f"- Failure source file: `{chosen}`")\n    root=ET.parse(chosen).getroot()\n    failed=[]\n    for testcase in root.iter("testcase"):\n        has_failure = testcase.find("failure") is not None or testcase.find("error") is not None\n        if has_failure:\n            classname=testcase.attrib.get("classname", "")\n            name=testcase.attrib.get("name", "")\n            failed.append(f"{classname}::{name}".strip(":"))\n    if not failed:\n        print("- No failing testcase names found in diagnostics XML.")\n    else:\n        print("- Failing smoke tests:")\n        for test in failed:\n            print(f"  - `{test}`")' >> "$GITHUB_STEP_SUMMARY"
           fi
 
           if [ "${{ steps.coverage.outcome }}" != "success" ]; then
