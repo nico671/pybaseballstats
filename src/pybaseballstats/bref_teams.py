@@ -1,8 +1,11 @@
+from typing import Literal
+
 import polars as pl
 from bs4 import BeautifulSoup
 
 from pybaseballstats.consts.bref_consts import (
     BREF_TEAMS_BATTING_BASE_URL,
+    BREF_TEAMS_FIELDING_BASE_URL,
     BREF_TEAMS_PITCHING_BASE_URL,
     BREF_TEAMS_ROSTER_URL,
     BREF_TEAMS_SCHEDULE_RESULTS_URL,
@@ -40,6 +43,7 @@ __all__ = [
     "relief_pitching",
     "baserunning_situational_pitching",
     "career_cumulative_pitching",
+    "fielding",
 ]
 
 
@@ -112,6 +116,139 @@ def roster_and_appearances(team: BREFTeams, year: int) -> pl.DataFrame:
     data = _extract_table(table)
     df = pl.DataFrame(data)
     df = df.drop("ranker")
+    return df
+
+
+# endregion
+
+
+# region fielding functions
+def fielding(
+    team: BREFTeams,
+    year: int,
+    metric_type: Literal["standard", "advanced"],
+    position: Literal[
+        "",
+        "all",
+        "c",
+        "1b",
+        "2b",
+        "3b",
+        "ss",
+        "lf",
+        "cf",
+        "rf",
+        "of",
+        "p",
+        "dh",
+        "c_baserunning",
+    ] = "",
+) -> pl.DataFrame:
+    """Return team fielding statistics for one season.
+
+    Args:
+        team (BREFTeams): Team enum value.
+        year (int): MLB season year.
+        metric_type (Literal["standard", "advanced"]): Metric family to fetch.
+        position (Literal[...], optional): Position table selector.
+            - For ``metric_type="standard"``: ``""`` or ``"all"`` (all fielders),
+              ``"c"``, ``"1b"``, ``"2b"``, ``"3b"``, ``"ss"``, ``"lf"``,
+              ``"cf"``, ``"rf"``, ``"of"``, ``"p"``, ``"dh"``.
+            - For ``metric_type="advanced"``: ``"c"``, ``"c_baserunning"``,
+              ``"1b"``, ``"2b"``, ``"3b"``, ``"ss"``, ``"lf"``, ``"cf"``,
+              ``"rf"``, ``"p"``.
+
+    Raises:
+        ValueError: If ``team`` is not a ``BREFTeams`` value.
+        ValueError: If ``metric_type`` is invalid.
+        ValueError: If ``position`` is invalid for the selected metric type.
+        ValueError: If the requested fielding table is not found.
+
+    Returns:
+        pl.DataFrame: Requested fielding table with typed numeric columns.
+    """
+    if not isinstance(team, BREFTeams):
+        raise ValueError("Team must be a member of the BREFTeams enum")
+
+    standard_table_ids = {
+        "": "players_standard_fielding",
+        "all": "players_standard_fielding",
+        "c": "players_standard_fielding_c",
+        "1b": "players_standard_fielding_1b",
+        "2b": "players_standard_fielding_2b",
+        "3b": "players_standard_fielding_3b",
+        "ss": "players_standard_fielding_ss",
+        "lf": "players_standard_fielding_lf",
+        "cf": "players_standard_fielding_cf",
+        "rf": "players_standard_fielding_rf",
+        "of": "players_standard_fielding_of",
+        "p": "players_standard_fielding_p",
+        "dh": "players_DH_games",
+    }
+    advanced_table_ids = {
+        "c": "players_advanced_fielding_c",
+        "c_baserunning": "players_advanced_fielding_c_baserunning",
+        "1b": "players_advanced_fielding_1b",
+        "2b": "players_advanced_fielding_2b",
+        "3b": "players_advanced_fielding_3b",
+        "ss": "players_advanced_fielding_ss",
+        "lf": "players_advanced_fielding_lf",
+        "cf": "players_advanced_fielding_cf",
+        "rf": "players_advanced_fielding_rf",
+        "p": "players_advanced_fielding_p",
+    }
+
+    if metric_type not in {"standard", "advanced"}:
+        raise ValueError("metric_type must be either 'standard' or 'advanced'")
+
+    if metric_type == "standard":
+        if position not in standard_table_ids:
+            valid_standard_positions = ", ".join(
+                repr(pos) for pos in standard_table_ids
+            )
+            raise ValueError(
+                "Invalid position for standard fielding. "
+                f"Valid values are: {valid_standard_positions}."
+            )
+        table_id = standard_table_ids[position]
+    else:
+        if position in {"", "all"}:
+            raise ValueError(
+                "Position ''/'all' is only valid for standard fielding; "
+                "advanced fielding does not have an all-positions table."
+            )
+        if position not in advanced_table_ids:
+            valid_advanced_positions = ", ".join(
+                repr(pos) for pos in advanced_table_ids
+            )
+            raise ValueError(
+                "Invalid position for advanced fielding. "
+                f"Valid values are: {valid_advanced_positions}."
+            )
+        table_id = advanced_table_ids[position]
+
+    url = BREF_TEAMS_FIELDING_BASE_URL.format(
+        team_code=resolve_bref_team_code(team, year=year), year=year
+    )
+    with session.get_page() as page:
+        page.goto(url, wait_until="networkidle")
+        content = page.content()
+        soup = BeautifulSoup(content, "html.parser")
+
+    table = soup.find("table", id=table_id)
+    if table is None:
+        raise ValueError(
+            f"No {metric_type} fielding table '{table_id}' found for {team.name} in {year}."
+        )
+
+    data = _extract_table(table)
+    df = pl.DataFrame(data)
+
+    if "ranker" in df.columns:
+        df = df.drop("ranker")
+
+    df = df.select(pl.all().name.map(lambda col_name: col_name.replace("f_", "")))
+    df = df.select(pl.all().name.map(lambda col_name: col_name.replace("_abbr", "")))
     return df
 
 
@@ -830,4 +967,4 @@ def career_cumulative_pitching(team: BREFTeams, year: int):
     return df
 
 
-# TODO: fielding, def lineups, batting orders,
+# TODO: def lineups, batting orders,
