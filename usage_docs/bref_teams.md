@@ -4,11 +4,11 @@ This module provides team-season data from Baseball Reference pages, returned as
 
 ## Function naming convention
 
-Functions are named consistently as:
+Core APIs use a metric-selector convention:
 
-- `<descriptor>_batting`
-- `<descriptor>_pitching`
-- `fielding` (single function with metric + position selectors)
+- `batting(team, year, metric_type=...)`
+- `pitching(team, year, metric_type=...)`
+- `fielding(team, year, metric_type=..., position=...)`
 
 ## API reference
 
@@ -19,29 +19,37 @@ Functions are named consistently as:
 
 ### Batting
 
-- `standard_batting(team, year)`
-- `value_batting(team, year)`
-- `advanced_batting(team, year)`
-- `sabermetric_batting(team, year)`
-- `ratio_batting(team, year)`
-- `win_probability_batting(team, year)`
-- `baserunning_batting(team, year)`
-- `situational_batting(team, year)`
-- `pitches_batting(team, year)`
-- `career_cumulative_batting(team, year)`
+- `batting(team, year, metric_type="standard")`
+
+Allowed `metric_type` values:
+
+- `"standard"`
+- `"value"`
+- `"advanced"`
+- `"sabermetric"`
+- `"ratio"`
+- `"win_probability"`
+- `"baserunning"`
+- `"situational"`
+- `"pitches"`
+- `"cumulative"`
 
 ### Pitching
 
-- `standard_pitching(team, year)`
-- `value_pitching(team, year)`
-- `advanced_pitching(team, year)`
-- `ratio_pitching(team, year)`
-- `batting_against_pitching(team, year)`
-- `win_probability_pitching(team, year)`
-- `starting_pitching(team, year)`
-- `relief_pitching(team, year)`
-- `baserunning_situational_pitching(team, year)`
-- `career_cumulative_pitching(team, year)`
+- `pitching(team, year, metric_type="standard")`
+
+Allowed `metric_type` values:
+
+- `"standard"`
+- `"value"`
+- `"advanced"`
+- `"ratio"`
+- `"batting_against"`
+- `"win_probability"`
+- `"starting"`
+- `"relief"`
+- `"baserunning_situational"`
+- `"cumulative"`
 
 ### Fielding
 
@@ -53,6 +61,14 @@ All functions use:
 
 - `team` (`BREFTeams`) — team enum from `pybaseballstats.bref_teams.BREFTeams`
 - `year` (`int`) — MLB season year
+
+`batting(...)` additionally uses:
+
+- `metric_type` selector shown above
+
+`pitching(...)` additionally uses:
+
+- `metric_type` selector shown above
 
 `fielding(...)` additionally uses:
 
@@ -110,12 +126,12 @@ import pybaseballstats.bref_teams as bt
 team = bt.BREFTeams.YANKEES
 year = 2025
 
-standard_bat_df = bt.standard_batting(team, year)
-ratio_bat_df = bt.ratio_batting(team, year)
+standard_bat_df = bt.batting(team, year, metric_type="standard")
+ratio_bat_df = bt.batting(team, year, metric_type="ratio")
 
-standard_pitch_df = bt.standard_pitching(team, year)
-against_pitch_df = bt.batting_against_pitching(team, year)
-wpa_pitch_df = bt.win_probability_pitching(team, year)
+standard_pitch_df = bt.pitching(team, year, metric_type="standard")
+against_pitch_df = bt.pitching(team, year, metric_type="batting_against")
+wpa_pitch_df = bt.pitching(team, year, metric_type="win_probability")
 ```
 
 ### Fielding tables
@@ -149,3 +165,4 @@ fielding_advanced_c_br_df = bt.fielding(
 1. All functions return `polars.DataFrame`.
 2. Several functions use Playwright-backed rendering and can be slower than direct HTTP table reads.
 3. Most batting/pitching/fielding table functions normalize column names by removing Baseball Reference prefixes/suffixes such as `b_`, `p_`, `f_`, and `_abbr`.
+4. Batting and pitching normalize player identity columns to `player_name`.
