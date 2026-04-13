@@ -88,6 +88,15 @@ def test_pitching():
     assert (
         "League Average" not in df.select(pl.col("player_name")).to_series().to_list()
     )
+    # cumulative
+    df = bt.pitching(team=bt.BREFTeams.YANKEES, year=2025, metric_type="cumulative")
+    assert df.shape[0] == 37
+    assert df.shape[1] == 32
+    assert df.select(pl.col("player_name").n_unique()).item() == 37
+    assert df.select(pl.col("W").max()).item() == 112
+    assert (
+        "League Average" not in df.select(pl.col("player_name")).to_series().to_list()
+    )
 
 
 # endregion

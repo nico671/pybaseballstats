@@ -454,3 +454,7 @@ def fielding(
 
 
 # endregion
+
+if __name__ == "__main__":
+    df = pitching(team=BREFTeams.YANKEES, year=2025, metric_type="cumulative")
+    print(df, df.columns, df.select(pl.col("W").max()).item())
