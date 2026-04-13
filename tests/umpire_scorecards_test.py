@@ -3,6 +3,13 @@ import pytest
 
 import pybaseballstats.umpire_scorecards as us
 
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.heavy,
+    pytest.mark.data_dependent,
+    pytest.mark.slow,
+]
+
 # region game_data function tests
 
 

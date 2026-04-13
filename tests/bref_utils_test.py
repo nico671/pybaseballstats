@@ -5,6 +5,8 @@ from bs4 import BeautifulSoup
 from pybaseballstats.consts.bref_consts import BREFTeams
 from pybaseballstats.utils.bref_utils import _extract_table, resolve_bref_team_code
 
+pytestmark = pytest.mark.unit
+
 
 def test_extract_table_parses_numeric_types_and_percentages():
     soup = BeautifulSoup(

@@ -3,6 +3,12 @@ import pytest
 
 import pybaseballstats.bref_teams as bt
 
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.heavy,
+    pytest.mark.data_dependent,
+]
+
 
 # region random function tests
 def test_schedule_results():

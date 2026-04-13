@@ -6,6 +6,8 @@ import pytest
 import pybaseballstats.retrosheet as rs
 from pybaseballstats.utils.retrosheet_utils import _clear_people_cache
 
+pytestmark = [pytest.mark.integration, pytest.mark.data_dependent]
+
 
 def setup_module():
     """Clear cache before tests."""

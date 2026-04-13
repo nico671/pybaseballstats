@@ -1,6 +1,9 @@
 import polars as pl
+import pytest
 
 from pybaseballstats import bref_single_player as bsp
+
+pytestmark = [pytest.mark.integration, pytest.mark.data_dependent]
 
 
 def test_single_player_standard_batting():

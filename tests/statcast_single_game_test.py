@@ -1,6 +1,14 @@
 import polars as pl
+import pytest
 
 import pybaseballstats.statcast_single_game as ssg
+
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.playwright,
+    pytest.mark.heavy,
+    pytest.mark.data_dependent,
+]
 
 
 def test_statcast_single_game_available_game_pks_for_date():

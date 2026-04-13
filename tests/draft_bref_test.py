@@ -3,6 +3,8 @@ import pytest
 
 import pybaseballstats.bref_draft as bd
 
+pytestmark = [pytest.mark.integration, pytest.mark.data_dependent]
+
 
 def test_draft_order_by_year_round():
     with pytest.raises(ValueError):

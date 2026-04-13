@@ -56,73 +56,94 @@ jobs:
         if: steps.changes.outputs.run_tests == 'true'
         run: uv sync --locked --all-extras --dev
 
-      - name: Get Playwright version
+      - name: Run unit tests (required)
         if: steps.changes.outputs.run_tests == 'true'
-        id: playwright-version
-        run: echo "version=$(uv run python -c 'import playwright; print(playwright.__version__)')" >> $GITHUB_OUTPUT
+        run: uv run pytest tests/ -m unit
 
-      - name: Cache Playwright browsers
+      - name: Run smoke tests - pass 1 (non-blocking)
         if: steps.changes.outputs.run_tests == 'true'
-        uses: actions/cache@v5
-        id: playwright-cache
+        id: smoke_pass1
+        continue-on-error: true
+        run: uv run pytest tests/ -m smoke -q --junitxml=smoke-pass1.xml
+
+      - name: Rerun smoke tests after failure (non-blocking)
+        if: steps.changes.outputs.run_tests == 'true' && steps.smoke_pass1.outcome != 'success'
+        id: smoke_pass2
+        continue-on-error: true
+        run: uv run pytest tests/ -m smoke -q --junitxml=smoke-pass2-rerun.xml
+
+      - name: Upload smoke test diagnostics
+        if: steps.changes.outputs.run_tests == 'true' && always()
+        uses: actions/upload-artifact@v4
         with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ steps.playwright-version.outputs.version }}
+          name: smoke-diagnostics
+          path: |
+            smoke-pass1.xml
+            smoke-pass2-rerun.xml
 
-      - name: Install playwright browsers
+      - name: Generate coverage report (non-blocking)
         if: steps.changes.outputs.run_tests == 'true'
-        run: uv run playwright install chromium
-
-      - name: Install playwright browser dependencies
-        if: steps.changes.outputs.run_tests == 'true'
-        run: uv run playwright install-deps chromium
-
-      - name: Run tests
-        if: steps.changes.outputs.run_tests == 'true'
-        run: uv run coverage run -m pytest tests/
-
-      - name: Generate coverage report
-        if: steps.changes.outputs.run_tests == 'true'
+        id: coverage
+        continue-on-error: true
         run: |
+          uv run coverage erase
+          uv run coverage run -m pytest tests/ -m "unit or smoke"
           uv run coverage report -m
           uv run coverage json -o coverage.json
 
-      - name: Install jq
-        if: steps.changes.outputs.run_tests == 'true' && github.ref == 'refs/heads/dev'
-        run: sudo apt-get update && sudo apt-get install -y jq
+      - name: Upload PR coverage artifact
+        if: steps.changes.outputs.run_tests == 'true' && steps.coverage.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-unit-smoke-coverage
+          path: coverage.json
 
-      - name: Convert coverage.json to badge
-        if: steps.changes.outputs.run_tests == 'true' && github.ref == 'refs/heads/dev'
+      - name: Summarize soft-fail checks
+        if: steps.changes.outputs.run_tests == 'true'
         run: |
-          percent=$(jq '.totals.percent_covered | round' coverage.json)
-          mkdir -p badges
-
-          if [ "$percent" -ge 80 ]; then
-            color="brightgreen"
-          elif [ "$percent" -ge 60 ]; then
-            color="yellow"
+          if [ "${{ steps.smoke_pass1.outcome }}" = "success" ]; then
+            echo "✅ Smoke endpoint checks passed on first attempt." >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ steps.smoke_pass2.outcome }}" = "success" ]; then
+            echo "⚠️ Smoke endpoint checks failed on first attempt but passed on rerun (likely transient upstream/network flake)." >> $GITHUB_STEP_SUMMARY
           else
-            color="red"
+            echo "🚨 Smoke endpoint checks failed on both attempts (strong signal of endpoint/schema change)." >> $GITHUB_STEP_SUMMARY
+
+            python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+            from pathlib import Path
+            import xml.etree.ElementTree as ET
+
+            paths = [Path("smoke-pass2-rerun.xml"), Path("smoke-pass1.xml")]
+            chosen = None
+            for path in paths:
+              if path.exists():
+                chosen = path
+                break
+
+            if chosen is None:
+              print("- Could not locate smoke JUnit XML diagnostics.")
+            else:
+              print(f"- Failure source file: `{chosen}`")
+              tree = ET.parse(chosen)
+              root = tree.getroot()
+              failed = []
+              for testcase in root.iter("testcase"):
+                has_failure = testcase.find("failure") is not None or testcase.find("error") is not None
+                if has_failure:
+                  classname = testcase.attrib.get("classname", "")
+                  name = testcase.attrib.get("name", "")
+                  failed.append(f"{classname}::{name}".strip(":"))
+
+              if not failed:
+                print("- No failing testcase names found in diagnostics XML.")
+              else:
+                print("- Failing smoke tests:")
+                for test in failed:
+                  print(f"  - `{test}`")
+            PY
           fi
 
-          curl -o badges/coverage.svg "https://img.shields.io/badge/coverage-${percent}%25-${color}"
-
-      - name: Commit and push coverage badge
-        if: steps.changes.outputs.run_tests == 'true' && github.ref == 'refs/heads/dev'
-        run: |
-          git config --local user.email "actions@github.com"
-          git config --local user.name "github-actions"
-
-          git fetch origin coverage-badge || git checkout --orphan coverage-badge
-          git checkout coverage-badge || git checkout --orphan coverage-badge
-
-          git rm -rf . 2>/dev/null || true
-          mkdir -p badges
-          cp coverage.json badges/ 2>/dev/null || true
-          cp badges/coverage.svg badges/coverage.svg 2>/dev/null || true
-
-          git add badges/
-          git diff --cached --quiet || git commit -m "Update coverage badge [skip ci]"
-          git push -u origin coverage-badge --force
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          if [ "${{ steps.coverage.outcome }}" != "success" ]; then
+            echo "⚠️ Coverage generation failed (non-blocking in fast lane)." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ Coverage artifact generated for unit+smoke tests." >> $GITHUB_STEP_SUMMARY
+          fi

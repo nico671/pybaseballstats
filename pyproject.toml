@@ -75,3 +75,15 @@ packages = { find = { where = ["src/"] } }
 [tool.coverage.run]
 source = ["src/pybaseballstats"]
 concurrency = ["thread", "greenlet"]
+
+[tool.pytest.ini_options]
+addopts = "-ra --strict-markers"
+markers = [
+    "unit: Pure logic tests with no live network/browser dependency.",
+    "smoke: Minimal live endpoint checks intended for fast CI signal.",
+    "integration: Live upstream/API integration tests.",
+    "heavy: Higher-cost integration tests (larger payloads/date ranges).",
+    "playwright: Tests that exercise Playwright/browser automation paths.",
+    "data_dependent: Tests sensitive to season/date volatility.",
+    "slow: Tests expected to have longer runtime.",
+]
