@@ -198,6 +198,76 @@ def test_career_cumulative_pitching():
 # endregion
 
 
+# region fielding function tests
+def test_fielding_standard_all_and_position():
+    with pytest.raises(ValueError):
+        bt.fielding(team="XXX", year=2023, metric_type="standard", position="all")
+    with pytest.raises(ValueError):
+        bt.fielding(
+            team=bt.BREFTeams.YANKEES,
+            year=2025,
+            metric_type="standard",
+            position="c_baserunning",
+        )
+
+    df_all = bt.fielding(
+        team=bt.BREFTeams.YANKEES,
+        year=2025,
+        metric_type="standard",
+        position="all",
+    )
+    assert df_all.shape[0] > 0
+    assert df_all.shape[1] > 0
+
+    df_c = bt.fielding(
+        team=bt.BREFTeams.YANKEES,
+        year=2025,
+        metric_type="standard",
+        position="c",
+    )
+    assert df_c.shape[0] > 0
+    assert df_c.shape[1] > 0
+
+
+def test_fielding_advanced_validation_and_position():
+    with pytest.raises(ValueError):
+        bt.fielding(
+            team=bt.BREFTeams.YANKEES,
+            year=2025,
+            metric_type="advanced",
+            position="all",
+        )
+    with pytest.raises(ValueError):
+        bt.fielding(
+            team=bt.BREFTeams.YANKEES,
+            year=2025,
+            metric_type="advanced",
+            position="of",
+        )
+
+    df = bt.fielding(
+        team=bt.BREFTeams.YANKEES,
+        year=2025,
+        metric_type="advanced",
+        position="c",
+    )
+    assert df.shape[0] > 0
+    assert df.shape[1] > 0
+
+
+def test_fielding_invalid_metric_type():
+    with pytest.raises(ValueError):
+        bt.fielding(
+            team=bt.BREFTeams.YANKEES,
+            year=2025,
+            metric_type="foo",  # type: ignore[arg-type]
+            position="all",
+        )
+
+
+# endregion
+
+
 # region helper function tests
 def test_resolve_team_code_switches():
     assert resolve_bref_team_code(bt.BREFTeams.ANGELS, 2004) == "ANA"
