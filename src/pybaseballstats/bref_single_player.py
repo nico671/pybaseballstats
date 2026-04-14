@@ -170,9 +170,38 @@ def single_player_fielding(
     ]
     | None = None,
 ) -> pl.DataFrame:
-    # notes:
-    # sabermetric fielding is only for players who have made appearances at a position other than pitcher in their career
-    # position should only be used when advanced_at_position is selected, and should be ignored otherwise
+    """Return single-player fielding statistics for one metric family.
+
+    Args:
+        player_code (str): Baseball Reference player identifier
+            (for example ``"sheldsc01"``).
+        metric_type (Literal[...]): Fielding table family to fetch.
+            - ``"standard"``
+            - ``"appearances"``
+            - ``"sabermetric"``
+            - ``"advanced_at_position"``
+        position (Literal[...] | None, optional): Position selector used only
+            when ``metric_type="advanced_at_position"``.
+            Valid values are ``"3b"``, ``"ss"``, ``"2b"``, ``"1b"``, ``"c"``,
+            ``"c_baserunning"``, ``"lf"``, ``"rf"``, ``"cf"``, and ``"p"``.
+
+    Raises:
+        ValueError: If ``metric_type`` is not supported.
+        ValueError: If ``position`` is missing for
+            ``metric_type="advanced_at_position"``.
+        ValueError: If ``position`` is provided when ``metric_type`` is not
+            ``"advanced_at_position"``.
+        ValueError: If ``position`` is invalid.
+        ValueError: If the requested fielding table is not found.
+
+    Returns:
+        pl.DataFrame: Requested fielding table with normalized column names.
+
+    Notes:
+        - Sabermetric fielding tables are only available for players with
+          non-pitcher defensive appearances.
+        - Not every player has data for every advanced-at-position table.
+    """
 
     if metric_type not in [
         "standard",
