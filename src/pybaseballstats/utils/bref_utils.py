@@ -300,6 +300,7 @@ def _extract_table(table):
     """
     trs = table.tbody.find_all("tr")
     row_data: dict[str, list[str | int | float | None]] = {}
+
     for tr in trs:
         if tr.has_attr("class") and "thead" in tr["class"]:
             continue
@@ -307,8 +308,11 @@ def _extract_table(table):
         tds.extend(tr.find_all("td"))
         if len(tds) == 0:
             continue
+        used_data_stats: set[str] = set()
         for td in tds:
             data_stat = td.attrs["data-stat"]
+            if data_stat in used_data_stats:
+                continue
             if data_stat not in row_data:
                 row_data[data_stat] = []
             if td.find("a") and data_stat != "player":  # special case for bref_draft
@@ -329,7 +333,7 @@ def _extract_table(table):
                 continue
             else:
                 raw_value = td.string
-
+            used_data_stats.add(data_stat)
             row_data[data_stat].append(_safe_parse_cell_value(raw_value))
 
     typed_row_data: dict[str, pl.Series] = {}

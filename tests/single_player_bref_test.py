@@ -113,119 +113,30 @@ def test_single_player_sabermetric_fielding():
     ]
 
 
-def test_single_player_standard_pitching():
-    df = bsp.single_player_standard_pitching("imanash01")
+def test_single_player_pitching_bad_inputs():
+    with pytest.raises(ValueError):
+        bsp.single_player_pitching("suzukse01", metric_type="invalid_metric")
+
+
+def test_single_player_pitching_valid_metric_types():
+    df = bsp.single_player_pitching("imanash01", metric_type="standard")
     assert df.shape[0] >= 2
     assert df.shape[1] == 36
     assert df.head(2).select(pl.col("team_name").n_unique()).item() == 1
     assert df.head(2).select(pl.col("team_name").unique()).item() == "CHC"
     assert df.head(2).select(pl.col("age").min()).item() == 30
     assert df.head(2).select(pl.col("age").max()).item() == 31
-    assert df.columns == [
-        "year_id",
-        "age",
-        "team_name",
-        "comname",
-        "war",
-        "w",
-        "l",
-        "win_loss_perc",
-        "earned_run_avg",
-        "g",
-        "gs",
-        "gf",
-        "cg",
-        "sho",
-        "sv",
-        "ip",
-        "h",
-        "r",
-        "er",
-        "hr",
-        "bb",
-        "ibb",
-        "so",
-        "hbp",
-        "bk",
-        "wp",
-        "bfp",
-        "earned_run_avg_plus",
-        "fip",
-        "whip",
-        "hits_per_nine",
-        "hr_per_nine",
-        "bb_per_nine",
-        "so_per_nine",
-        "strikeouts_per_base_on_balls",
-        "awards",
-    ]
 
-
-def test_single_player_value_pitching():
-    df = bsp.single_player_value_pitching("imanash01")
+    df = bsp.single_player_pitching("imanash01", metric_type="ratio")
     assert df.shape[0] >= 2
-    assert df.shape[1] == 23
-    assert df.head(2).select(pl.col("team_name").n_unique()).item() == 1
-    assert df.head(2).select(pl.col("team_name").unique()).item() == "CHC"
+    assert df.shape[1] == 22
+    assert df.head(2).select(pl.col("team_ID").n_unique()).item() == 1
+    assert df.head(2).select(pl.col("team_ID").unique()).item() == "CHC"
     assert df.head(2).select(pl.col("age").min()).item() == 30
-    assert df.head(2).select(pl.col("age").max()).item() == 31
-    assert df.columns == [
-        "year_id",
-        "age",
-        "team_name",
-        "comname",
-        "ip",
-        "g",
-        "gs",
-        "r",
-        "ra9",
-        "ra9_opp",
-        "ra9_def",
-        "ra9_role",
-        "ra9_extras",
-        "ppf_custom",
-        "ra9_avg_pitcher",
-        "raa",
-        "waa",
-        "waa_adj",
-        "war",
-        "rar",
-        "waa_win_perc",
-        "waa_win_perc_162",
-        "awards",
-    ]
+    assert df.head(2).select(pl.col("GIDP_perc").max()).item() == 7.0
 
-
-def test_single_player_advanced_pitching():
-    df = bsp.single_player_advanced_pitching("imanash01")
+    df = bsp.single_player_pitching("imanash01", metric_type="cumulative")
     assert df.shape[0] >= 2
-    assert df.shape[1] == 23
-    assert df.head(2).select(pl.col("team_name").n_unique()).item() == 1
-    assert df.head(2).select(pl.col("team_name").unique()).item() == "CHC"
-    assert df.head(2).select(pl.col("age").min()).item() == 30
-    assert df.head(2).select(pl.col("age").max()).item() == 31
-    assert df.columns == [
-        "year_id",
-        "age",
-        "team_name",
-        "comname",
-        "ip",
-        "batting_avg",
-        "onbase_perc",
-        "slugging_perc",
-        "onbase_plus_slugging",
-        "batting_avg_bip",
-        "home_run_perc",
-        "strikeout_perc",
-        "base_on_balls_perc",
-        "avg_exit_velo",
-        "hard_hit_perc",
-        "ld_perc",
-        "gb_perc",
-        "fb_perc",
-        "gb_fb_ratio",
-        "wpa_def",
-        "cwpa_def",
-        "baseout_runs",
-        "awards",
-    ]
+    assert df.shape[1] == 31
+    assert df.head(2).select(pl.col("year_ID").max()).item() == 2025
+    assert df.head(2).select(pl.col("SHO").max()).item() == 0
