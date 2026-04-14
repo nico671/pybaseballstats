@@ -77,120 +77,6 @@ def single_player_batting(
     return df
 
 
-# def single_player_standard_batting(player_code: str) -> pl.DataFrame:
-#     """Return standard batting statistics for one player.
-
-#     Args:
-#         player_code (str): Baseball Reference player identifier (for example,
-#             ``"troutmi01"``).
-
-#     Returns:
-#         pl.DataFrame: Standard batting statistics.
-#     """
-#     last_name_initial = player_code[0].lower()
-#     with session.get_page() as page:
-#         url = BREF_SINGLE_PLAYER_URL.format(
-#             initial=last_name_initial, player_code=player_code
-#         )
-#         page.goto(url, wait_until="domcontentloaded")
-#         # Wait for the specific div to be present
-#         page.wait_for_selector("#all_players_standard_batting", timeout=15000)
-
-#         # Get page content
-#         content = page.content()
-#         soup = BeautifulSoup(content, "html.parser")
-#     standard_stats_table_div = soup.find("div", {"id": "all_players_standard_batting"})
-#     assert standard_stats_table_div is not None, (
-#         "Failed to retrieve standard stats table"
-#     )
-
-#     standard_stats_table_actual = standard_stats_table_div.find("table")
-#     standard_stats_df = pl.DataFrame(_extract_table(standard_stats_table_actual))
-#     standard_stats_df = standard_stats_df.select(
-#         pl.all().name.map(lambda col_name: col_name.replace("b_", ""))
-#     )
-#     standard_stats_df = standard_stats_df.select(
-#         pl.all().name.map(lambda col_name: col_name.replace("_abbr", ""))
-#     )
-#     return standard_stats_df
-
-
-# def single_player_value_batting(player_code: str) -> pl.DataFrame:
-#     """Return value batting statistics for one player.
-
-#     Args:
-#         player_code (str): Baseball Reference player identifier.
-
-#     Returns:
-#         pl.DataFrame: Value batting statistics.
-#     """
-#     last_name_initial = player_code[0].lower()
-#     with session.get_page() as page:
-#         url = BREF_SINGLE_PLAYER_URL.format(
-#             initial=last_name_initial, player_code=player_code
-#         )
-#         page.goto(url, wait_until="domcontentloaded")
-#         page.wait_for_selector("#all_players_value_batting", timeout=15000)
-
-#         # Get page content
-#         content = page.content()
-#         soup = BeautifulSoup(content, "html.parser")
-#     value_batting_table = soup.find("div", {"id": "all_players_value_batting"})
-#     assert value_batting_table is not None, "Failed to retrieve value batting table"
-#     value_batting_table = value_batting_table.find("table")
-#     value_batting_df = pl.DataFrame(_extract_table(value_batting_table))
-#     value_batting_df = value_batting_df.select(
-#         pl.all().name.map(lambda col_name: col_name.replace("b_", ""))
-#     )
-#     value_batting_df = value_batting_df.select(
-#         pl.all().name.map(lambda col_name: col_name.replace("_abbr", ""))
-#     )
-#     return value_batting_df
-
-
-# def single_player_advanced_batting(player_code: str) -> pl.DataFrame:
-#     """Return advanced batting statistics for one player.
-
-#     Args:
-#         player_code (str): Baseball Reference player identifier.
-
-#     Returns:
-#         pl.DataFrame: Advanced batting statistics.
-#     """
-#     last_name_initial = player_code[0].lower()
-#     with session.get_page() as page:
-#         url = BREF_SINGLE_PLAYER_URL.format(
-#             initial=last_name_initial, player_code=player_code
-#         )
-#         page.goto(url, wait_until="domcontentloaded")
-#         page.wait_for_selector("#all_players_advanced_batting", timeout=15000)
-
-#         # Get page content
-#         content = page.content()
-#     soup = BeautifulSoup(content, "html.parser")
-#     advanced_batting_table = soup.find("div", {"id": "all_players_advanced_batting"})
-#     assert advanced_batting_table is not None, (
-#         "Failed to retrieve advanced batting table"
-#     )
-#     advanced_batting_table = advanced_batting_table.find("table")
-#     advanced_batting_df = pl.DataFrame(_extract_table(advanced_batting_table))
-
-#     advanced_batting_df = advanced_batting_df.select(
-#         pl.all().name.map(lambda col_name: col_name.replace("b_", ""))
-#     )
-
-#     advanced_batting_df = advanced_batting_df.select(
-#         pl.all().name.map(lambda col_name: col_name.replace("_abbr", ""))
-#     )
-#     advanced_batting_df = advanced_batting_df.with_columns(
-#         pl.col("gperc").alias("gb_perc"),
-#         pl.col("fperc").alias("fb_perc"),
-#         pl.col("gfratio").alias("gb_fb_ratio"),
-#     ).drop(["gperc", "fperc", "gfratio"])
-
-#     return advanced_batting_df
-
-
 def single_player_standard_fielding(player_code: str) -> pl.DataFrame:
     """Return standard fielding statistics for one player.
 
@@ -364,3 +250,8 @@ def single_player_advanced_pitching(player_code: str) -> pl.DataFrame:
         pl.all().name.map(lambda col_name: col_name.replace("_abbr", ""))
     )
     return advanced_pitching_df
+
+
+if __name__ == "__main__":
+    df = single_player_batting("suzukse01", metric_type="cumulative")
+    print(df.head())

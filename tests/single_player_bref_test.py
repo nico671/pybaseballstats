@@ -6,124 +6,36 @@ from pybaseballstats import bref_single_player as bsp
 pytestmark = [pytest.mark.integration, pytest.mark.data_dependent]
 
 
-def test_single_player_standard_batting():
-    df = bsp.single_player_standard_batting("suzukse01")
+def test_single_player_batting_invalid_metric_type():
+    with pytest.raises(ValueError, match="Invalid metric type: invalid_metric"):
+        bsp.single_player_batting("suzukse01", metric_type="invalid_metric")
+
+
+def test_single_player_batting_valid_metric_types():
+    df = bsp.single_player_batting("suzukse01", metric_type="standard")
     assert df.shape[0] >= 4
     assert df.shape[1] == 33
     assert df.head(4).select(pl.col("team_name").n_unique()).item() == 1
     assert df.head(4).select(pl.col("team_name").unique()).item() == "CHC"
     assert df.head(4).select(pl.col("age").min()).item() == 27
     assert df.head(4).select(pl.col("age").max()).item() == 30
-    assert df.columns == [
-        "year_id",
-        "age",
-        "team_name",
-        "comp_name",
-        "war",
-        "games",
-        "pa",
-        "ab",
-        "r",
-        "h",
-        "doubles",
-        "triples",
-        "hr",
-        "rbi",
-        "sb",
-        "cs",
-        "bb",
-        "so",
-        "batting_avg",
-        "onbase_perc",
-        "slugging_perc",
-        "onbase_plus_slugging",
-        "onbase_plus_slugging_plus",
-        "roba",
-        "rbat_plus",
-        "tb",
-        "gidp",
-        "hbp",
-        "sh",
-        "sf",
-        "ibb",
-        "pos",
-        "awards",
-    ]
 
-
-def test_single_player_value_batting():
-    df = bsp.single_player_value_batting("suzukse01")
+    df = bsp.single_player_batting("suzukse01", metric_type="ratio")
     assert df.shape[0] >= 4
-    assert df.shape[1] == 22
-    assert df.head(4).select(pl.col("team_name").n_unique()).item() == 1
-    assert df.head(4).select(pl.col("team_name").unique()).item() == "CHC"
+    assert df.shape[1] == 20
+    assert df.head(4).select(pl.col("team_ID").n_unique()).item() == 1
+    assert df.head(4).select(pl.col("team_ID").unique()).item() == "CHC"
+    assert df.head(4).select(pl.col("age").min()).item() == 27
+    assert (
+        df.head(4).select(pl.col("home_run_fperc").max()).item() == 13.100000381469727
+    )
+
+    df = bsp.single_player_batting("suzukse01", metric_type="cumulative")
+    assert df.shape[0] >= 4
+    assert df.shape[1] == 26
+    assert df.head(4).select(pl.col("G").n_unique()).item() == 4
     assert df.head(4).select(pl.col("age").min()).item() == 27
     assert df.head(4).select(pl.col("age").max()).item() == 30
-    assert df.columns == [
-        "year_id",
-        "age",
-        "team_name",
-        "comp_name",
-        "pa",
-        "runs_batting",
-        "runs_baserunning",
-        "runs_double_plays",
-        "runs_fielding",
-        "runs_position",
-        "raa",
-        "waa",
-        "runs_replacement",
-        "rar",
-        "war",
-        "waa_win_perc",
-        "waa_win_perc_162",
-        "war_off",
-        "war_def",
-        "rar_off",
-        "pos",
-        "awards",
-    ]
-
-
-def test_single_player_advanced_batting():
-    df = bsp.single_player_advanced_batting("suzukse01")
-    assert df.shape[0] >= 4
-    assert df.shape[1] == 29
-    assert df.head(4).select(pl.col("team_name").n_unique()).item() == 1
-    assert df.head(4).select(pl.col("team_name").unique()).item() == "CHC"
-    assert df.head(4).select(pl.col("age").min()).item() == 27
-    assert df.head(4).select(pl.col("age").max()).item() == 30
-    assert df.columns == [
-        "year_id",
-        "age",
-        "team_name",
-        "comp_name",
-        "pa",
-        "roba",
-        "rbat_plus",
-        "batting_avg_bip",
-        "iso_slugging",
-        "home_run_perc",
-        "strikeout_perc",
-        "base_on_balls_perc",
-        "avg_exit_velo",
-        "hard_hit_perc",
-        "ld_perc",
-        "pull_perc",
-        "center_perc",
-        "oppo_perc",
-        "wpa_bat",
-        "cwpa_bat",
-        "baseout_runs",
-        "run_scoring_perc",
-        "stolen_base_perc",
-        "extra_bases_taken_perc",
-        "pos",
-        "awards",
-        "gb_perc",
-        "fb_perc",
-        "gb_fb_ratio",
-    ]
 
 
 def test_single_player_standard_fielding():
