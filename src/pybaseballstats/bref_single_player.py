@@ -260,8 +260,3 @@ def single_player_fielding(
     df = df.select(pl.all().name.map(lambda col_name: col_name.replace("f_", "")))
     df = df.select(pl.all().name.map(lambda col_name: col_name.replace("_abbr", "")))
     return df
-
-
-if __name__ == "__main__":
-    df = single_player_fielding("sheldsc01", metric_type="appearances")
-    print(df, df.columns, df.select(pl.col("games_at_pr").max()).item())
