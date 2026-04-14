@@ -40,6 +40,20 @@ def single_player_batting(
         "cumulative",
     ] = "standard",
 ) -> pl.DataFrame:
+    """Return single-player batting statistics for one metric family.
+
+    Args:
+        player_code (str): Baseball Reference player identifier
+            (for example ``"troutmi01"``).
+        metric_type (Literal[...], optional): Batting table family to fetch.
+
+    Raises:
+        ValueError: If ``metric_type`` is not supported.
+        ValueError: If the requested batting table is not found.
+
+    Returns:
+        pl.DataFrame: Requested batting table with normalized column names.
+    """
     if metric_type not in [
         "standard",
         "value",
