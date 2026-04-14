@@ -1,45 +1,152 @@
-# Baseball Reference Single Player Documentation
+# Baseball Reference Single Player Data (`bref_single_player`)
 
-This module provides functions to retrieve data from the [Baseball Reference](https://www.baseball-reference.com/) website, specifically for single player statistics.
+This module provides single-player Baseball Reference tables, returned as Polars DataFrames.
 
-## Available Functions
+## Function naming convention
 
-- `single_player_standard_batting(...)`: Fetches standard batting statistics for a single player.
-- `single_player_advanced_batting(...)`: Fetches advanced batting statistics for a single player.
-- `single_player_value_batting(...)`: Fetches value batting statistics for a single player.
-- `single_player_standard_fielding(...)`: Fetches standard fielding statistics for a single player.
-- `single_player_sabermetric_fielding(...)`: Fetches advanced fielding statistics for a single player.
-- `single_player_standard_pitching(...)`: Fetches standard pitching statistics for a single player.
-- `single_player_advanced_pitching(...)`: Fetches advanced pitching statistics for a single player.
-- `single_player_value_pitching(...)`: Fetches value pitching statistics for a single player.
+Core APIs use a metric-selector convention:
 
-## Function Parameters
+- `single_player_batting(player_code, metric_type=...)`
+- `single_player_pitching(player_code, metric_type=...)`
+- `single_player_fielding(player_code, metric_type=..., position=...)`
 
-All functions in this module use:
+## API reference
 
-- `player_code` (str): Baseball Reference player identifier (example: `troutmi01`).
+### Batting
 
-## Example Usage
+- `single_player_batting(player_code, metric_type="standard")`
 
-All functions require a `player_code` parameter (Baseball Reference player identifier, e.g. `troutmi01`).
+Allowed `metric_type` values:
 
-You can get a valid code from:
+- `"standard"`
+- `"value"`
+- `"advanced"`
+- `"sabermetric"`
+- `"ratio"`
+- `"win_probability"`
+- `"baserunning"`
+- `"situational"`
+- `"pitches"`
+- `"cumulative"`
 
-- the player's Baseball Reference URL, or
-- `pybaseballstats.retrosheet.player_lookup`.
+### Pitching
 
-Since all of these functions are so similar, we will only show an example of one of them here. The usage for the other functions is analogous.
+- `single_player_pitching(player_code, metric_type="standard")`
+
+Allowed `metric_type` values:
+
+- `"standard"`
+- `"value"`
+- `"advanced"`
+- `"ratio"`
+- `"win_probability"`
+- `"basesituation"`
+- `"batting_against"`
+- `"pitches"`
+- `"cumulative"`
+
+### Fielding
+
+- `single_player_fielding(player_code, metric_type, position=None)`
+
+Allowed `metric_type` values:
+
+- `"standard"`
+- `"appearances"`
+- `"sabermetric"`
+- `"advanced_at_position"`
+
+Allowed `position` values:
+
+- `"3b"`, `"ss"`, `"2b"`, `"1b"`, `"c"`, `"c_baserunning"`, `"lf"`, `"rf"`, `"cf"`, `"p"`
+
+`position` rules:
+
+- required when `metric_type="advanced_at_position"`
+- must be omitted for all other `metric_type` values
+
+## Parameters and validation
+
+All functions use:
+
+- `player_code` (`str`) — Baseball Reference player identifier (for example `"troutmi01"`).
+
+`single_player_batting(...)` additionally uses:
+
+- `metric_type` selector shown above
+
+`single_player_pitching(...)` additionally uses:
+
+- `metric_type` selector shown above
+
+`single_player_fielding(...)` additionally uses:
+
+- `metric_type` selector shown above
+- `position` selector/rules shown above
+
+Validation behavior:
+
+- If `metric_type` is invalid, `single_player_batting(...)` raises `ValueError`.
+- If `metric_type` is invalid, `single_player_pitching(...)` raises `ValueError`.
+- If `metric_type` is invalid, `single_player_fielding(...)` raises `ValueError`.
+- If `position` is missing/invalid/misused for `single_player_fielding(...)`, a `ValueError` is raised.
+- If the requested page/table cannot be loaded, an error is raised (`ValueError` for batting/pitching/fielding).
+
+## Usage examples
+
+### Basic import
 
 ```python
-# Assuming you already looked up player_code (e.g. via retrosheet.player_lookup)
+import pybaseballstats.bref_single_player as bsp
+```
+
+### Batting tables
+
+```python
 import pybaseballstats.bref_single_player as bsp
 
-df = bsp.single_player_standard_batting(player_code="troutmi01")
-print(df)
+player_code = "troutmi01"
+
+standard_bat_df = bsp.single_player_batting(player_code, metric_type="standard")
+advanced_bat_df = bsp.single_player_batting(player_code, metric_type="advanced")
+wpa_bat_df = bsp.single_player_batting(player_code, metric_type="win_probability")
+cumulative_bat_df = bsp.single_player_batting(player_code, metric_type="cumulative")
+```
+
+### Pitching tables
+
+```python
+import pybaseballstats.bref_single_player as bsp
+
+player_code = "troutmi01"
+
+standard_pitch_df = bsp.single_player_pitching(player_code, metric_type="standard")
+advanced_pitch_df = bsp.single_player_pitching(player_code, metric_type="advanced")
+against_pitch_df = bsp.single_player_pitching(player_code, metric_type="batting_against")
+cumulative_pitch_df = bsp.single_player_pitching(player_code, metric_type="cumulative")
+```
+
+### Fielding tables
+
+```python
+import pybaseballstats.bref_single_player as bsp
+
+player_code = "sheldsc01"
+
+standard_field_df = bsp.single_player_fielding(player_code, metric_type="standard")
+appearances_field_df = bsp.single_player_fielding(player_code, metric_type="appearances")
+sabermetric_field_df = bsp.single_player_fielding(player_code, metric_type="sabermetric")
+advanced_lf_field_df = bsp.single_player_fielding(
+  player_code,
+  metric_type="advanced_at_position",
+  position="lf",
+)
 ```
 
 ## Notes
 
-1. Each function returns a Polars DataFrame.
-2. These functions use Baseball Reference pages/tables and may be slower than API-backed endpoints.
-3. Some functions rely on Playwright-backed page loading for dynamic content.
+1. All functions return `polars.DataFrame`.
+2. Several functions use Playwright-backed rendering and can be slower than direct HTTP table reads.
+3. Batting table columns are normalized by removing Baseball Reference suffix/prefix patterns such as `b_` and `_abbr`.
+4. Pitching table columns are normalized by removing Baseball Reference suffix/prefix patterns such as `_abbr` (and typically `p_`, depending on source table naming).
+5. Fielding table columns are normalized by removing Baseball Reference suffix/prefix patterns such as `f_` and `_abbr`.
