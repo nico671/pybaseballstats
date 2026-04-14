@@ -122,3 +122,6 @@ BREF_TEAMS_PITCHING_BASE_URL = (
 BREF_TEAMS_FIELDING_BASE_URL = (
     "https://www.baseball-reference.com/teams/{team_code}/{year}-fielding.shtml"
 )
+BREF_SINGLE_PLAYER_BATTING_URL = (
+    "https://www.baseball-reference.com/players/{initial}/{player_code}-bat.shtml"
+)
