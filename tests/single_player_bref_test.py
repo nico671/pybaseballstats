@@ -38,81 +38,6 @@ def test_single_player_batting_valid_metric_types():
     assert df.head(4).select(pl.col("age").max()).item() == 30
 
 
-def test_single_player_standard_fielding():
-    df = bsp.single_player_standard_fielding("suzukse01")
-    assert df.shape[0] >= 15
-    assert df.shape[1] == 25
-    assert df.head(15).select(pl.col("team_name").n_unique()).item() == 1
-    assert df.head(15).select(pl.col("team_name").unique()).item() == "CHC"
-    assert df.head(15).select(pl.col("age").min()).item() == 27
-    assert df.head(15).select(pl.col("age").max()).item() == 30
-    assert df.columns == [
-        "year_id",
-        "age",
-        "team_name",
-        "comp_name",
-        "position",
-        "games",
-        "games_started",
-        "cg",
-        "innings",
-        "chances",
-        "po",
-        "assists",
-        "errors",
-        "dp",
-        "fielding_perc",
-        "fielding_perc_lg",
-        "tz_runs_total",
-        "tz_runs_total_per_year",
-        "drs_total",
-        "drs_total_per_year",
-        "range_factor_per_nine",
-        "range_factor_per_nine_lg",
-        "range_factor_per_game",
-        "range_factor_per_game_lg",
-        "awards",
-    ]
-
-
-def test_single_player_sabermetric_fielding():
-    df = bsp.single_player_sabermetric_fielding("suzukse01")
-    assert df.shape[0] >= 4
-    assert df.shape[1] == 27
-    assert df.head(4).select(pl.col("team_ID").n_unique()).item() == 1
-    assert df.head(4).select(pl.col("team_ID").unique()).item() == "CHC"
-    assert df.select(pl.col("age").min()).item() == 27
-    assert df.columns == [
-        "year_ID",
-        "age",
-        "team_ID",
-        "pos",
-        "lg_ID",
-        "tz_runs_total",
-        "tz_runs_total_per_season",
-        "tz_runs_field",
-        "tz_runs_field_home",
-        "tz_runs_field_road",
-        "tz_runs_infield",
-        "tz_runs_outfield",
-        "tz_runs_catcher",
-        "bis_runs_total",
-        "bis_runs_total_per_season",
-        "bis_runs_field",
-        "bis_runs_infield",
-        "bis_runs_good_plays",
-        "bis_runs_air",
-        "bis_runs_range",
-        "bis_runs_throwing",
-        "bis_runs_bunts",
-        "bis_runs_outfield",
-        "bis_runs_catcher_er",
-        "bis_runs_catcher_sb",
-        "bis_runs_catcher_sz",
-        "bis_runs_pitcher_sb",
-    ]
-
-
 def test_single_player_pitching_bad_inputs():
     with pytest.raises(ValueError):
         bsp.single_player_pitching("suzukse01", metric_type="invalid_metric")
@@ -140,3 +65,49 @@ def test_single_player_pitching_valid_metric_types():
     assert df.shape[1] == 31
     assert df.head(2).select(pl.col("year_ID").max()).item() == 2025
     assert df.head(2).select(pl.col("SHO").max()).item() == 0
+
+
+def test_single_player_fielding_bad_inputs():
+    with pytest.raises(ValueError):
+        bsp.single_player_fielding("suzukse01", metric_type="invalid_metric")
+    with pytest.raises(ValueError):
+        bsp.single_player_fielding("suzukse01", metric_type="advanced_at_position")
+    with pytest.raises(ValueError):
+        bsp.single_player_fielding(
+            "suzukse01", metric_type="advanced_at_position", position="invalid_position"
+        )
+    with pytest.raises(ValueError):
+        bsp.single_player_fielding("suzukse01", metric_type="standard", position="p")
+
+
+def test_single_player_fielding():
+    df = bsp.single_player_fielding("sheldsc01", metric_type="standard")
+    assert df.shape[0] == 25
+    assert df.shape[1] == 30
+    assert df.select(pl.col("year_id").max()).item() == 2001
+    assert df.select(pl.col("team_name").n_unique()).item() == 2
+
+    df = bsp.single_player_fielding("sheldsc01", metric_type="appearances")
+    assert df.shape[0] == 5
+    assert df.shape[1] == 21
+    assert df.select(pl.col("year_id").max()).item() == 2001
+    assert df.select(pl.col("team_name").n_unique()).item() == 2
+    assert df.select(pl.col("games_at_pr").max()).item() == 5
+
+    df = bsp.single_player_fielding("sheldsc01", metric_type="sabermetric")
+    assert df.shape[0] == 21
+    assert df.shape[1] == 27
+    assert df.select(pl.col("year_ID").max()).item() == 2001
+    assert df.select(pl.col("team_ID").n_unique()).item() == 2
+    assert df.select(pl.col("pos").n_unique()).item() == 9
+
+    df = bsp.single_player_fielding(
+        "sheldsc01", metric_type="advanced_at_position", position="lf"
+    )
+    assert df.shape[0] == 2
+    assert df.shape[1] == 42
+    assert df.select(pl.col("year_ID").max()).item() == 2001
+    assert (
+        df.select(pl.col("team_ID").n_unique()).item() == 1
+    )  # only played left field for one team
+    assert df.select(pl.col("PA_with_bip_perc").max()).item() == 73.0

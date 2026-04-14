@@ -102,7 +102,7 @@ BREF_MANAGER_TENDENCIES_URL = "https://www.baseball-reference.com/leagues/majors
 BREF_SINGLE_PLAYER_URL = (
     "https://www.baseball-reference.com/players/{initial}/{player_code}.shtml"
 )
-BREF_SINGLE_PLAYER_SABERMETRIC_FIELDING_URL = (
+BREF_SINGLE_PLAYER_FIELDING_URL = (
     "https://www.baseball-reference.com/players/{initial}/{player_code}-field.shtml"
 )
 

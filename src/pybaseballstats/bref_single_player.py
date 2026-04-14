@@ -6,9 +6,8 @@ from bs4 import BeautifulSoup
 # TODO: same range of tables as bref_teams, but for this module
 from pybaseballstats.consts.bref_consts import (
     BREF_SINGLE_PLAYER_BATTING_URL,
+    BREF_SINGLE_PLAYER_FIELDING_URL,
     BREF_SINGLE_PLAYER_PITCHING_URL,
-    BREF_SINGLE_PLAYER_SABERMETRIC_FIELDING_URL,
-    BREF_SINGLE_PLAYER_URL,
 )
 from pybaseballstats.utils.bref_utils import (
     BREFSession,
@@ -19,8 +18,7 @@ session = BREFSession.instance()  # type: ignore[attr-defined]
 __all__ = [
     "single_player_batting",
     "single_player_pitching",
-    "single_player_standard_fielding",
-    "single_player_sabermetric_fielding",
+    "single_player_fielding",
 ]
 
 
@@ -155,72 +153,88 @@ def single_player_pitching(
     if table is None:
         raise ValueError(f"Failed to find table with id {table_id}")
     data = _extract_table(table)
-    # if metric_type != "cumulative":
     df = pl.DataFrame(data)
 
-    df = df.select(pl.all().name.map(lambda col_name: col_name.replace("b_", "")))
+    df = df.select(pl.all().name.map(lambda col_name: col_name.replace("p_", "")))
     df = df.select(pl.all().name.map(lambda col_name: col_name.replace("_abbr", "")))
     return df
 
 
-def single_player_standard_fielding(player_code: str) -> pl.DataFrame:
-    """Return standard fielding statistics for one player.
+def single_player_fielding(
+    player_code: str,
+    metric_type: Literal[
+        "standard", "sabermetric", "advanced_at_position", "appearances"
+    ],
+    position: Literal[
+        "3b", "ss", "2b", "1b", "c", "c_baserunning", "lf", "rf", "cf", "p"
+    ]
+    | None = None,
+) -> pl.DataFrame:
+    # notes:
+    # sabermetric fielding is only for players who have made appearances at a position other than pitcher in their career
+    # position should only be used when advanced_at_position is selected, and should be ignored otherwise
 
-    Args:
-        player_code (str): Baseball Reference player identifier.
-
-    Returns:
-        pl.DataFrame: Standard fielding statistics.
-    """
+    if metric_type not in [
+        "standard",
+        "sabermetric",
+        "advanced_at_position",
+        "appearances",
+    ]:
+        raise ValueError(f"Invalid metric type: {metric_type}")
+    if metric_type == "advanced_at_position" and position is None:
+        raise ValueError(
+            "Position must be specified when metric_type is advanced_at_position"
+        )
+    if metric_type != "advanced_at_position" and position is not None:
+        raise ValueError(
+            "Position should not be specified when metric_type is not advanced_at_position"
+        )
+    if position is not None:
+        if position not in [
+            "3b",
+            "ss",
+            "2b",
+            "1b",
+            "c",
+            "c_baserunning",
+            "lf",
+            "rf",
+            "cf",
+            "p",
+        ]:
+            raise ValueError(f"Invalid position: {position}")
+    table_id = ""
+    if metric_type == "standard":
+        table_id = "players_standard_fielding"
+    elif metric_type == "sabermetric":
+        table_id = "advanced_fielding"
+    elif metric_type == "appearances":
+        table_id = metric_type
+    else:
+        table_id = f"advanced_fielding_{position}"
     last_name_initial = player_code[0].lower()
     with session.get_page() as page:
-        url = BREF_SINGLE_PLAYER_URL.format(
+        url = BREF_SINGLE_PLAYER_FIELDING_URL.format(
             initial=last_name_initial, player_code=player_code
         )
-        page.goto(url, wait_until="domcontentloaded")
-        page.wait_for_selector("#all_players_standard_fielding", timeout=15000)
+        page.goto(url, wait_until="networkidle")
         html = page.content()
         assert html is not None, "Failed to retrieve HTML content"
         soup = BeautifulSoup(html, "html.parser")
-    table_wrapper = soup.find("div", {"id": "div_players_standard_fielding"})
-    assert table_wrapper is not None, "Failed to retrieve standard fielding table"
-    table = table_wrapper.find("table")
-    standard_fielding_df = pl.DataFrame(_extract_table(table))
-    standard_fielding_df = standard_fielding_df.select(
-        pl.all().name.map(lambda col_name: col_name.replace("f_", ""))
-    )
-    standard_fielding_df = standard_fielding_df.select(
-        pl.all().name.map(lambda col_name: col_name.replace("_abbr", ""))
-    )
-    return standard_fielding_df
-
-
-def single_player_sabermetric_fielding(player_code: str) -> pl.DataFrame:
-    """Return sabermetric fielding statistics for one player.
-
-    Args:
-        player_code (str): Baseball Reference player identifier.
-
-    Returns:
-        pl.DataFrame: Sabermetric fielding statistics.
-    """
-    last_name_initial = player_code[0].lower()
-    with session.get_page() as page:
-        page.goto(
-            BREF_SINGLE_PLAYER_SABERMETRIC_FIELDING_URL.format(
-                initial=last_name_initial, player_code=player_code
-            ),
-            wait_until="domcontentloaded",
+    table = soup.find("table", id=table_id)
+    if table is None:
+        for table in soup.find_all("table"):
+            print(table.get("id"))
+        raise ValueError(
+            f"Failed to find table with id {table_id}. Check notes on metric_type and position parameters in the docstring and ensure the specified player has data for the requested metric family and position."
         )
-        page.wait_for_selector("#div_advanced_fielding", timeout=15000)
-        html = page.content()
-        assert html is not None, "Failed to retrieve HTML content"
-        soup = BeautifulSoup(html, "html.parser")
-    sabermetric_fielding_table = soup.find("div", {"id": "div_advanced_fielding"})
-    assert sabermetric_fielding_table is not None, (
-        "Failed to retrieve sabermetric fielding table"
-    )
-    sabermetric_fielding_table = sabermetric_fielding_table.find("table")
-    sabermetric_fielding_df = pl.DataFrame(_extract_table(sabermetric_fielding_table))
-    sabermetric_fielding_df = sabermetric_fielding_df.fill_null(0)
-    return sabermetric_fielding_df
+    data = _extract_table(table)
+    df = pl.DataFrame(data)
+    df = df.select(pl.all().name.map(lambda col_name: col_name.replace("f_", "")))
+    df = df.select(pl.all().name.map(lambda col_name: col_name.replace("_abbr", "")))
+    return df
+
+
+if __name__ == "__main__":
+    df = single_player_fielding("sheldsc01", metric_type="appearances")
+    print(df, df.columns, df.select(pl.col("games_at_pr").max()).item())
