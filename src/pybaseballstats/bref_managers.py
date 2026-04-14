@@ -8,6 +8,7 @@ from pybaseballstats.consts.bref_consts import (
 from pybaseballstats.utils.bref_utils import (
     BREFSession,
     _extract_table,
+    _goto_and_get_stable_html,
 )
 
 session = BREFSession.instance()  # type: ignore[attr-defined]
@@ -37,18 +38,7 @@ def managers_basic_data(year: int) -> pl.DataFrame:
 
     with session.get_page() as page:
         url = BREF_MANAGERS_GENERAL_URL.format(year=year)
-        page.goto(url, wait_until="domcontentloaded")
-
-        # Wait for the table to be populated by JavaScript
-        page.wait_for_function(
-            """() => {
-                const table = document.querySelector('#manager_record');
-                return table && table.rows && table.rows.length > 1;
-            }""",
-            timeout=15000,
-        )
-
-        html = page.locator("#div_manager_record").inner_html()
+        html = _goto_and_get_stable_html(page, url)
         soup = BeautifulSoup(html, "html.parser")
 
     table = soup.find("table", {"id": "manager_record"})

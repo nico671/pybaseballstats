@@ -16,6 +16,7 @@ from pybaseballstats.consts.bref_consts import (
 from pybaseballstats.utils.bref_utils import (
     BREFSession,
     _extract_table,
+    _goto_and_get_stable_html,
     resolve_bref_team_code,
 )
 
@@ -232,11 +233,10 @@ def roster_and_appearances(team: BREFTeams, year: int) -> pl.DataFrame:
         raise ValueError("Team must be a member of the BREFTeams enum")
     team_code = resolve_bref_team_code(team=team, year=year)
     with session.get_page() as page:
-        page.goto(
+        content = _goto_and_get_stable_html(
+            page,
             BREF_TEAMS_ROSTER_URL.format(team_code=team_code, year=year),
         )
-        # page.wait_for_selector("#appearances > tbody")
-        content = page.content()
         soup = BeautifulSoup(content, "html.parser")
     table = soup.find("table", id="appearances")
     assert table is not None, (
@@ -309,8 +309,7 @@ def batting(
         team_code=resolve_bref_team_code(team, year=year), year=year
     )
     with session.get_page() as page:
-        page.goto(url, wait_until="networkidle")
-        content = page.content()
+        content = _goto_and_get_stable_html(page, url)
         soup = BeautifulSoup(content, "html.parser")
     table_id = f"players_{metric_type}_batting"
     table = soup.find("table", id=table_id)
@@ -408,8 +407,7 @@ def pitching(
         team_code=resolve_bref_team_code(team, year=year), year=year
     )
     with session.get_page() as page:
-        page.goto(url, wait_until="networkidle")
-        content = page.content()
+        content = _goto_and_get_stable_html(page, url)
         soup = BeautifulSoup(content, "html.parser")
 
     table = soup.find("table", id=table_id)
@@ -578,8 +576,7 @@ def fielding(
         team_code=resolve_bref_team_code(team, year=year), year=year
     )
     with session.get_page() as page:
-        page.goto(url, wait_until="networkidle")
-        content = page.content()
+        content = _goto_and_get_stable_html(page, url)
         soup = BeautifulSoup(content, "html.parser")
 
     table = soup.find("table", id=table_id)

@@ -12,6 +12,7 @@ from pybaseballstats.consts.bref_consts import (
 from pybaseballstats.utils.bref_utils import (
     BREFSession,
     _extract_table,
+    _goto_and_get_stable_html,
 )
 
 session = BREFSession.instance()  # type: ignore[attr-defined]
@@ -69,9 +70,8 @@ def single_player_batting(
         url = BREF_SINGLE_PLAYER_BATTING_URL.format(
             initial=last_name_initial, player_code=player_code
         )
-        page.goto(url, wait_until="networkidle")
-
-        soup = BeautifulSoup(page.content(), "html.parser")
+        html = _goto_and_get_stable_html(page, url)
+        soup = BeautifulSoup(html, "html.parser")
     table_id = ""
     if metric_type in ["standard", "value", "advanced"]:
         table_id = f"players_{metric_type}_batting"
@@ -137,9 +137,8 @@ def single_player_pitching(
         url = BREF_SINGLE_PLAYER_PITCHING_URL.format(
             initial=last_name_initial, player_code=player_code
         )
-        page.goto(url, wait_until="networkidle")
-
-        soup = BeautifulSoup(page.content(), "html.parser")
+        html = _goto_and_get_stable_html(page, url)
+        soup = BeautifulSoup(html, "html.parser")
     table_id = ""
     if metric_type in ["standard", "value", "advanced"]:
         table_id = f"players_{metric_type}_pitching"
@@ -246,8 +245,7 @@ def single_player_fielding(
         url = BREF_SINGLE_PLAYER_FIELDING_URL.format(
             initial=last_name_initial, player_code=player_code
         )
-        page.goto(url, wait_until="networkidle")
-        html = page.content()
+        html = _goto_and_get_stable_html(page, url)
         assert html is not None, "Failed to retrieve HTML content"
         soup = BeautifulSoup(html, "html.parser")
     table = soup.find("table", id=table_id)

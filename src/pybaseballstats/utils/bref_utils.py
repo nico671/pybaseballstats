@@ -382,3 +382,56 @@ def resolve_bref_team_code(team: BREFTeams, year: int) -> str:
     raise ValueError(
         f"No Baseball Reference team code mapping found for {team.name} in {year}."
     )
+
+
+def _goto_and_get_stable_html(
+    page: Page,
+    url: str,
+    *,
+    timeout_ms: int = 20000,
+    poll_interval_ms: int = 200,
+    consecutive_stable_checks: int = 2,
+    require_table_presence: bool = True,
+) -> str:
+    """Navigate to a page and wait for stable DOM content.
+
+    This avoids relying on ``networkidle`` (which can be brittle on pages with
+    ongoing background requests) and avoids endpoint-specific selectors.
+
+    Stability is determined by repeated checks where both:
+    - HTML content length, and
+    - ``document.querySelectorAll('table').length``
+    remain unchanged for ``consecutive_stable_checks`` polls.
+    """
+    page.goto(url, wait_until="domcontentloaded")
+    page.wait_for_function(
+        "() => document.readyState === 'complete'",
+        timeout=timeout_ms,
+    )
+
+    start_time = time.monotonic()
+    stable_checks = 0
+    previous_signature: tuple[int, int] | None = None
+
+    while (time.monotonic() - start_time) * 1000 < timeout_ms:
+        table_count = page.evaluate("() => document.querySelectorAll('table').length")
+        html = page.content()
+        signature = (len(html), int(table_count))
+
+        has_required_content = (
+            signature[1] > 0 if require_table_presence else signature[0] > 0
+        )
+
+        if has_required_content and signature == previous_signature:
+            stable_checks += 1
+            if stable_checks >= consecutive_stable_checks:
+                return html
+        else:
+            stable_checks = 0
+
+        previous_signature = signature
+        page.wait_for_timeout(poll_interval_ms)
+
+    # Fall back to the latest content on timeout so callers can still attempt
+    # parsing and raise domain-specific errors if needed.
+    return page.content()
