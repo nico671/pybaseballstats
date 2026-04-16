@@ -1,3 +1,4 @@
+import os
 import random
 import re
 import sys
@@ -16,6 +17,9 @@ from playwright.sync_api import (
     Page,
     Playwright,
     sync_playwright,
+)
+from playwright.sync_api import (
+    TimeoutError as PlaywrightTimeoutError,
 )
 
 from pybaseballstats.consts.bref_consts import BREF_TEAM_CODE_SWITCHES, BREFTeams
@@ -403,17 +407,27 @@ def _goto_and_get_stable_html(
     - ``document.querySelectorAll('table').length``
     remain unchanged for ``consecutive_stable_checks`` polls.
     """
+    effective_timeout_ms = timeout_ms
+    if os.getenv("CI", "").lower() == "true":
+        # CI runners are generally slower and network variability is higher.
+        effective_timeout_ms = max(timeout_ms, 45000)
+
     page.goto(url, wait_until="domcontentloaded")
-    page.wait_for_function(
-        "() => document.readyState === 'complete'",
-        timeout=timeout_ms,
-    )
+    try:
+        page.wait_for_function(
+            "() => document.readyState === 'complete'",
+            timeout=effective_timeout_ms,
+        )
+    except PlaywrightTimeoutError:
+        # Do not fail immediately; some pages still expose enough stable DOM
+        # content for parsing even when full load completion lags.
+        pass
 
     start_time = time.monotonic()
     stable_checks = 0
     previous_signature: tuple[int, int] | None = None
 
-    while (time.monotonic() - start_time) * 1000 < timeout_ms:
+    while (time.monotonic() - start_time) * 1000 < effective_timeout_ms:
         table_count = page.evaluate("() => document.querySelectorAll('table').length")
         html = page.content()
         signature = (len(html), int(table_count))
