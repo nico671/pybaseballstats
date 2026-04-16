@@ -3,6 +3,8 @@ import pytest
 
 import pybaseballstats.bref_managers as bm
 
+pytestmark = [pytest.mark.integration, pytest.mark.data_dependent]
+
 
 def test_manager_basic_data_errors():
     with pytest.raises(ValueError):

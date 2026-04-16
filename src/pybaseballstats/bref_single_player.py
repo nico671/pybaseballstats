@@ -1,313 +1,262 @@
+from typing import Literal
+
 import polars as pl
 from bs4 import BeautifulSoup
 
 # TODO: same range of tables as bref_teams, but for this module
 from pybaseballstats.consts.bref_consts import (
-    BREF_SINGLE_PLAYER_SABERMETRIC_FIELDING_URL,
-    BREF_SINGLE_PLAYER_URL,
+    BREF_SINGLE_PLAYER_BATTING_URL,
+    BREF_SINGLE_PLAYER_FIELDING_URL,
+    BREF_SINGLE_PLAYER_PITCHING_URL,
 )
 from pybaseballstats.utils.bref_utils import (
     BREFSession,
     _extract_table,
+    _goto_and_get_stable_html,
 )
 
 session = BREFSession.instance()  # type: ignore[attr-defined]
 __all__ = [
-    "single_player_standard_batting",
-    "single_player_value_batting",
-    "single_player_advanced_batting",
-    "single_player_standard_fielding",
-    "single_player_sabermetric_fielding",
-    "single_player_standard_pitching",
-    "single_player_value_pitching",
-    "single_player_advanced_pitching",
+    "single_player_batting",
+    "single_player_pitching",
+    "single_player_fielding",
 ]
 
 
-def single_player_standard_batting(player_code: str) -> pl.DataFrame:
-    """Return standard batting statistics for one player.
+def single_player_batting(
+    player_code: str,
+    metric_type: Literal[
+        "standard",
+        "value",
+        "advanced",
+        "sabermetric",
+        "ratio",
+        "win_probability",
+        "baserunning",
+        "situational",
+        "pitches",
+        "cumulative",
+    ] = "standard",
+) -> pl.DataFrame:
+    """Return single-player batting statistics for one metric family.
 
     Args:
-        player_code (str): Baseball Reference player identifier (for example,
-            ``"troutmi01"``).
+        player_code (str): Baseball Reference player identifier
+            (for example ``"troutmi01"``).
+        metric_type (Literal[...], optional): Batting table family to fetch.
+
+    Raises:
+        ValueError: If ``metric_type`` is not supported.
+        ValueError: If the requested batting table is not found.
 
     Returns:
-        pl.DataFrame: Standard batting statistics.
+        pl.DataFrame: Requested batting table with normalized column names.
     """
+    if metric_type not in [
+        "standard",
+        "value",
+        "advanced",
+        "sabermetric",
+        "ratio",
+        "win_probability",
+        "baserunning",
+        "situational",
+        "pitches",
+        "cumulative",
+    ]:
+        raise ValueError(f"Invalid metric type: {metric_type}")
     last_name_initial = player_code[0].lower()
     with session.get_page() as page:
-        url = BREF_SINGLE_PLAYER_URL.format(
+        url = BREF_SINGLE_PLAYER_BATTING_URL.format(
             initial=last_name_initial, player_code=player_code
         )
-        page.goto(url, wait_until="domcontentloaded")
-        # Wait for the specific div to be present
-        page.wait_for_selector("#all_players_standard_batting", timeout=15000)
-
-        # Get page content
-        content = page.content()
-        soup = BeautifulSoup(content, "html.parser")
-    standard_stats_table_div = soup.find("div", {"id": "all_players_standard_batting"})
-    assert standard_stats_table_div is not None, (
-        "Failed to retrieve standard stats table"
-    )
-
-    standard_stats_table_actual = standard_stats_table_div.find("table")
-    standard_stats_df = pl.DataFrame(_extract_table(standard_stats_table_actual))
-    standard_stats_df = standard_stats_df.select(
-        pl.all().name.map(lambda col_name: col_name.replace("b_", ""))
-    )
-    standard_stats_df = standard_stats_df.select(
-        pl.all().name.map(lambda col_name: col_name.replace("_abbr", ""))
-    )
-    return standard_stats_df
+        html = _goto_and_get_stable_html(page, url)
+        soup = BeautifulSoup(html, "html.parser")
+    table_id = ""
+    if metric_type in ["standard", "value", "advanced"]:
+        table_id = f"players_{metric_type}_batting"
+    elif metric_type == "cumulative":
+        table_id = "cumulative_batting"
+    else:
+        table_id = f"batting_{metric_type}"
+    table = soup.find("table", id=table_id)
+    if table is None:
+        raise ValueError(f"Failed to find table with id {table_id}")
+    df = pl.DataFrame(_extract_table(table))
+    df = df.select(pl.all().name.map(lambda col_name: col_name.replace("b_", "")))
+    df = df.select(pl.all().name.map(lambda col_name: col_name.replace("_abbr", "")))
+    return df
 
 
-def single_player_value_batting(player_code: str) -> pl.DataFrame:
-    """Return value batting statistics for one player.
+def single_player_pitching(
+    player_code: str,
+    metric_type: Literal[
+        "standard",
+        "value",
+        "advanced",
+        "ratio",
+        "win_probability",
+        "basesituation",
+        "batting_against",
+        "pitches",
+        "cumulative",
+    ] = "standard",
+) -> pl.DataFrame:
+    """Return single-player pitching statistics for one metric family.
+
+    Supported metric families are ``"standard"``, ``"value"``, ``"advanced"``,
+    ``"ratio"``, ``"win_probability"``, ``"basesituation"``,
+    ``"batting_against"``, ``"pitches"``, and ``"cumulative"``.
 
     Args:
-        player_code (str): Baseball Reference player identifier.
+        player_code (str): Baseball Reference player identifier
+            (for example ``"troutmi01"``).
+        metric_type (Literal[...], optional): Pitching table family to fetch.
+
+    Raises:
+        ValueError: If ``metric_type`` is not supported.
+        ValueError: If the requested pitching table is not found.
 
     Returns:
-        pl.DataFrame: Value batting statistics.
+        pl.DataFrame: Requested pitching table with normalized column names.
     """
+    if metric_type not in [
+        "standard",
+        "value",
+        "advanced",
+        "ratio",
+        "win_probability",
+        "basesituation",
+        "batting_against",
+        "pitches",
+        "cumulative",
+    ]:
+        raise ValueError(f"Invalid metric type: {metric_type}")
     last_name_initial = player_code[0].lower()
     with session.get_page() as page:
-        url = BREF_SINGLE_PLAYER_URL.format(
+        url = BREF_SINGLE_PLAYER_PITCHING_URL.format(
             initial=last_name_initial, player_code=player_code
         )
-        page.goto(url, wait_until="domcontentloaded")
-        page.wait_for_selector("#all_players_value_batting", timeout=15000)
+        html = _goto_and_get_stable_html(page, url)
+        soup = BeautifulSoup(html, "html.parser")
+    table_id = ""
+    if metric_type in ["standard", "value", "advanced"]:
+        table_id = f"players_{metric_type}_pitching"
+    elif metric_type == "cumulative":
+        table_id = "cumulative_pitching"
+    elif metric_type == "batting_against":
+        table_id = "pitching_batting"
+    else:
+        table_id = f"pitching_{metric_type}"
+    table = soup.find("table", id=table_id)
+    if table is None:
+        raise ValueError(f"Failed to find table with id {table_id}")
+    data = _extract_table(table)
+    df = pl.DataFrame(data)
 
-        # Get page content
-        content = page.content()
-        soup = BeautifulSoup(content, "html.parser")
-    value_batting_table = soup.find("div", {"id": "all_players_value_batting"})
-    assert value_batting_table is not None, "Failed to retrieve value batting table"
-    value_batting_table = value_batting_table.find("table")
-    value_batting_df = pl.DataFrame(_extract_table(value_batting_table))
-    value_batting_df = value_batting_df.select(
-        pl.all().name.map(lambda col_name: col_name.replace("b_", ""))
-    )
-    value_batting_df = value_batting_df.select(
-        pl.all().name.map(lambda col_name: col_name.replace("_abbr", ""))
-    )
-    return value_batting_df
+    df = df.select(pl.all().name.map(lambda col_name: col_name.replace("p_", "")))
+    df = df.select(pl.all().name.map(lambda col_name: col_name.replace("_abbr", "")))
+    return df
 
 
-def single_player_advanced_batting(player_code: str) -> pl.DataFrame:
-    """Return advanced batting statistics for one player.
+def single_player_fielding(
+    player_code: str,
+    metric_type: Literal[
+        "standard", "sabermetric", "advanced_at_position", "appearances"
+    ],
+    position: Literal[
+        "3b", "ss", "2b", "1b", "c", "c_baserunning", "lf", "rf", "cf", "p"
+    ]
+    | None = None,
+) -> pl.DataFrame:
+    """Return single-player fielding statistics for one metric family.
 
     Args:
-        player_code (str): Baseball Reference player identifier.
+        player_code (str): Baseball Reference player identifier
+            (for example ``"sheldsc01"``).
+        metric_type (Literal[...]): Fielding table family to fetch.
+            - ``"standard"``
+            - ``"appearances"``
+            - ``"sabermetric"``
+            - ``"advanced_at_position"``
+        position (Literal[...] | None, optional): Position selector used only
+            when ``metric_type="advanced_at_position"``.
+            Valid values are ``"3b"``, ``"ss"``, ``"2b"``, ``"1b"``, ``"c"``,
+            ``"c_baserunning"``, ``"lf"``, ``"rf"``, ``"cf"``, and ``"p"``.
+
+    Raises:
+        ValueError: If ``metric_type`` is not supported.
+        ValueError: If ``position`` is missing for
+            ``metric_type="advanced_at_position"``.
+        ValueError: If ``position`` is provided when ``metric_type`` is not
+            ``"advanced_at_position"``.
+        ValueError: If ``position`` is invalid.
+        ValueError: If the requested fielding table is not found.
 
     Returns:
-        pl.DataFrame: Advanced batting statistics.
+        pl.DataFrame: Requested fielding table with normalized column names.
+
+    Notes:
+        - Sabermetric fielding tables are only available for players with
+          non-pitcher defensive appearances.
+        - Not every player has data for every advanced-at-position table.
     """
+
+    if metric_type not in [
+        "standard",
+        "sabermetric",
+        "advanced_at_position",
+        "appearances",
+    ]:
+        raise ValueError(f"Invalid metric type: {metric_type}")
+    if metric_type == "advanced_at_position" and position is None:
+        raise ValueError(
+            "Position must be specified when metric_type is advanced_at_position"
+        )
+    if metric_type != "advanced_at_position" and position is not None:
+        raise ValueError(
+            "Position should not be specified when metric_type is not advanced_at_position"
+        )
+    if position is not None:
+        if position not in [
+            "3b",
+            "ss",
+            "2b",
+            "1b",
+            "c",
+            "c_baserunning",
+            "lf",
+            "rf",
+            "cf",
+            "p",
+        ]:
+            raise ValueError(f"Invalid position: {position}")
+    table_id = ""
+    if metric_type == "standard":
+        table_id = "players_standard_fielding"
+    elif metric_type == "sabermetric":
+        table_id = "advanced_fielding"
+    elif metric_type == "appearances":
+        table_id = metric_type
+    else:
+        table_id = f"advanced_fielding_{position}"
     last_name_initial = player_code[0].lower()
     with session.get_page() as page:
-        url = BREF_SINGLE_PLAYER_URL.format(
+        url = BREF_SINGLE_PLAYER_FIELDING_URL.format(
             initial=last_name_initial, player_code=player_code
         )
-        page.goto(url, wait_until="domcontentloaded")
-        page.wait_for_selector("#all_players_advanced_batting", timeout=15000)
-
-        # Get page content
-        content = page.content()
-    soup = BeautifulSoup(content, "html.parser")
-    advanced_batting_table = soup.find("div", {"id": "all_players_advanced_batting"})
-    assert advanced_batting_table is not None, (
-        "Failed to retrieve advanced batting table"
-    )
-    advanced_batting_table = advanced_batting_table.find("table")
-    advanced_batting_df = pl.DataFrame(_extract_table(advanced_batting_table))
-
-    advanced_batting_df = advanced_batting_df.select(
-        pl.all().name.map(lambda col_name: col_name.replace("b_", ""))
-    )
-
-    advanced_batting_df = advanced_batting_df.select(
-        pl.all().name.map(lambda col_name: col_name.replace("_abbr", ""))
-    )
-    advanced_batting_df = advanced_batting_df.with_columns(
-        pl.col("gperc").alias("gb_perc"),
-        pl.col("fperc").alias("fb_perc"),
-        pl.col("gfratio").alias("gb_fb_ratio"),
-    ).drop(["gperc", "fperc", "gfratio"])
-
-    return advanced_batting_df
-
-
-def single_player_standard_fielding(player_code: str) -> pl.DataFrame:
-    """Return standard fielding statistics for one player.
-
-    Args:
-        player_code (str): Baseball Reference player identifier.
-
-    Returns:
-        pl.DataFrame: Standard fielding statistics.
-    """
-    last_name_initial = player_code[0].lower()
-    with session.get_page() as page:
-        url = BREF_SINGLE_PLAYER_URL.format(
-            initial=last_name_initial, player_code=player_code
-        )
-        page.goto(url, wait_until="domcontentloaded")
-        page.wait_for_selector("#all_players_standard_fielding", timeout=15000)
-        html = page.content()
+        html = _goto_and_get_stable_html(page, url)
         assert html is not None, "Failed to retrieve HTML content"
         soup = BeautifulSoup(html, "html.parser")
-    table_wrapper = soup.find("div", {"id": "div_players_standard_fielding"})
-    assert table_wrapper is not None, "Failed to retrieve standard fielding table"
-    table = table_wrapper.find("table")
-    standard_fielding_df = pl.DataFrame(_extract_table(table))
-    standard_fielding_df = standard_fielding_df.select(
-        pl.all().name.map(lambda col_name: col_name.replace("f_", ""))
-    )
-    standard_fielding_df = standard_fielding_df.select(
-        pl.all().name.map(lambda col_name: col_name.replace("_abbr", ""))
-    )
-    return standard_fielding_df
-
-
-def single_player_sabermetric_fielding(player_code: str) -> pl.DataFrame:
-    """Return sabermetric fielding statistics for one player.
-
-    Args:
-        player_code (str): Baseball Reference player identifier.
-
-    Returns:
-        pl.DataFrame: Sabermetric fielding statistics.
-    """
-    last_name_initial = player_code[0].lower()
-    with session.get_page() as page:
-        page.goto(
-            BREF_SINGLE_PLAYER_SABERMETRIC_FIELDING_URL.format(
-                initial=last_name_initial, player_code=player_code
-            ),
-            wait_until="domcontentloaded",
+    table = soup.find("table", id=table_id)
+    if table is None:
+        for table in soup.find_all("table"):
+            print(table.get("id"))
+        raise ValueError(
+            f"Failed to find table with id {table_id}. Check notes on metric_type and position parameters in the docstring and ensure the specified player has data for the requested metric family and position."
         )
-        page.wait_for_selector("#div_advanced_fielding", timeout=15000)
-        html = page.content()
-        assert html is not None, "Failed to retrieve HTML content"
-        soup = BeautifulSoup(html, "html.parser")
-    sabermetric_fielding_table = soup.find("div", {"id": "div_advanced_fielding"})
-    assert sabermetric_fielding_table is not None, (
-        "Failed to retrieve sabermetric fielding table"
-    )
-    sabermetric_fielding_table = sabermetric_fielding_table.find("table")
-    sabermetric_fielding_df = pl.DataFrame(_extract_table(sabermetric_fielding_table))
-    sabermetric_fielding_df = sabermetric_fielding_df.fill_null(0)
-    return sabermetric_fielding_df
-
-
-def single_player_standard_pitching(player_code: str) -> pl.DataFrame:
-    """Return standard pitching statistics for one player.
-
-    Args:
-        player_code (str): Baseball Reference player identifier.
-
-    Returns:
-        pl.DataFrame: Standard pitching statistics.
-    """
-    last_name_initial = player_code[0].lower()
-    with session.get_page() as page:
-        page.goto(
-            BREF_SINGLE_PLAYER_URL.format(
-                initial=last_name_initial, player_code=player_code
-            ),
-            wait_until="domcontentloaded",
-        )
-        page.wait_for_selector("#all_players_standard_pitching", timeout=15000)
-        html = page.content()
-        assert html is not None, "Failed to retrieve HTML content"
-        soup = BeautifulSoup(html, "html.parser")
-    standard_pitching_table_wrapper = soup.find(
-        "div", {"id": "div_players_standard_pitching"}
-    )
-    assert standard_pitching_table_wrapper is not None, (
-        "Failed to retrieve standard pitching table wrapper"
-    )
-    standard_pitching_table = standard_pitching_table_wrapper.find("table")
-    assert standard_pitching_table is not None, (
-        "Failed to retrieve standard pitching table"
-    )
-    standard_pitching_df = pl.DataFrame(_extract_table(standard_pitching_table))
-    standard_pitching_df = standard_pitching_df.select(
-        pl.all().name.map(lambda col_name: col_name.replace("p_", ""))
-    )
-    standard_pitching_df = standard_pitching_df.select(
-        pl.all().name.map(lambda col_name: col_name.replace("_abbr", ""))
-    )
-    return standard_pitching_df
-
-
-def single_player_value_pitching(player_code: str) -> pl.DataFrame:
-    """Return value pitching statistics for one player.
-
-    Args:
-        player_code (str): Baseball Reference player identifier.
-
-    Returns:
-        pl.DataFrame: Value pitching statistics.
-    """
-    last_name_initial = player_code[0].lower()
-    with session.get_page() as page:
-        page.goto(
-            BREF_SINGLE_PLAYER_URL.format(
-                initial=last_name_initial, player_code=player_code
-            ),
-            wait_until="domcontentloaded",
-        )
-        page.wait_for_selector("#div_players_value_pitching", timeout=15000)
-        value_pitching_table_wrapper = page.query_selector(
-            "#div_players_value_pitching"
-        )
-        html = value_pitching_table_wrapper.inner_html()
-        assert html is not None, "Failed to retrieve HTML content"
-        soup = BeautifulSoup(html, "html.parser")
-    value_pitching_table = soup.find("table")
-    value_pitching_df = pl.DataFrame(_extract_table(value_pitching_table))
-    value_pitching_df = value_pitching_df.select(
-        pl.all().name.map(lambda col_name: col_name.replace("p_", ""))
-    )
-    value_pitching_df = value_pitching_df.select(
-        pl.all().name.map(lambda col_name: col_name.replace("_abbr", ""))
-    )
-    return value_pitching_df
-
-
-def single_player_advanced_pitching(player_code: str) -> pl.DataFrame:
-    """Return advanced pitching statistics for one player.
-
-    Args:
-        player_code (str): Baseball Reference player identifier.
-
-    Returns:
-        pl.DataFrame: Advanced pitching statistics.
-    """
-    last_name_initial = player_code[0].lower()
-    with session.get_page() as page:
-        page.goto(
-            BREF_SINGLE_PLAYER_URL.format(
-                initial=last_name_initial, player_code=player_code
-            ),
-            wait_until="domcontentloaded",
-        )
-        page.wait_for_selector("#div_players_advanced_pitching", timeout=15000)
-        advanced_pitching_table_wrapper = page.query_selector(
-            "#div_players_advanced_pitching"
-        )
-        html = advanced_pitching_table_wrapper.inner_html()
-        assert html is not None, "Failed to retrieve HTML content"
-        soup = BeautifulSoup(html, "html.parser")
-    advanced_pitching_table = soup.find("table")
-    advanced_pitching_df = pl.DataFrame(_extract_table(advanced_pitching_table))
-
-    advanced_pitching_df = advanced_pitching_df.select(
-        pl.all().name.map(lambda col_name: col_name.replace("p_", ""))
-    )
-    advanced_pitching_df = advanced_pitching_df.select(
-        pl.all().name.map(lambda col_name: col_name.replace("_abbr", ""))
-    )
-    return advanced_pitching_df
+    data = _extract_table(table)
+    df = pl.DataFrame(data)
+    df = df.select(pl.all().name.map(lambda col_name: col_name.replace("f_", "")))
+    df = df.select(pl.all().name.map(lambda col_name: col_name.replace("_abbr", "")))
+    return df

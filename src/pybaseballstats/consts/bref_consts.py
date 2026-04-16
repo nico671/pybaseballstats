@@ -102,7 +102,7 @@ BREF_MANAGER_TENDENCIES_URL = "https://www.baseball-reference.com/leagues/majors
 BREF_SINGLE_PLAYER_URL = (
     "https://www.baseball-reference.com/players/{initial}/{player_code}.shtml"
 )
-BREF_SINGLE_PLAYER_SABERMETRIC_FIELDING_URL = (
+BREF_SINGLE_PLAYER_FIELDING_URL = (
     "https://www.baseball-reference.com/players/{initial}/{player_code}-field.shtml"
 )
 
@@ -118,4 +118,13 @@ BREF_TEAMS_BATTING_BASE_URL = (
 )
 BREF_TEAMS_PITCHING_BASE_URL = (
     "https://www.baseball-reference.com/teams/{team_code}/{year}-pitching.shtml"
+)
+BREF_TEAMS_FIELDING_BASE_URL = (
+    "https://www.baseball-reference.com/teams/{team_code}/{year}-fielding.shtml"
+)
+BREF_SINGLE_PLAYER_BATTING_URL = (
+    "https://www.baseball-reference.com/players/{initial}/{player_code}-bat.shtml"
+)
+BREF_SINGLE_PLAYER_PITCHING_URL = (
+    "https://www.baseball-reference.com/players/{initial}/{player_code}-pitch.shtml"
 )

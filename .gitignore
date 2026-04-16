@@ -24,3 +24,4 @@ todolist.txt
 __pycache__/
 .env
 deprecated_or_broken/
+dev.md

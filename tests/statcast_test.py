@@ -3,6 +3,12 @@ import pytest
 
 import pybaseballstats.statcast as sc
 
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.heavy,
+    pytest.mark.data_dependent,
+]
+
 
 def test_pitch_by_pitch_data_errors():
     """Test error handling in pitch_by_pitch_data."""

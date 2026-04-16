@@ -56,16 +56,66 @@ df_pandas = df_polars.to_pandas()
 
 ## Contributing
 
-Improvements and bug fixes are welcome! Please open an issue or submit a pull request. If you are opening an issue please keep in mind that I am enrolled in university full-time and may not be able to respond immediately. I work on this in my free time, but I will do my best to fix any issues that are opened. To submit a pull request, please fork the repository and make your changes on a new branch. Make your changes and please create new tests if you are adding new functionality (updates to my own tests are more than welcome as well). Make sure all tests pass and once you are finished, submit a pull request and I will review your changes. Please include a detailed description of the changes you made and why you made them as a part of your pull request.
+Improvements and bug fixes are welcome! This project follows a branch-based development workflow to keep releases stable and active development fast.
 
-Before pushing changes, install git hooks once per clone:
-`just commit "your commit message"`
+### 1. Branching Strategy
 
-This runs mypy + tests + coverage and updates badges before commit/push.
+We use a standard two-branch workflow:
+
+- `main` (**release branch**)  
+    Heavily protected and contains only code that is currently live on PyPI. Do **not** push or open pull requests directly against `main`.
+- `dev` (**active development branch**)  
+    This is the default branch. All ongoing development, experiments, and bug fixes happen here.
+- **Feature branches**  
+    Start new work from `dev` (for example: `feature/your-feature-name`).
+
+### 2. Local Development & Committing
+
+This project uses `just` to automate safety checks before code is pushed.
+
+When your changes are ready, run:
+
+```bash
+just commit "your descriptive commit message"
+```
+
+This command automatically:
+
+- Runs `mypy` for strict type checking.
+- Runs `pytest` with coverage tracking.
+- Commits your changes and safely pushes them to your current GitHub branch.
+
+If type checking or tests fail, the commit is automatically aborted so you can fix issues first.
+
+### 3. Submitting Your Changes
+
+Once your feature or bug fix is complete and tested locally:
+
+1. Open a pull request from your feature branch into `dev`.
+2. GitHub Actions automatically runs CI (unit tests + `mypy`).
+3. After checks pass and review is complete, your changes are merged into `dev`.
+
+> [!NOTE]
+> Coverage badges in this README reflect the current state of the `dev` branch, giving real-time visibility into active development health.
+
+### 4. Release Pipeline (Maintainers Only)
+
+Releases are automated for security and stability:
+
+1. Open a pull request from `dev` to `main`.
+2. Branch protections ensure nothing enters `main` unless all required checks pass.
+3. After merge, run:
+
+```bash
+just release <version> "Release message"
+```
+
+This performs final validation, tags the release, and pushes it.
+
+A GitHub Action then builds the `uv` package and deploys to PyPI using Trusted Publishers (tokenless publishing).
 
 ## Credit and Acknowledgement
 
 This project was directly inspired by the pybaseball package by James LeDoux. The goal of this project is to provide a similar set of functionality with continual updates and improvements, as the original pybaseball package has lagged behind with updates and some key functionality has been broken.
 
 All of the data scraped by this package is publicly available and free to use. All credit for the data goes to the organizations from which it was scraped.
- 

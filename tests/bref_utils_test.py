@@ -2,7 +2,10 @@ import polars as pl
 import pytest
 from bs4 import BeautifulSoup
 
-from pybaseballstats.utils.bref_utils import _extract_table
+from pybaseballstats.consts.bref_consts import BREFTeams
+from pybaseballstats.utils.bref_utils import _extract_table, resolve_bref_team_code
+
+pytestmark = pytest.mark.unit
 
 
 def test_extract_table_parses_numeric_types_and_percentages():
@@ -71,3 +74,19 @@ def test_extract_table_handles_home_or_vis_and_missing_values():
     assert data["homeORvis"].to_list() == ["away", "home"]
 
     assert data["optional"].to_list() == [None, None]
+
+
+def test_resolve_team_code_switches():
+    assert resolve_bref_team_code(BREFTeams.ANGELS, 2004) == "ANA"
+    assert resolve_bref_team_code(BREFTeams.ANGELS, 2005) == "LAA"
+    assert resolve_bref_team_code(BREFTeams.MARLINS, 2011) == "FLA"
+    assert resolve_bref_team_code(BREFTeams.MARLINS, 2012) == "MIA"
+    assert resolve_bref_team_code(BREFTeams.RAYS, 2007) == "TBD"
+    assert resolve_bref_team_code(BREFTeams.RAYS, 2008) == "TBR"
+    assert resolve_bref_team_code(BREFTeams.NATIONALS, 2004) == "MON"
+    assert resolve_bref_team_code(BREFTeams.NATIONALS, 2005) == "WSN"
+    assert resolve_bref_team_code(BREFTeams.ATHLETICS, 2024) == "OAK"
+    assert resolve_bref_team_code(BREFTeams.ATHLETICS, 2025) == "ATH"
+    assert resolve_bref_team_code(BREFTeams.BRAVES, 1952) == "BSN"
+    assert resolve_bref_team_code(BREFTeams.BRAVES, 1953) == "MLN"
+    assert resolve_bref_team_code(BREFTeams.BRAVES, 1966) == "ATL"

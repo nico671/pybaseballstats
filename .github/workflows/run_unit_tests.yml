@@ -1,14 +1,14 @@
 name: Run Unit Tests
 
 on:
-  push:
-    branches:
-      - main
-      - dev
   pull_request:
     branches:
       - main
       - dev
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -59,7 +59,13 @@ jobs:
       - name: Get Playwright version
         if: steps.changes.outputs.run_tests == 'true'
         id: playwright-version
-        run: echo "version=$(uv run python -c 'import playwright; print(playwright.__version__)')" >> $GITHUB_OUTPUT
+        run: |
+          playwright_version=$(uv run python - <<'PY'
+          from importlib.metadata import version
+          print(version("playwright"))
+          PY
+          )
+          echo "version=${playwright_version}" >> "$GITHUB_OUTPUT"
 
       - name: Cache Playwright browsers
         if: steps.changes.outputs.run_tests == 'true'
