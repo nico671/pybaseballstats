@@ -14,6 +14,7 @@ from pybaseballstats.consts.statcast_leaderboard_consts import (
     PARK_FACTOR_DIMENSIONS_URL,
     PARK_FACTOR_DISTANCE_URL,
     PARK_FACTOR_YEARLY_URL,
+    SPIN_DIRECTION_LEADERBOARD_URL,
     TIMER_INFRACTIONS_LEADERBOARD_URL,
     StatcastLeaderboardsTeams,
 )
@@ -29,6 +30,7 @@ __all__ = [
 ]
 
 
+# region random
 def park_factor_dimensions_leaderboard(
     season: int, metric: Literal["distance", "height"] = "distance"
 ):
@@ -501,7 +503,7 @@ def abs_challenges_leaderboard(
     pitch_types: List[
         Literal["FF", "SI", "FC", "CH", "FS", "FO", "SC", "CU", "SL", "ST", "SV", "KN"]
     ]
-    | None = None,  # options are: ['FF','SI', 'FC', 'CH','FS','FO','SC','CU','SL','ST','SV','KN'],
+    | None = None,
     attack_zone: List[Literal["11", "12", "13", "14", "16", "17", "18", "19"]]
     | None = None,
     in_zone: bool | None = None,
@@ -666,6 +668,10 @@ def abs_challenges_leaderboard(
     return df
 
 
+# endregion
+
+
+# region fielding
 def arm_strength_leaderboard(
     stat_type: Literal["player", "team"] = "player",
     year: int | str = 2025,  # All for all years (9999) is passed in
@@ -743,3 +749,84 @@ def arm_strength_leaderboard(
             ]
         )
     return df
+
+
+# endregion
+
+
+# region pitching
+def spin_direction_leaderboard(  # NOTE: removed pov parameter because the returned data is the same regardless of pov, i think baseball savant just changes it on the frontend but the underlying data is the same
+    season: int | str = "ALL",
+    team: StatcastLeaderboardsTeams | None = None,
+    pitch_type: Literal[
+        "FF", "CH", "CU", "FC", "FO", "KN", "SC", "SI", "SL", "SV", "FS", "ST", "ALL"
+    ] = "ALL",
+    pitcher_handedness: Literal["R", "L", "ALL"] = "ALL",
+    min_pitches: int | str = "q",
+) -> pl.DataFrame:
+    # validate season input, can either be int from 2020 to current year, or "ALL"
+    if isinstance(season, int):
+        if season < 2020 or season > datetime.now().year:
+            raise ValueError(f"season must be between 2020 and {datetime.now().year}")
+    elif isinstance(season, str):
+        if season != "ALL":
+            raise ValueError("season must be an integer or 'ALL'")
+    else:
+        raise ValueError("season must be an integer or 'ALL'")
+
+    # validate team input, must be an instance of StatcastLeaderboardsTeams or None
+    if team is not None and not isinstance(team, StatcastLeaderboardsTeams):
+        raise ValueError(
+            "team must be an instance of StatcastLeaderboardsTeams or None"
+        )
+    team_id_param = str(team.value) if team is not None else ""
+
+    # validate pitch_type input, must be one of the specified options
+    if pitch_type not in [
+        "FF",
+        "CH",
+        "CU",
+        "FC",
+        "FO",
+        "KN",
+        "SC",
+        "SI",
+        "SL",
+        "SV",
+        "FS",
+        "ST",
+        "ALL",
+    ]:
+        raise ValueError(
+            "pitch_type must be one of 'FF', 'CH', 'CU', 'FC', 'FO', 'KN', 'SC', 'SI', 'SL', 'SV', 'FS', 'ST', or 'ALL'"
+        )
+
+    # validate pitcher_handedness input, must be one of the specified options
+    if pitcher_handedness not in ["R", "L", "ALL"]:
+        raise ValueError("pitcher_handedness must be 'R', 'L', or 'ALL'")
+    throws_param = pitcher_handedness if pitcher_handedness != "ALL" else ""
+
+    # validate min_pitches input, must be a positive integer or "q"
+    if isinstance(min_pitches, int):
+        if min_pitches < 1:
+            raise ValueError("min_pitches must be a positive integer")
+    elif isinstance(min_pitches, str):
+        if min_pitches != "q":
+            raise ValueError("min_pitches must be a positive integer or 'q'")
+    else:
+        raise ValueError("min_pitches must be a positive integer or 'q'")
+    min_pitches_param = str(min_pitches)
+
+    url = SPIN_DIRECTION_LEADERBOARD_URL.format(
+        season=season,
+        min_pitches=min_pitches_param,
+        pitch_type=pitch_type,
+        team_id=team_id_param,
+        throws=throws_param,
+    )
+    resp = requests.get(url)
+    df = pl.read_csv(io.StringIO(resp.text))
+    return df
+
+
+# endregion
