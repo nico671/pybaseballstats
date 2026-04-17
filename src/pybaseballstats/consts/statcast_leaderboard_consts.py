@@ -6,7 +6,7 @@ PARK_FACTOR_DISTANCE_URL = "http://baseballsavant.mlb.com/leaderboard/statcast-p
 TIMER_INFRACTIONS_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/pitch-timer-infractions?type={perspective}&season={season}&min_pitches={min_pitches}&include_zeroes=0&sortColumn=N_pitches&sortDirection=asc&csv=true"
 ABS_CHALLENGES_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/abs-challenges?ballStrike={in_zone}&chalOrg={challenging_teams}&gameType={game_type}&oppOrg={opposing_teams}&pitchType={pitch_types}&shadowZones={attack_zone}&year={season}&challengeType={challenge_type}&level={level}&minChal={min_challenges}&minOppChal={min_opp_challenges}&csv=true"
 ARM_STRENGTH_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/arm-strength?type={stat_type}&year={year}&minThrows={min_throws}&pos={pos}&team={team}&csv=true"
-SPIN_DIRECTION_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/spin-direction-pitches?year={season}&min={min_pitches}&sort=9&sortDir=asc&pitch_type={pitch_type}&throws={pitcher_handedness}&team={team_id}&csv=true"
+SPIN_DIRECTION_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/spin-direction-pitches?year={season}&min={min_pitches}&sort=9&sortDir=asc&pitch_type={pitch_type}&throws={throws}&team={team_id}&csv=true"
 
 
 class StatcastLeaderboardsTeams(Enum):

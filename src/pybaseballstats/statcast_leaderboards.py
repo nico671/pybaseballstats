@@ -826,7 +826,18 @@ def spin_direction_leaderboard(  # NOTE: removed pov parameter because the retur
     )
     resp = requests.get(url)
     df = pl.read_csv(io.StringIO(resp.text))
+    df = df.rename({"last_name, first_name": "player_name"})
     return df
 
 
 # endregion
+
+# if __name__ == "__main__":
+#     df = spin_direction_leaderboard(
+#         season="ALL",
+#         team=StatcastLeaderboardsTeams.ASTROS,
+#         pitch_type="FF",
+#         pitcher_handedness="R",
+#         min_pitches=100,
+#     )
+#     print(df, df.columns)

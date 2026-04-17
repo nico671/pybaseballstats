@@ -361,3 +361,52 @@ def test_abs_challenges_leaderboard_challenge_type():
     assert df.shape[0] >= 63
     assert df.shape[1] == 35
     assert df.select(pl.col("team_abbr").n_unique()).item() == 30
+
+
+def test_spin_direction_leaderboard_badinputs():
+    with pytest.raises(ValueError):
+        sl.spin_direction_leaderboard(season=1900)
+    with pytest.raises(ValueError):
+        sl.spin_direction_leaderboard(season=10000)
+    with pytest.raises(ValueError):
+        sl.spin_direction_leaderboard(season="2025")
+    with pytest.raises(ValueError):
+        sl.spin_direction_leaderboard(team="yankees")
+    with pytest.raises(ValueError):
+        sl.spin_direction_leaderboard(pitch_type="four_seamer")
+    with pytest.raises(ValueError):
+        sl.spin_direction_leaderboard(pitcher_handedness="right")
+    with pytest.raises(ValueError):
+        sl.spin_direction_leaderboard(min_pitches=0)
+    with pytest.raises(ValueError):
+        sl.spin_direction_leaderboard(min_pitches="100")
+
+
+def test_spin_direction_leaderboard():
+    # single season
+    df = sl.spin_direction_leaderboard(
+        season=2025,
+        team=sl.StatcastLeaderboardsTeams.ASTROS,
+        pitch_type="FF",
+        pitcher_handedness="R",
+        min_pitches=100,
+    )
+    assert df.shape == (14, 29)
+    assert df.select(pl.col("year").unique()).item() == 2025
+    assert df.select(pl.col("player_name").n_unique()).item() == 14
+    assert df.select(pl.col("pitch_hand").unique()).item() == "R"
+    assert df.select(pl.col("api_pitch_type").unique()).item() == "FF"
+    assert df.select(pl.col("n_pitches").min()).item() >= 100
+
+    df = sl.spin_direction_leaderboard(
+        season="ALL",
+        team=sl.StatcastLeaderboardsTeams.ASTROS,
+        pitch_type="FF",
+        pitcher_handedness="R",
+        min_pitches=100,
+    )
+    assert df.shape[0] >= 80
+    assert df.shape[1] == 29
+    assert df.select(pl.col("pitch_hand").unique()).item() == "R"
+    assert df.select(pl.col("api_pitch_type").unique()).item() == "FF"
+    assert df.select(pl.col("n_pitches").min()).item() >= 100
