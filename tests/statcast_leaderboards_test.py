@@ -410,3 +410,43 @@ def test_spin_direction_leaderboard():
     assert df.select(pl.col("pitch_hand").unique()).item() == "R"
     assert df.select(pl.col("api_pitch_type").unique()).item() == "FF"
     assert df.select(pl.col("n_pitches").min()).item() >= 100
+
+
+def test_active_spin_leaderboard_badinputs():
+    with pytest.raises(ValueError):
+        sl.active_spin_leaderboard(season=1900)
+    with pytest.raises(ValueError):
+        sl.active_spin_leaderboard(
+            season=1900,
+            stat_method="spin-based",
+            min_pitches=100,
+            pitcher_handedness="R",
+        )
+    with pytest.raises(ValueError):
+        sl.active_spin_leaderboard(
+            season=2025,
+            stat_method="invalid_method",
+            min_pitches=100,
+            pitcher_handedness="R",
+        )
+    with pytest.raises(ValueError):
+        sl.active_spin_leaderboard(
+            season=2025, stat_method="spin-based", min_pitches=0, pitcher_handedness="R"
+        )
+    with pytest.raises(ValueError):
+        sl.active_spin_leaderboard(
+            season=2025,
+            stat_method="spin-based",
+            min_pitches=100,
+            pitcher_handedness="invalid_handedness",
+        )
+
+
+def test_active_spin_leaderboard():
+    df = sl.active_spin_leaderboard(
+        season=2023, min_pitches=100, stat_method="spin-based", pitcher_handedness="R"
+    )
+    assert df.shape[0] == 510
+    assert df.shape[1] == 12
+    assert df.select(pl.col("pitch_hand").unique()).item() == "R"
+    assert df.select(pl.col("player_id").n_unique()).item() == 510

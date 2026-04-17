@@ -9,6 +9,7 @@ from playwright.sync_api import sync_playwright
 
 from pybaseballstats.consts.statcast_leaderboard_consts import (
     ABS_CHALLENGES_LEADERBOARD_URL,
+    ACTIVE_SPIN_LEADERBOARD_URL,
     ARM_STRENGTH_LEADERBOARD_URL,
     ARM_STRENGTH_POS_INPUT_MAP,
     PARK_FACTOR_DIMENSIONS_URL,
@@ -27,6 +28,8 @@ __all__ = [
     "timer_infractions_leaderboard",
     "arm_strength_leaderboard",
     "abs_challenges_leaderboard",
+    "spin_direction_leaderboard",
+    "active_spin_leaderboard",
 ]
 
 
@@ -827,6 +830,42 @@ def spin_direction_leaderboard(  # NOTE: removed pov parameter because the retur
     resp = requests.get(url)
     df = pl.read_csv(io.StringIO(resp.text))
     df = df.rename({"last_name, first_name": "player_name"})
+    return df
+
+
+def active_spin_leaderboard(
+    season: int,  # starts from 2017 to current year
+    min_pitches: int = 100,  # >= 1
+    stat_method: Literal[
+        "spin-based", "observed"
+    ] = "spin-based",  # to understand options, there is a writeup here: https://baseballsavant.mlb.com/leaderboard/active-spin, also spin-based is only available from 2020 onwards, observed is available from 2017 onwards
+    pitcher_handedness: Literal["R", "L", "ALL"] = "ALL",
+):
+    # validate season input
+    if season < 2017 or season > datetime.now().year:
+        raise ValueError(f"season must be between 2017 and {datetime.now().year}")
+    # validate min_pitches input
+    if min_pitches < 1:
+        raise ValueError("min_pitches must be at least 1")
+    # validate stat_method input
+    if stat_method not in ["spin-based", "observed"]:
+        raise ValueError("stat_method must be 'spin-based' or 'observed'")
+    if stat_method == "spin-based" and season < 2020:
+        raise ValueError("spin-based stat_method is only available from 2020 onwards")
+    # validate pitcher_handedness input
+    if pitcher_handedness not in ["R", "L", "ALL"]:
+        raise ValueError("pitcher_handedness must be 'R', 'L', or 'ALL'")
+
+    throws_param = pitcher_handedness if pitcher_handedness != "ALL" else ""
+    url = ACTIVE_SPIN_LEADERBOARD_URL.format(
+        season=season,
+        stat_method=stat_method,
+        min_pitches=min_pitches,
+        pitcher_handedness=throws_param,
+    )
+    resp = requests.get(url)
+    df = pl.read_csv(io.StringIO(resp.text))
+    df = df.rename({"entity_name": "player_name", "entity_id": "player_id"})
     return df
 
 
