@@ -8,6 +8,7 @@ ABS_CHALLENGES_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/abs
 ARM_STRENGTH_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/arm-strength?type={stat_type}&year={year}&minThrows={min_throws}&pos={pos}&team={team}&csv=true"
 SPIN_DIRECTION_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/spin-direction-pitches?year={season}&min={min_pitches}&sort=9&sortDir=asc&pitch_type={pitch_type}&throws={throws}&team={team_id}&csv=true"
 ACTIVE_SPIN_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/active-spin?year={season}_{stat_method}&min={min_pitches}&hand={pitcher_handedness}&csv=true"
+ARM_ANGLE_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/pitcher-arm-angles?season={seasons_inferred}&batSide={bat_side}&dateStart={start_date}0&dateEnd={end_date}&gameType={game_type}&groupBy={group_by}&min={min_total_pitches}&minGroupPitches={min_group_size}&perspective=back&pitchHand={pitch_hand}&pitchType={pitch_type}&size=large&sort=ascending&team={team}&view=table&csv=true"
 
 
 class StatcastLeaderboardsTeams(Enum):

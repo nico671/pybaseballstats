@@ -10,6 +10,7 @@ from playwright.sync_api import sync_playwright
 from pybaseballstats.consts.statcast_leaderboard_consts import (
     ABS_CHALLENGES_LEADERBOARD_URL,
     ACTIVE_SPIN_LEADERBOARD_URL,
+    ARM_ANGLE_LEADERBOARD_URL,
     ARM_STRENGTH_LEADERBOARD_URL,
     ARM_STRENGTH_POS_INPUT_MAP,
     PARK_FACTOR_DIMENSIONS_URL,
@@ -30,6 +31,7 @@ __all__ = [
     "abs_challenges_leaderboard",
     "spin_direction_leaderboard",
     "active_spin_leaderboard",
+    "arm_angle_leaderboard",
 ]
 
 
@@ -866,6 +868,177 @@ def active_spin_leaderboard(
     resp = requests.get(url)
     df = pl.read_csv(io.StringIO(resp.text))
     df = df.rename({"entity_name": "player_name", "entity_id": "player_id"})
+    return df
+
+
+# TODO: tests for this function
+def arm_angle_leaderboard(  # NOTE: ignoring season param because start/end_date filtering is allowed
+    start_date: str = "2020-01-01",  # MM-DD-YYYY, 2020-01-01 is the earliest possible start date
+    end_date: str = datetime.today().strftime(
+        "%Y-%m-%d"
+    ),  # MM-DD-YYYY must be after start_date and cannot be in the future
+    team: List[StatcastLeaderboardsTeams]
+    | None = None,  # 0+ teams, separated by |, if empty then ""
+    season_type: List[Literal["R", "WC", "DS", "CS", "WS"]]
+    | None = None,  # 0+ season types, separated by |, if empty then "", mappings (R-> R, WC->F, DS->D, CS->L, WS->W)
+    pitcher_handedness: Literal["R", "L", "ALL"] = "ALL",  # all maps to ""
+    batter_handedness: Literal["R", "L", "ALL"] = "ALL",  # all maps to ""
+    pitch_type: List[
+        Literal["FF", "SI", "FC", "CH", "FS", "FO", "SC", "CU", "SL", "ST", "SV", "KN"]
+    ]
+    | None = None,  # 0+ pitch types, separated by |, if empty then ""
+    min_pitches: int
+    | str = "q",  # must be at least 1 if int, or "q" for qualifying threshold if str
+    group_by: List[
+        Literal[
+            "season", "month", "pitch_type", "game_type", "bat_side", "fielding_team"
+        ]
+    ]
+    | None = None,  # 0-4 group by options, separated by |, if empty then "", options map as follows: season->year, month->api_game_date_month_text, pitch_type->api_pitch_type_group03, game_type->game_type, bat_side->bat_side, fielding_team->fld_team_id
+    min_group_size: int = 1,  # must be at least 1, groups smaller than this will be filtered out
+):
+    # validate date inputs
+    try:
+        start_date_obj = datetime.strptime(start_date, "%Y-%m-%d")
+    except ValueError:
+        raise ValueError("start_date must be in MM-DD-YYYY format")
+    try:
+        end_date_obj = datetime.strptime(end_date, "%Y-%m-%d")
+    except ValueError:
+        raise ValueError("end_date must be in MM-DD-YYYY format")
+    if end_date_obj < start_date_obj:
+        raise ValueError("end_date must be after start_date")
+    if end_date_obj > datetime.today():
+        raise ValueError("end_date cannot be in the future")
+    # construct season string as all years included in the date range, separated by |, e.g. 2020|2021|2022
+    seasons_inferred = "|".join(
+        str(year) for year in range(start_date_obj.year, end_date_obj.year + 1)
+    )
+    # validate team input
+    if team is not None:
+        if not isinstance(team, list) or not all(
+            isinstance(t, StatcastLeaderboardsTeams) for t in team
+        ):
+            raise ValueError(
+                "team must be a list of StatcastLeaderboardsTeams enums or None"
+            )
+        team_param = "|".join(str(t.value) for t in team)
+    else:
+        team_param = ""
+
+    # validate season_type input
+    season_type_mapping = {
+        "R": "R",
+        "WC": "F",
+        "DS": "D",
+        "CS": "L",
+        "WS": "W",
+    }
+    if season_type is not None:
+        if not isinstance(season_type, list) or not all(
+            st in season_type_mapping for st in season_type
+        ):
+            raise ValueError(
+                f"season_type must be a list of the following options or None: {list(season_type_mapping.keys())}"
+            )
+        season_type_param = "|".join(season_type_mapping[st] for st in season_type)
+    else:
+        season_type_param = ""
+
+    # validate pitcher_handedness input
+    if pitcher_handedness not in ["R", "L", "ALL"]:
+        raise ValueError("pitcher_handedness must be 'R', 'L', or 'ALL'")
+    throws_param = pitcher_handedness if pitcher_handedness != "ALL" else ""
+
+    # validate batter_handedness input
+    if batter_handedness not in ["R", "L", "ALL"]:
+        raise ValueError("batter_handedness must be 'R', 'L', or 'ALL'")
+    bat_side_param = batter_handedness if batter_handedness != "ALL" else ""
+    # validate pitch_type input
+    valid_pitch_types = [
+        "FF",
+        "SI",
+        "FC",
+        "CH",
+        "FS",
+        "FO",
+        "SC",
+        "CU",
+        "SL",
+        "ST",
+        "SV",
+        "KN",
+    ]
+    if pitch_type is not None:
+        if not isinstance(pitch_type, list) or not all(
+            pt in valid_pitch_types for pt in pitch_type
+        ):
+            raise ValueError(
+                f"pitch_type must be a list of the following options or None: {valid_pitch_types}"
+            )
+        pitch_type_param = "|".join(pitch_type)
+    else:
+        pitch_type_param = ""
+
+    # validate min_pitches input
+    if isinstance(min_pitches, int):
+        if min_pitches < 1:
+            raise ValueError("min_pitches must be at least 1")
+        min_pitches_param = str(min_pitches)
+    elif isinstance(min_pitches, str):
+        if min_pitches != "q":
+            raise ValueError("min_pitches must be a positive integer or 'q'")
+        min_pitches_param = min_pitches
+    else:
+        raise ValueError("min_pitches must be a positive integer or 'q'")
+
+    # validate group_by input
+    group_by_mapping = {
+        "season": "year",
+        "month": "api_game_date_month_text",
+        "pitch_type": "api_pitch_type_group03",
+        "game_type": "game_type",
+        "bat_side": "bat_side",
+        "fielding_team": "fld_team_id",
+    }
+    if group_by is not None:
+        if not isinstance(group_by, list) or not all(
+            gb in group_by_mapping for gb in group_by
+        ):
+            raise ValueError(
+                f"group_by must be a list of the following options or None: {list(group_by_mapping.keys())}"
+            )
+        if len(group_by) > 4:
+            raise ValueError("group_by cannot have more than 4 options")
+        group_by_param = "|".join(group_by_mapping[gb] for gb in group_by)
+    else:
+        group_by_param = ""
+
+    # validate min_group_size input
+    if min_group_size < 1:
+        raise ValueError("min_group_size must be at least 1")
+
+    url = ARM_ANGLE_LEADERBOARD_URL.format(
+        bat_side=bat_side_param,
+        start_date=start_date,
+        end_date=end_date,
+        game_type=season_type_param,
+        group_by=group_by_param,
+        min_total_pitches=min_pitches_param,
+        min_group_size=min_group_size,
+        pitch_hand=throws_param,
+        pitch_type=pitch_type_param,
+        team=team_param,
+        seasons_inferred=seasons_inferred,
+    )
+    resp = requests.get(url)
+    df = pl.read_csv(io.StringIO(resp.text))
+    if "api_pitch_type_group03" in df.columns:
+        df = df.rename({"api_pitch_type_group03": "pitch_type"})
+    if "api_game_date_month_text" in df.columns:
+        df = df.rename(
+            {"api_game_date_month_text": "month", "api_game_date_month_mm": "month_num"}
+        )
     return df
 
 
