@@ -563,3 +563,38 @@ def test_arm_angle_leaderboard():
     assert df.select(pl.col("pitch_type").n_unique()).item() <= 2
     assert df.select(pl.col("game_type").unique()).item() == "R"
     assert df.select(pl.col("bat_side").n_unique()).item() == 1
+
+
+def test_pitch_arsenals_leaderboard_badinputs():
+    with pytest.raises(ValueError):
+        sl.pitch_arsenals_leaderboard(season=1900)
+    with pytest.raises(ValueError):
+        sl.pitch_arsenals_leaderboard(season=10000)
+    with pytest.raises(ValueError):
+        sl.pitch_arsenals_leaderboard(metric_type="invalid_metric_type")
+    with pytest.raises(ValueError):
+        sl.pitch_arsenals_leaderboard(pitcher_handedness="invalid_handedness")
+    with pytest.raises(ValueError):
+        sl.pitch_arsenals_leaderboard(min_pitches=0)
+    with pytest.raises(ValueError):
+        sl.pitch_arsenals_leaderboard(min_pitches="100")
+
+
+def test_pitch_arsenals_leaderboard():
+    df = sl.pitch_arsenals_leaderboard(
+        season=2023, metric_type="avg_speed", pitcher_handedness="R", min_pitches=100
+    )
+    assert df.shape[0] == 515
+    assert df.shape[1] == 12
+    assert df.select(pl.col("player_id").n_unique()).item() == 515
+    assert df.select(pl.col("ff_avg_speed").max()).item() == 101.8
+
+    df = sl.pitch_arsenals_leaderboard(
+        season=2023,
+        metric_type="usage_percentage",
+        pitcher_handedness="ALL",
+        min_pitches=100,
+    )
+    assert df.shape[0] == 711
+    assert df.shape[1] == 12
+    assert df.select(pl.col("player_id").n_unique()).item() == 711

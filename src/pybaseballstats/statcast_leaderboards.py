@@ -33,6 +33,7 @@ __all__ = [
     "spin_direction_leaderboard",
     "active_spin_leaderboard",
     "arm_angle_leaderboard",
+    "pitch_arsenals_leaderboard",
 ]
 
 
@@ -872,7 +873,6 @@ def active_spin_leaderboard(
     return df
 
 
-# TODO: tests for this function
 def arm_angle_leaderboard(  # NOTE: ignoring season param because start/end_date filtering is allowed
     start_date: str = "2020-01-01",  # YYYY-MM-DD, 2020-01-01 is the earliest possible start date
     end_date: str = datetime.today().strftime(
@@ -1094,18 +1094,3 @@ def pitch_arsenals_leaderboard(
 
 
 # endregion
-
-# if __name__ == "__main__":
-#     df = arm_angle_leaderboard(
-#         start_date="2020-01-01",
-#         end_date="2020-12-31",
-#         teams=[StatcastLeaderboardsTeams.DODGERS, StatcastLeaderboardsTeams.YANKEES],
-#         pitcher_handedness="R",
-#         batter_handedness="ALL",
-#         season_type=["R"],
-#         pitch_types=["FF", "SL"],
-#         min_pitches=100,
-#         group_by=["month", "pitch_type", "game_type", "bat_side"],
-#         min_group_size=10,
-#     )
-#     print(df)
