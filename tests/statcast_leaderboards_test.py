@@ -450,3 +450,116 @@ def test_active_spin_leaderboard():
     assert df.shape[1] == 12
     assert df.select(pl.col("pitch_hand").unique()).item() == "R"
     assert df.select(pl.col("player_id").n_unique()).item() == 510
+
+
+def test_arm_angle_leaderboard_badinputs():
+    with pytest.raises(ValueError):
+        sl.arm_angle_leaderboard(start_date="2023/04/01", end_date="2023/10/01")
+    with pytest.raises(ValueError):
+        sl.arm_angle_leaderboard(start_date="2023-04-01", end_date="2023/10/01")
+    with pytest.raises(ValueError):
+        sl.arm_angle_leaderboard(start_date="2023-04-01", end_date="2022-10-01")
+    with pytest.raises(ValueError):
+        sl.arm_angle_leaderboard(start_date="2024-04-01", end_date="10000-10-01")
+    with pytest.raises(ValueError):
+        sl.arm_angle_leaderboard(
+            start_date="2023-04-01", end_date="2023-10-01", teams=["Yankees"]
+        )
+    with pytest.raises(ValueError):
+        sl.arm_angle_leaderboard(
+            start_date="2023-04-01",
+            end_date="2023-10-01",
+            teams=[sl.StatcastLeaderboardsTeams.YANKEES, "BOS"],
+        )
+    with pytest.raises(ValueError):
+        sl.arm_angle_leaderboard(
+            start_date="2023-04-01",
+            end_date="2023-10-01",
+            season_type=["R", "WC", "Invalid"],
+        )
+    with pytest.raises(ValueError):
+        sl.arm_angle_leaderboard(
+            start_date="2023-04-01",
+            end_date="2023-10-01",
+            pitcher_handedness="invalid_handedness",
+        )
+    with pytest.raises(ValueError):
+        sl.arm_angle_leaderboard(
+            start_date="2023-04-01",
+            end_date="2023-10-01",
+            batter_handedness="invalid_batter_handedness",
+        )
+    with pytest.raises(ValueError):
+        sl.arm_angle_leaderboard(
+            start_date="2023-04-01",
+            end_date="2023-10-01",
+            pitch_types="FF",
+        )
+    with pytest.raises(ValueError):
+        sl.arm_angle_leaderboard(
+            start_date="2023-04-01",
+            end_date="2023-10-01",
+            pitch_types=["invalid_pitch_type"],
+        )
+    with pytest.raises(ValueError):
+        sl.arm_angle_leaderboard(
+            start_date="2023-04-01",
+            end_date="2023-10-01",
+            min_pitches=0,
+        )
+    with pytest.raises(ValueError):
+        sl.arm_angle_leaderboard(
+            start_date="2023-04-01",
+            end_date="2023-10-01",
+            min_pitches="100",
+        )
+    with pytest.raises(ValueError):
+        sl.arm_angle_leaderboard(
+            start_date="2023-04-01",
+            end_date="2023-10-01",
+            group_by="invalid_group_by",
+        )
+    with pytest.raises(ValueError):
+        sl.arm_angle_leaderboard(
+            start_date="2023-04-01",
+            end_date="2023-10-01",
+            group_by=[
+                "season",
+                "month",
+                "pitch_type",
+                "game_type",
+                "bat_side",
+                "fielding_team",
+            ],
+        )
+    with pytest.raises(ValueError):
+        sl.arm_angle_leaderboard(
+            start_date="2023-04-01", end_date="2023-10-01", min_group_size=0
+        )
+
+
+def test_arm_angle_leaderboard():
+    df = sl.arm_angle_leaderboard(
+        start_date="2020-01-01",
+        end_date="2020-12-31",
+        teams=[
+            sl.StatcastLeaderboardsTeams.DODGERS,
+            sl.StatcastLeaderboardsTeams.YANKEES,
+        ],
+        pitcher_handedness="R",
+        batter_handedness="L",
+        season_type=["R"],
+        pitch_types=["FF", "SL"],
+        min_pitches=100,
+        group_by=["month", "pitch_type", "game_type", "bat_side"],
+        min_group_size=10,
+    )
+    assert df.shape[0] == 11
+    assert df.shape[1] == 15
+    assert df.select(pl.col("pitch_hand").unique()).item() == "R"
+    for col_name in ["month", "pitch_type", "game_type", "bat_side"]:
+        assert col_name in df.columns
+    assert df.select(pl.col("n_pitches").min()).item() >= 10
+    assert df.select(pl.col("pitch_type").n_unique()).item() <= 2
+    assert df.select(pl.col("game_type").unique()).item() == "R"
+    assert df.select(pl.col("bat_side").n_unique()).item() == 1

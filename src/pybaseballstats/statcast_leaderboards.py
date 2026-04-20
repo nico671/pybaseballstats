@@ -873,17 +873,17 @@ def active_spin_leaderboard(
 
 # TODO: tests for this function
 def arm_angle_leaderboard(  # NOTE: ignoring season param because start/end_date filtering is allowed
-    start_date: str = "2020-01-01",  # MM-DD-YYYY, 2020-01-01 is the earliest possible start date
+    start_date: str = "2020-01-01",  # YYYY-MM-DD, 2020-01-01 is the earliest possible start date
     end_date: str = datetime.today().strftime(
         "%Y-%m-%d"
-    ),  # MM-DD-YYYY must be after start_date and cannot be in the future
-    team: List[StatcastLeaderboardsTeams]
+    ),  # YYYY-MM-DD must be after start_date and cannot be in the future
+    teams: List[StatcastLeaderboardsTeams]
     | None = None,  # 0+ teams, separated by |, if empty then ""
     season_type: List[Literal["R", "WC", "DS", "CS", "WS"]]
     | None = None,  # 0+ season types, separated by |, if empty then "", mappings (R-> R, WC->F, DS->D, CS->L, WS->W)
     pitcher_handedness: Literal["R", "L", "ALL"] = "ALL",  # all maps to ""
     batter_handedness: Literal["R", "L", "ALL"] = "ALL",  # all maps to ""
-    pitch_type: List[
+    pitch_types: List[
         Literal["FF", "SI", "FC", "CH", "FS", "FO", "SC", "CU", "SL", "ST", "SV", "KN"]
     ]
     | None = None,  # 0+ pitch types, separated by |, if empty then ""
@@ -901,11 +901,11 @@ def arm_angle_leaderboard(  # NOTE: ignoring season param because start/end_date
     try:
         start_date_obj = datetime.strptime(start_date, "%Y-%m-%d")
     except ValueError:
-        raise ValueError("start_date must be in MM-DD-YYYY format")
+        raise ValueError("start_date must be in YYYY-MM-DD format")
     try:
         end_date_obj = datetime.strptime(end_date, "%Y-%m-%d")
     except ValueError:
-        raise ValueError("end_date must be in MM-DD-YYYY format")
+        raise ValueError("end_date must be in YYYY-MM-DD format")
     if end_date_obj < start_date_obj:
         raise ValueError("end_date must be after start_date")
     if end_date_obj > datetime.today():
@@ -915,16 +915,16 @@ def arm_angle_leaderboard(  # NOTE: ignoring season param because start/end_date
         str(year) for year in range(start_date_obj.year, end_date_obj.year + 1)
     )
     # validate team input
-    if team is not None:
-        if not isinstance(team, list) or not all(
-            isinstance(t, StatcastLeaderboardsTeams) for t in team
+    if teams is not None:
+        if not isinstance(teams, list) or not all(
+            isinstance(t, StatcastLeaderboardsTeams) for t in teams
         ):
             raise ValueError(
-                "team must be a list of StatcastLeaderboardsTeams enums or None"
+                "teams must be a list of StatcastLeaderboardsTeams enums or None"
             )
-        team_param = "|".join(str(t.value) for t in team)
+        teams_param = "|".join(str(t.value) for t in teams)
     else:
-        team_param = ""
+        teams_param = ""
 
     # validate season_type input
     season_type_mapping = {
@@ -969,16 +969,16 @@ def arm_angle_leaderboard(  # NOTE: ignoring season param because start/end_date
         "SV",
         "KN",
     ]
-    if pitch_type is not None:
-        if not isinstance(pitch_type, list) or not all(
-            pt in valid_pitch_types for pt in pitch_type
+    if pitch_types is not None:
+        if not isinstance(pitch_types, list) or not all(
+            pt in valid_pitch_types for pt in pitch_types
         ):
             raise ValueError(
-                f"pitch_type must be a list of the following options or None: {valid_pitch_types}"
+                f"pitch_types must be a list of the following options or None: {valid_pitch_types}"
             )
-        pitch_type_param = "|".join(pitch_type)
+        pitch_types_param = "|".join(pitch_types)
     else:
-        pitch_type_param = ""
+        pitch_types_param = ""
 
     # validate min_pitches input
     if isinstance(min_pitches, int):
@@ -1027,8 +1027,8 @@ def arm_angle_leaderboard(  # NOTE: ignoring season param because start/end_date
         min_total_pitches=min_pitches_param,
         min_group_size=min_group_size,
         pitch_hand=throws_param,
-        pitch_type=pitch_type_param,
-        team=team_param,
+        pitch_type=pitch_types_param,
+        team=teams_param,
         seasons_inferred=seasons_inferred,
     )
     resp = requests.get(url)
@@ -1044,12 +1044,17 @@ def arm_angle_leaderboard(  # NOTE: ignoring season param because start/end_date
 
 # endregion
 
-# if __name__ == "__main__":
-#     df = spin_direction_leaderboard(
-#         season="ALL",
-#         team=StatcastLeaderboardsTeams.ASTROS,
-#         pitch_type="FF",
-#         pitcher_handedness="R",
-#         min_pitches=100,
-#     )
-#     print(df, df.columns)
+if __name__ == "__main__":
+    df = arm_angle_leaderboard(
+        start_date="2020-01-01",
+        end_date="2020-12-31",
+        teams=[StatcastLeaderboardsTeams.DODGERS, StatcastLeaderboardsTeams.YANKEES],
+        pitcher_handedness="R",
+        batter_handedness="ALL",
+        season_type=["R"],
+        pitch_types=["FF", "SL"],
+        min_pitches=100,
+        group_by=["month", "pitch_type", "game_type", "bat_side"],
+        min_group_size=10,
+    )
+    print(df)
