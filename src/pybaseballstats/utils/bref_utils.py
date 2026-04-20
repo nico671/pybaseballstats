@@ -25,6 +25,27 @@ from playwright.sync_api import (
 from pybaseballstats.consts.bref_consts import BREF_TEAM_CODE_SWITCHES, BREFTeams
 
 
+def _is_bref_temporarily_disabled() -> bool:
+    """Return whether Baseball Reference scraping is temporarily disabled.
+
+    By default this hotfix disables BREF-backed endpoints due to upstream
+    anti-bot protections. Set ``PYBASEBALLSTATS_ENABLE_BREF=1`` to opt in
+    locally while investigating a long-term workaround.
+    """
+    raw_value = os.getenv("PYBASEBALLSTATS_ENABLE_BREF", "0").strip().lower()
+    return raw_value not in {"1", "true", "yes", "on"}
+
+
+def _ensure_bref_enabled() -> None:
+    """Raise a clear error when BREF endpoints are temporarily disabled."""
+    if _is_bref_temporarily_disabled():
+        raise RuntimeError(
+            "Baseball Reference support is temporarily disabled in this release "
+            "due to upstream anti-bot protections. "
+            "Set PYBASEBALLSTATS_ENABLE_BREF=1 to re-enable at your own risk."
+        )
+
+
 def _is_testing_mode() -> bool:
     """Return True when running in explicit test mode (preferred) or under pytest."""
     return "pytest" in sys.modules
@@ -146,6 +167,7 @@ class BREFSession:
 
     def get(self, url: str, **kwargs: Any) -> requests.Response | None:
         """Make an HTTP request with rate limiting."""
+        _ensure_bref_enabled()
         # call rate limit before making the request
         self._rate_limit()
         try:
@@ -204,6 +226,7 @@ class BREFSession:
     @contextmanager
     def get_page(self) -> Iterator[Page]:
         """Context manager for Playwright page with rate limiting."""
+        _ensure_bref_enabled()
         self._rate_limit()
 
         with self._lock:
@@ -407,6 +430,8 @@ def _goto_and_get_stable_html(
     - ``document.querySelectorAll('table').length``
     remain unchanged for ``consecutive_stable_checks`` polls.
     """
+    _ensure_bref_enabled()
+
     effective_timeout_ms = timeout_ms
     if os.getenv("CI", "").lower() == "true":
         # CI runners are generally slower and network variability is higher.
