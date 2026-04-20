@@ -22,6 +22,8 @@ A Python package for scraping baseball statistics from the web. Inspired by the 
 > [!NOTE]
 > Although past versions had support for Fangraphs, I have decided to remove support for this source as they have recently implemented very aggressive anti-scraping measures that have made it very difficult to scrape data from their site. I may consider adding support for this source again in the future if they change their anti-scraping measures, but for now I have decided to focus on the other sources that are more reliable and easier to scrape data from.
 
+**Temporary Baseball Reference outage (hotfix):** As of the latest hotfix release, Baseball Reference-backed modules are temporarily disabled due to upstream Cloudflare anti-crawling protections. This was done to avoid flaky behavior and hard-to-diagnose failures while a robust workaround is investigated. Other data sources (Baseball Savant, Umpire Scorecards, Retrosheet) remain available.
+
 ## Installation
 
 pybaseballstats can be installed using pip or any other package manager (I use [uv](https://docs.astral.sh/uv/)).
