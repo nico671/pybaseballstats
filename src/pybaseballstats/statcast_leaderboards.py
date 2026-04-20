@@ -16,6 +16,7 @@ from pybaseballstats.consts.statcast_leaderboard_consts import (
     PARK_FACTOR_DIMENSIONS_URL,
     PARK_FACTOR_DISTANCE_URL,
     PARK_FACTOR_YEARLY_URL,
+    PITCH_ARSENALS_LEADERBOARD_URL,
     SPIN_DIRECTION_LEADERBOARD_URL,
     TIMER_INFRACTIONS_LEADERBOARD_URL,
     StatcastLeaderboardsTeams,
@@ -1042,19 +1043,69 @@ def arm_angle_leaderboard(  # NOTE: ignoring season param because start/end_date
     return df
 
 
+def pitch_arsenals_leaderboard(
+    season: int = 2026,  # from 2008 to current year
+    metric_type: Literal["avg_speed", "usage_percentage", "avg_spin"] = "avg_speed",
+    pitcher_handedness: Literal["R", "L", "ALL"] = "ALL",
+    min_pitches: int | str = "q",  # must be at least 1 or "q" if str
+) -> pl.DataFrame:
+    # validate season input
+    if season < 2008 or season > datetime.now().year:
+        raise ValueError(f"season must be between 2008 and {datetime.now().year}")
+    # validate metric_type input
+    if metric_type not in ["avg_speed", "usage_percentage", "avg_spin"]:
+        raise ValueError(
+            "metric_type must be 'avg_speed', 'usage_percentage', or 'avg_spin'"
+        )
+    # validate pitcher_handedness input
+    if pitcher_handedness not in ["R", "L", "ALL"]:
+        raise ValueError("pitcher_handedness must be 'R', 'L', or 'ALL'")
+    throws_param = pitcher_handedness if pitcher_handedness != "ALL" else ""
+    # validate min_pitches input
+    if isinstance(min_pitches, int):
+        if min_pitches < 1:
+            raise ValueError("min_pitches must be at least 1")
+        min_pitches_param = str(min_pitches)
+    elif isinstance(min_pitches, str):
+        if min_pitches != "q":
+            raise ValueError("min_pitches must be a positive integer or 'q'")
+        min_pitches_param = min_pitches
+    else:
+        raise ValueError("min_pitches must be a positive integer or 'q'")
+
+    url = PITCH_ARSENALS_LEADERBOARD_URL.format(
+        year=season,
+        metric_type=metric_type if metric_type != "usage_percentage" else "n_",
+        pitcher_handedness=throws_param,
+        min_pitches=min_pitches_param,
+    )
+    resp = requests.get(url)
+    df = pl.read_csv(io.StringIO(resp.text))
+    df = df.rename({"last_name, first_name": "player_name", "pitcher": "player_id"})
+    if metric_type == "usage_percentage":
+        for col in df.columns:
+            if col.startswith("n_"):
+                new_col_name = col[2:] + "_usage_percentage"
+                df = df.rename({col: new_col_name})
+                df = df.with_columns(
+                    pl.col(new_col_name).str.replace("", "0").cast(pl.Float64)
+                )
+    return df
+
+
 # endregion
 
-if __name__ == "__main__":
-    df = arm_angle_leaderboard(
-        start_date="2020-01-01",
-        end_date="2020-12-31",
-        teams=[StatcastLeaderboardsTeams.DODGERS, StatcastLeaderboardsTeams.YANKEES],
-        pitcher_handedness="R",
-        batter_handedness="ALL",
-        season_type=["R"],
-        pitch_types=["FF", "SL"],
-        min_pitches=100,
-        group_by=["month", "pitch_type", "game_type", "bat_side"],
-        min_group_size=10,
-    )
-    print(df)
+# if __name__ == "__main__":
+#     df = arm_angle_leaderboard(
+#         start_date="2020-01-01",
+#         end_date="2020-12-31",
+#         teams=[StatcastLeaderboardsTeams.DODGERS, StatcastLeaderboardsTeams.YANKEES],
+#         pitcher_handedness="R",
+#         batter_handedness="ALL",
+#         season_type=["R"],
+#         pitch_types=["FF", "SL"],
+#         min_pitches=100,
+#         group_by=["month", "pitch_type", "game_type", "bat_side"],
+#         min_group_size=10,
+#     )
+#     print(df)
