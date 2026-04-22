@@ -75,19 +75,24 @@ def franchise_draft_order(team: BREFTeams, year: int) -> pl.DataFrame:
         raise ValueError(
             "Team must be a valid BREFTeams enum value. See BREFTeams class for valid values."
         )
+    resolved_code = resolve_bref_team_code(team=team, year=year)
 
-    resp = session.get(
-        TEAM_YEAR_DRAFT_URL.format(
-            year=year, team=resolve_bref_team_code(team=team, year=year)
-        )
-    )
+    candidate_codes = [resolved_code]
+    if team.value != resolved_code:
+        candidate_codes.append(team.value)
+    print(resolved_code, team.value)
     polars_data = None
-    if resp:
-        table_html = get_bref_table_html(resp.text, "draft_stats")
+    for candidate_code in candidate_codes:
+        resp = session.get(TEAM_YEAR_DRAFT_URL.format(year=year, team=candidate_code))
 
-        if table_html:
-            table_soup = BeautifulSoup(table_html, "html.parser")
-            polars_data = _extract_table(table_soup)
+        if resp:
+            table_html = get_bref_table_html(resp.text, "draft_stats")
+
+            if table_html:
+                table_soup = BeautifulSoup(table_html, "html.parser")
+                polars_data = _extract_table(table_soup)
+        if polars_data:
+            break
 
     if polars_data is None:
         raise ValueError(f"No draft table found for {team.name} in {year}.")
