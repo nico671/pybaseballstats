@@ -8,7 +8,7 @@ from pybaseballstats.consts.bref_consts import (
 from pybaseballstats.utils.bref_utils import (
     BREFSession,
     _extract_table,
-    _goto_and_get_stable_html,
+    get_bref_table_html,
 )
 
 session = BREFSession.instance()  # type: ignore[attr-defined]
@@ -36,13 +36,17 @@ def managers_basic_data(year: int) -> pl.DataFrame:
     if year < 1871:
         raise ValueError("Year must be greater than 1871")
 
-    with session.get_page() as page:
-        url = BREF_MANAGERS_GENERAL_URL.format(year=year)
-        html = _goto_and_get_stable_html(page, url)
-        soup = BeautifulSoup(html, "html.parser")
+    resp = session.get(BREF_MANAGERS_GENERAL_URL.format(year=year))
+    polars_data = None
+    if resp:
+        table_html = get_bref_table_html(resp.text, "manager_record")
+        if table_html:
+            table_soup = BeautifulSoup(table_html, "html.parser")
+            polars_data = _extract_table(table_soup)
+    if not polars_data:
+        raise ValueError(f"No manager data found for year {year}")
 
-    table = soup.find("table", {"id": "manager_record"})
-    df = pl.DataFrame(_extract_table(table))
+    df = pl.DataFrame(polars_data)
     df = df.drop("ranker")
     df = df.with_columns(
         [

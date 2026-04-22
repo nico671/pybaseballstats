@@ -16,7 +16,7 @@ from pybaseballstats.consts.bref_consts import (
 from pybaseballstats.utils.bref_utils import (
     BREFSession,
     _extract_table,
-    _goto_and_get_stable_html,
+    get_bref_table_html,
     resolve_bref_team_code,
 )
 
@@ -232,18 +232,17 @@ def roster_and_appearances(team: BREFTeams, year: int) -> pl.DataFrame:
     if not isinstance(team, BREFTeams):
         raise ValueError("Team must be a member of the BREFTeams enum")
     team_code = resolve_bref_team_code(team=team, year=year)
-    with session.get_page() as page:
-        content = _goto_and_get_stable_html(
-            page,
-            BREF_TEAMS_ROSTER_URL.format(team_code=team_code, year=year),
-        )
-        soup = BeautifulSoup(content, "html.parser")
-    table = soup.find("table", id="appearances")
-    assert table is not None, (
-        f"No roster/appearances table found for {team.name} in {year}."
-    )
-    data = _extract_table(table)
-    df = pl.DataFrame(data)
+    polars_data = None
+    url = BREF_TEAMS_ROSTER_URL.format(team_code=team_code, year=year)
+    resp = session.get(url)
+    if resp:
+        table_html = get_bref_table_html(resp.text, "appearances")
+        if table_html:
+            table_soup = BeautifulSoup(table_html, "html.parser")
+            polars_data = _extract_table(table_soup)
+    if not polars_data:
+        raise ValueError(f"No roster/appearances data found for {team.name} in {year}")
+    df = pl.DataFrame(polars_data)
     df = df.drop("ranker")
     return df
 
@@ -308,17 +307,21 @@ def batting(
     url = BREF_TEAMS_BATTING_BASE_URL.format(
         team_code=resolve_bref_team_code(team, year=year), year=year
     )
-    with session.get_page() as page:
-        content = _goto_and_get_stable_html(page, url)
-        soup = BeautifulSoup(content, "html.parser")
     table_id = f"players_{metric_type}_batting"
-    table = soup.find("table", id=table_id)
-    if table is None:
+    resp = session.get(url)
+    polars_data = None
+    if resp:
+        table_html = get_bref_table_html(resp.text, table_id)
+        if table_html:
+            # 3. Parse the table html string using your existing _extract_table logic
+            table_soup = BeautifulSoup(table_html, "html.parser")
+            polars_data = _extract_table(table_soup)
+    if not polars_data:
         raise ValueError(
             f"No {metric_type} batting table found for {team.name} in {year}."
         )
-    data = _extract_table(table)
-    df = pl.DataFrame(data)
+
+    df = pl.DataFrame(polars_data)
     if "ranker" in df.columns:
         df = df.drop("ranker")  # drop index column
     df = df.select(pl.all().name.map(lambda col_name: col_name.replace("b_", "")))
@@ -406,23 +409,24 @@ def pitching(
     url = BREF_TEAMS_PITCHING_BASE_URL.format(
         team_code=resolve_bref_team_code(team, year=year), year=year
     )
-    with session.get_page() as page:
-        content = _goto_and_get_stable_html(page, url)
-        soup = BeautifulSoup(content, "html.parser")
-
-    table = soup.find("table", id=table_id)
-    if table is None:
+    resp = session.get(url)
+    polars_data = None
+    if resp:
+        table_html = get_bref_table_html(resp.text, table_id)
+        if table_html:
+            # 3. Parse the table html string using your existing _extract_table logic
+            table_soup = BeautifulSoup(table_html, "html.parser")
+            polars_data = _extract_table(table_soup)
+    if not polars_data:
         raise ValueError(
             f"No {metric_type} pitching table found for {team.name} in {year}."
         )
-
-    data = _extract_table(table)
     if metric_type == "cumulative":
         # This table exposes duplicated columns in markup, so normalize all
         # extracted columns to the row count of the player column.
-        reference_row_count = len(data.get("player", []))
+        reference_row_count = len(polars_data.get("player", []))
         normalized_data: dict[str, list[str | int | float | None]] = {}
-        for column_name, series in data.items():
+        for column_name, series in polars_data.items():
             values = series.to_list()
 
             if (
@@ -442,7 +446,7 @@ def pitching(
 
         df = pl.DataFrame(normalized_data)
     else:
-        df = pl.DataFrame(data)
+        df = pl.DataFrame(polars_data)
 
     if "ranker" in df.columns:
         df = df.drop("ranker")
@@ -575,18 +579,19 @@ def fielding(
     url = BREF_TEAMS_FIELDING_BASE_URL.format(
         team_code=resolve_bref_team_code(team, year=year), year=year
     )
-    with session.get_page() as page:
-        content = _goto_and_get_stable_html(page, url)
-        soup = BeautifulSoup(content, "html.parser")
-
-    table = soup.find("table", id=table_id)
-    if table is None:
+    resp = session.get(url)
+    polars_data = None
+    if resp:
+        table_html = get_bref_table_html(resp.text, table_id)
+        if table_html:
+            table_soup = BeautifulSoup(table_html, "html.parser")
+            polars_data = _extract_table(table_soup)
+    if not polars_data:
         raise ValueError(
-            f"No {metric_type} fielding table '{table_id}' found for {team.name} in {year}."
+            f"No fielding table found for {team.name} in {year} with metric type '{metric_type}' and position '{position}'."
         )
 
-    data = _extract_table(table)
-    df = pl.DataFrame(data)
+    df = pl.DataFrame(polars_data)
 
     if "ranker" in df.columns:
         df = df.drop("ranker")
