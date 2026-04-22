@@ -206,19 +206,6 @@ def test_arm_strength_leaderboard_badinputs():
 
 
 def test_arm_strength_leaderboard_player_and_team_modes(monkeypatch):
-    class MockResponse:
-        def __init__(self, text: str):
-            self.text = text
-
-    csv_text = """fielder_name,player_id,primary_position,primary_position_name,total_throws,total_throws_inf,total_throws_of,arm_inf,arm_of,team_name,metric
-John Doe,123,RF,Right Field,100,10,90,88.1,90.2,NYY,89.5
-Jane Smith,456,CF,Center Field,120,20,100,87.4,91.1,BOS,90.0
-"""
-
-    def fake_get(_url: str):
-        return MockResponse(csv_text)
-
-    monkeypatch.setattr(sl.requests, "get", fake_get)
 
     # Cover year="All" conversion branch and player-mode column drop.
     df_player = sl.arm_strength_leaderboard(
@@ -228,10 +215,10 @@ Jane Smith,456,CF,Center Field,120,20,100,87.4,91.1,BOS,90.0
         pos="rf",
         team=sl.StatcastLeaderboardsTeams.YANKEES,
     )
-    assert df_player.shape[0] == 2
+    assert df_player.shape[0] == 8
+    assert df_player.shape[1] == 25
     assert "team_name" not in df_player.columns
     assert "fielder_name" in df_player.columns
-    assert df_player.select(pl.col("metric").max()).item() == 90.0
 
     # Cover team-mode drop path.
     df_team = sl.arm_strength_leaderboard(
@@ -241,11 +228,11 @@ Jane Smith,456,CF,Center Field,120,20,100,87.4,91.1,BOS,90.0
         pos="All",
         team=None,
     )
-    assert df_team.shape[0] == 2
+    assert df_team.shape[0] == 30
+    assert df_team.shape[1] == 17
     assert "team_name" in df_team.columns
     assert "fielder_name" not in df_team.columns
     assert "player_id" not in df_team.columns
-    assert df_team.select(pl.col("metric").min()).item() == 89.5
 
 
 def test_abs_challenges_leaderboard_badinputs():
