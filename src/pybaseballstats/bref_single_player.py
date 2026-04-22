@@ -12,7 +12,7 @@ from pybaseballstats.consts.bref_consts import (
 from pybaseballstats.utils.bref_utils import (
     BREFSession,
     _extract_table,
-    _goto_and_get_stable_html,
+    get_bref_table_html,
 )
 
 session = BREFSession.instance()  # type: ignore[attr-defined]
@@ -66,23 +66,27 @@ def single_player_batting(
     ]:
         raise ValueError(f"Invalid metric type: {metric_type}")
     last_name_initial = player_code[0].lower()
-    with session.get_page() as page:
-        url = BREF_SINGLE_PLAYER_BATTING_URL.format(
+    resp = session.get(
+        BREF_SINGLE_PLAYER_BATTING_URL.format(
             initial=last_name_initial, player_code=player_code
         )
-        html = _goto_and_get_stable_html(page, url)
-        soup = BeautifulSoup(html, "html.parser")
-    table_id = ""
-    if metric_type in ["standard", "value", "advanced"]:
-        table_id = f"players_{metric_type}_batting"
-    elif metric_type == "cumulative":
-        table_id = "cumulative_batting"
-    else:
-        table_id = f"batting_{metric_type}"
-    table = soup.find("table", id=table_id)
-    if table is None:
+    )
+    polars_data = None
+    if resp:
+        table_id = ""
+        if metric_type in ["standard", "value", "advanced"]:
+            table_id = f"players_{metric_type}_batting"
+        elif metric_type == "cumulative":
+            table_id = "cumulative_batting"
+        else:
+            table_id = f"batting_{metric_type}"
+        table_html = get_bref_table_html(resp.text, table_id)
+        if table_html:
+            table_soup = BeautifulSoup(table_html, "html.parser")
+            polars_data = _extract_table(table_soup)
+    if not polars_data:
         raise ValueError(f"Failed to find table with id {table_id}")
-    df = pl.DataFrame(_extract_table(table))
+    df = pl.DataFrame(polars_data)
     df = df.select(pl.all().name.map(lambda col_name: col_name.replace("b_", "")))
     df = df.select(pl.all().name.map(lambda col_name: col_name.replace("_abbr", "")))
     return df
@@ -133,26 +137,30 @@ def single_player_pitching(
     ]:
         raise ValueError(f"Invalid metric type: {metric_type}")
     last_name_initial = player_code[0].lower()
-    with session.get_page() as page:
-        url = BREF_SINGLE_PLAYER_PITCHING_URL.format(
+    resp = session.get(
+        BREF_SINGLE_PLAYER_PITCHING_URL.format(
             initial=last_name_initial, player_code=player_code
         )
-        html = _goto_and_get_stable_html(page, url)
-        soup = BeautifulSoup(html, "html.parser")
-    table_id = ""
-    if metric_type in ["standard", "value", "advanced"]:
-        table_id = f"players_{metric_type}_pitching"
-    elif metric_type == "cumulative":
-        table_id = "cumulative_pitching"
-    elif metric_type == "batting_against":
-        table_id = "pitching_batting"
-    else:
-        table_id = f"pitching_{metric_type}"
-    table = soup.find("table", id=table_id)
-    if table is None:
+    )
+    polars_data = None
+    if resp:
+        table_id = ""
+        if metric_type in ["standard", "value", "advanced"]:
+            table_id = f"players_{metric_type}_pitching"
+        elif metric_type == "cumulative":
+            table_id = "cumulative_pitching"
+        elif metric_type == "batting_against":
+            table_id = "pitching_batting"
+        else:
+            table_id = f"pitching_{metric_type}"
+        table_html = get_bref_table_html(resp.text, table_id)
+        if table_html:
+            # 3. Parse the table html string using your existing _extract_table logic
+            table_soup = BeautifulSoup(table_html, "html.parser")
+            polars_data = _extract_table(table_soup)
+    if not polars_data:
         raise ValueError(f"Failed to find table with id {table_id}")
-    data = _extract_table(table)
-    df = pl.DataFrame(data)
+    df = pl.DataFrame(polars_data)
 
     df = df.select(pl.all().name.map(lambda col_name: col_name.replace("p_", "")))
     df = df.select(pl.all().name.map(lambda col_name: col_name.replace("_abbr", "")))
@@ -241,22 +249,23 @@ def single_player_fielding(
     else:
         table_id = f"advanced_fielding_{position}"
     last_name_initial = player_code[0].lower()
-    with session.get_page() as page:
-        url = BREF_SINGLE_PLAYER_FIELDING_URL.format(
+    resp = session.get(
+        BREF_SINGLE_PLAYER_FIELDING_URL.format(
             initial=last_name_initial, player_code=player_code
         )
-        html = _goto_and_get_stable_html(page, url)
-        assert html is not None, "Failed to retrieve HTML content"
-        soup = BeautifulSoup(html, "html.parser")
-    table = soup.find("table", id=table_id)
-    if table is None:
-        for table in soup.find_all("table"):
-            print(table.get("id"))
+    )
+    polars_data = None
+    if resp:
+        table_html = get_bref_table_html(resp.text, table_id)
+        if table_html:
+            table_soup = BeautifulSoup(table_html, "html.parser")
+            polars_data = _extract_table(table_soup)
+    if not polars_data:
         raise ValueError(
             f"Failed to find table with id {table_id}. Check notes on metric_type and position parameters in the docstring and ensure the specified player has data for the requested metric family and position."
         )
-    data = _extract_table(table)
-    df = pl.DataFrame(data)
+
+    df = pl.DataFrame(polars_data)
     df = df.select(pl.all().name.map(lambda col_name: col_name.replace("f_", "")))
     df = df.select(pl.all().name.map(lambda col_name: col_name.replace("_abbr", "")))
     return df

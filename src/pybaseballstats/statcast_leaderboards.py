@@ -57,7 +57,7 @@ def park_factor_dimensions_leaderboard(
         browser = p.chromium.launch()
         page = browser.new_page()
         try:
-            page.goto(url, wait_until="networkidle")
+            page.goto(url, wait_until="domcontentloaded")
             page.wait_for_selector("#parkFactors")
 
             table_html = page.inner_html("#parkFactors")
@@ -743,3 +743,7 @@ def arm_strength_leaderboard(
             ]
         )
     return df
+
+
+if __name__ == "__main__":
+    print(park_factor_dimensions_leaderboard(season=2025, metric="distance"))

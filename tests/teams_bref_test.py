@@ -33,7 +33,7 @@ def test_schedule_results():
 def test_roster_and_appearances():
     with pytest.raises(ValueError):
         bt.roster_and_appearances(team="XXX", year=2023)
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         bt.roster_and_appearances(team=bt.BREFTeams.ANGELS, year=1800)
     with pytest.raises(ValueError):
         bt.roster_and_appearances(team=None, year=2025)
@@ -192,6 +192,7 @@ def test_fielding_invalid_metric_type():
 # endregion
 
 
+# region batting function tests
 def test_batting_bad_inputs():
     with pytest.raises(ValueError):
         bt.batting(team="XXX", year=2023)
@@ -232,3 +233,6 @@ def test_batting():
     assert (
         "League Average" not in df.select(pl.col("player_name")).to_series().to_list()
     )
+
+
+# endregion
