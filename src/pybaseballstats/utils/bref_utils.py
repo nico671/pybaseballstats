@@ -1,59 +1,53 @@
-import os
 import random
 import re
-import sys
 import time
 from collections import deque
-from contextlib import contextmanager
 from datetime import datetime, timedelta
 from threading import Lock
-from typing import Any, Generic, Iterator, TypeVar
+from typing import Any, Generic, TypeVar
 
 import polars as pl
+from bs4 import BeautifulSoup, Comment
 from curl_cffi import requests
-from playwright.sync_api import (
-    Browser,
-    BrowserContext,
-    Page,
-    Playwright,
-    sync_playwright,
-)
 from playwright.sync_api import (
     TimeoutError as PlaywrightTimeoutError,
 )
+from playwright.sync_api import (
+    sync_playwright,
+)
+from playwright_stealth import Stealth  # type: ignore[import-untyped]
 
 from pybaseballstats.consts.bref_consts import BREF_TEAM_CODE_SWITCHES, BREFTeams
 
+# def _is_bref_temporarily_disabled() -> bool:
+#     """Return whether Baseball Reference scraping is temporarily disabled.
 
-def _is_bref_temporarily_disabled() -> bool:
-    """Return whether Baseball Reference scraping is temporarily disabled.
-
-    By default this hotfix disables BREF-backed endpoints due to upstream
-    anti-bot protections. Set ``PYBASEBALLSTATS_ENABLE_BREF=1`` to opt in
-    locally while investigating a long-term workaround.
-    """
-    raw_value = os.getenv("PYBASEBALLSTATS_ENABLE_BREF", "0").strip().lower()
-    return raw_value not in {"1", "true", "yes", "on"}
-
-
-def _ensure_bref_enabled() -> None:
-    """Raise a clear error when BREF endpoints are temporarily disabled."""
-    if _is_bref_temporarily_disabled():
-        raise RuntimeError(
-            "Baseball Reference support is temporarily disabled in this release "
-            "due to upstream anti-bot protections. "
-            "Set PYBASEBALLSTATS_ENABLE_BREF=1 to re-enable at your own risk."
-        )
+#     By default this hotfix disables BREF-backed endpoints due to upstream
+#     anti-bot protections. Set ``PYBASEBALLSTATS_ENABLE_BREF=1`` to opt in
+#     locally while investigating a long-term workaround.
+#     """
+#     raw_value = os.getenv("PYBASEBALLSTATS_ENABLE_BREF", "0").strip().lower()
+#     return raw_value not in {"1", "true", "yes", "on"}
 
 
-def _is_testing_mode() -> bool:
-    """Return True when running in explicit test mode (preferred) or under pytest."""
-    return "pytest" in sys.modules
+# def _ensure_bref_enabled() -> None:
+#     """Raise a clear error when BREF endpoints are temporarily disabled."""
+#     if _is_bref_temporarily_disabled():
+#         raise RuntimeError(
+#             "Baseball Reference support is temporarily disabled in this release "
+#             "due to upstream anti-bot protections. "
+#             "Set PYBASEBALLSTATS_ENABLE_BREF=1 to re-enable at your own risk."
+#         )
 
 
-def _default_bref_rate_limit() -> int:
-    """Choose default request limit based on runtime context."""
-    return 10 if _is_testing_mode() else 5
+# def _is_testing_mode() -> bool:
+#     """Return True when running in explicit test mode (preferred) or under pytest."""
+#     return "pytest" in sys.modules
+
+
+# def _default_bref_rate_limit() -> int:
+#     """Choose default request limit based on runtime context."""
+#     return 10 if _is_testing_mode() else 5
 
 
 # https://stackoverflow.com/questions/31875/is-there-a-simple-elegant-way-to-define-singletons
@@ -98,42 +92,23 @@ class Singleton(Generic[T]):
         return isinstance(inst, self._decorated)
 
 
-# https://github.com/jldbc/pybaseball/blob/master/pybaseball/datasources/bref.py
 @Singleton
 class BREFSession:
     """
-    A singleton class to manage both requests and Selenium driver instances with rate limiting.
+    A singleton class to manage requests, rate limiting, and automated
+    Cloudflare bypassing via Playwright.
     """
 
     def __init__(
         self,
-        max_req_per_minute: int
-        | None = None,  # requests allowed per minute is 10 but we use 5 to be safe and account for retries
     ) -> None:
-        resolved_limit = (
-            max_req_per_minute
-            if max_req_per_minute is not None
-            else _default_bref_rate_limit()
-        )
-        self.max_req_per_minute: int = resolved_limit
-        self.request_timestamps: deque[datetime] = deque(maxlen=resolved_limit)
+        self.max_req_per_minute: int = 5
+        self.request_timestamps: deque[datetime] = deque(maxlen=5)
+
+        # Initialize pure curl_cffi session with no manual headers
         self.session: requests.Session = requests.Session()
-        # Playwright browser management
-        self._playwright: Playwright | None = None
-        self._browser: Browser | None = None
-        self._context: BrowserContext | None = None
-        self._page: Page | None = None
+
         self._lock = Lock()
-        # Set common headers to appear more browser-like
-        self.session.headers.update(
-            {
-                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-                "Accept-Language": "en-US,en;q=0.5",
-                "Accept-Encoding": "gzip, deflate",
-                "Connection": "keep-alive",
-                "Upgrade-Insecure-Requests": "1",
-            }
-        )
 
     def _rate_limit(self) -> None:
         """Block until it's safe to make another request."""
@@ -165,90 +140,230 @@ class BREFSession:
                     self.request_timestamps.popleft()
             self.request_timestamps.append(current_time)
 
-    def get(self, url: str, **kwargs: Any) -> requests.Response | None:
-        """Make an HTTP request with rate limiting."""
-        _ensure_bref_enabled()
-        # call rate limit before making the request
-        self._rate_limit()
+    def _is_cloudflare_challenge(self, response: requests.Response) -> bool:
+        """Check if the response is a Cloudflare block/challenge."""
+        if response.status_code in (403, 503):
+            return True
+        # Cloudflare challenges often return 200 but contain specific text
+        text = response.text.lower()
+        if (
+            "just a moment" in text
+            or "attention required" in text
+            or "cloudflare" in text
+        ):
+            return True
+        return False
+
+    def _solve_cloudflare_challenge(self, url: str) -> None:
+        """Spin up an ephemeral, stealthed Playwright instance to bypass Cloudflare."""
+        print(f"\n[DEBUG] === Initiating Cloudflare Bypass for {url} ===")
+
+        import time
+
         try:
-            # Add Referer header if not present
-            if "headers" not in kwargs:
-                kwargs["headers"] = {}
-            if "Referer" not in kwargs["headers"]:
-                kwargs["headers"]["Referer"] = "https://www.baseball-reference.com/"
-            resp = self.session.get(url, impersonate="chrome", **kwargs)
+            with Stealth().use_sync(sync_playwright()) as p:
+                print(
+                    "[DEBUG] Launching visible browser with automation flags disabled..."
+                )
+                browser = p.chromium.launch(
+                    headless=True,
+                    args=[
+                        "--disable-blink-features=AutomationControlled",
+                        "--disable-popup-blocking",
+                    ],
+                )
+
+                context = browser.new_context(
+                    user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                    viewport={"width": 1280, "height": 720},
+                )
+                page = context.new_page()
+
+                print("[DEBUG] Navigating to target URL...")
+                page.goto(url, wait_until="domcontentloaded")
+
+                start_time = time.time()
+                max_wait = 45
+
+                while time.time() - start_time < max_wait:
+                    # 1. Victory Check
+                    if page.locator("table, #footer").count() > 0:
+                        print("\n[SUCCESS] Clearance achieved! Target page loaded.")
+                        break
+
+                    # 2. Element Scans
+                    cf_iframes = page.frame_locator(
+                        "iframe[src*='challenges'], iframe[src*='turnstile']"
+                    )
+                    shadow_turnstile = page.locator(
+                        "input[name='cf-turnstile-response']"
+                    )
+
+                    iframe_count = page.locator(
+                        "iframe[src*='challenges'], iframe[src*='turnstile']"
+                    ).count()
+                    shadow_count = shadow_turnstile.count()
+
+                    print(
+                        f"[DEBUG] Scan -> Iframes found: {iframe_count} | Hidden Shadow inputs found: {shadow_count}"
+                    )
+
+                    try:
+                        target_x, target_y = None, None
+
+                        # Scenario A: Closed Shadow DOM
+                        if shadow_count > 0:
+                            parent_div = shadow_turnstile.first.locator("..")
+                            box = parent_div.bounding_box()
+                            print(f"[DEBUG] Shadow DOM parent bounding box: {box}")
+
+                            if box and box["width"] > 0:
+                                target_x = box["x"] + 30 + random.uniform(-5, 5)
+                                target_y = (
+                                    box["y"]
+                                    + (box["height"] / 2)
+                                    + random.uniform(-5, 5)
+                                )
+                                print(
+                                    f"[DEBUG] Calculated Shadow Target: X={target_x:.1f}, Y={target_y:.1f}"
+                                )
+
+                        # Scenario B: Standard iframe
+                        elif iframe_count > 0:
+                            checkbox = cf_iframes.locator(
+                                ".cb-c, input[type='checkbox']"
+                            ).first
+                            if checkbox.is_visible(timeout=2000):
+                                box = checkbox.bounding_box()
+                                print(
+                                    f"[DEBUG] Standard Iframe checkbox bounding box: {box}"
+                                )
+                                if box:
+                                    target_x = (
+                                        box["x"]
+                                        + (box["width"] / 2)
+                                        + random.uniform(-5, 5)
+                                    )
+                                    target_y = (
+                                        box["y"]
+                                        + (box["height"] / 2)
+                                        + random.uniform(-5, 5)
+                                    )
+                                    print(
+                                        f"[DEBUG] Calculated Iframe Target: X={target_x:.1f}, Y={target_y:.1f}"
+                                    )
+
+                        # 3. Execution
+                        if target_x is not None and target_y is not None:
+                            print(
+                                "\n[ACTION] Target locked. Injecting visual debug dot..."
+                            )
+
+                            page.wait_for_timeout(random.randint(1000, 2000))
+
+                            print("[ACTION] Moving mouse...")
+                            page.mouse.move(
+                                target_x, target_y, steps=random.randint(15, 30)
+                            )
+                            page.wait_for_timeout(random.randint(200, 500))
+
+                            print("[ACTION] Clicking...")
+                            page.mouse.down()
+                            page.wait_for_timeout(random.randint(40, 120))
+                            page.mouse.up()
+
+                            page.mouse.move(
+                                target_x + random.randint(100, 300),
+                                target_y + random.randint(100, 300),
+                                steps=random.randint(10, 20),
+                            )
+
+                            print(
+                                "[ACTION] Click complete. Waiting 4 seconds for Cloudflare response...\n"
+                            )
+                            page.wait_for_timeout(4000)
+                            continue
+
+                    except Exception as e:
+                        print(f"[DEBUG] Exception during targeting/clicking: {e}")
+
+                    page.wait_for_timeout(1500)
+
+                if page.locator("table, #footer").count() == 0:
+                    print(
+                        "\n[WARNING] Loop timed out. Saving debug screenshot to 'cf_timeout_debug.png'"
+                    )
+
+                print("[DEBUG] Extracting cookies...")
+                for cookie in context.cookies():
+                    self.session.cookies.set(
+                        cookie["name"], cookie["value"], domain=cookie["domain"]
+                    )
+                print("[DEBUG] === Bypass Process Complete ===\n")
+
+        except PlaywrightTimeoutError:
+            print("\n[ERROR] Playwright timed out completely.")
+        except Exception as e:
+            print(f"\n[ERROR] Critical failure: {e}")
+
+    def get(self, url: str, **kwargs: Any) -> requests.Response | None:
+        """Make an HTTP request with automatic Waterfall escalation."""
+        # _ensure_bref_enabled()
+        self._rate_limit()
+
+        try:
+            # ATTEMPT 1: Fast curl_cffi
+            resp = self.session.get(url, impersonate="chrome120", **kwargs)
+
+            # Check for block
+            if self._is_cloudflare_challenge(resp):
+                # ATTEMPT 2: The Waterfall Escalation
+                with self._lock:
+                    self._solve_cloudflare_challenge(url)
+
+                # Retry the fast request now that our session has the cf_clearance cookie
+                self._rate_limit()
+                resp = self.session.get(url, impersonate="chrome120", **kwargs)
+
             resp.raise_for_status()
             return resp
+
         except requests.exceptions.HTTPError as e:
-            if e.response.status_code == 429:  # error for too many requests
-                print(
-                    f"Received 429 Too Many Requests for {url}. Consider increasing the delay between requests."
-                )
+            if e.response.status_code == 429:
+                print(f"Received 429 Too Many Requests for {url}. Backing off.")
+            else:
+                print(f"HTTP Error fetching {url}: {e}")
         except Exception as e:
             print(f"Error fetching {url}: {e}")
+
         return None
 
-    def _ensure_browser_initialized(self) -> None:
-        """Initialize browser if not already done."""
-        if self._browser is None or not self._browser.is_connected():
-            if self._browser:
-                self._cleanup_browser()
 
-            playwright = sync_playwright().start()
-            browser = playwright.chromium.launch(headless=True)
-            context = browser.new_context(
-                user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            )
-            page = context.new_page()
-            page.set_default_navigation_timeout(30000)
-            page.set_default_timeout(20000)
+def get_bref_table_html(html_content: str, table_id: str) -> str | None:
+    """
+    Extracts a specific table from Baseball Reference HTML.
+    Checks the standard DOM first, then searches inside HTML comments
+    for lazy-loaded tables.
+    """
+    soup = BeautifulSoup(html_content, "html.parser")
 
-            self._playwright = playwright
-            self._browser = browser
-            self._context = context
-            self._page = page
+    # 1. Check if the table is normally rendered in the DOM
+    target_table = soup.find("table", id=table_id)
+    if target_table:
+        return str(target_table)
 
-    def _cleanup_browser(self) -> None:
-        """Clean up browser resources."""
-        if self._page:
-            self._page.close()
-            self._page = None
-        if self._context:
-            self._context.close()
-            self._context = None
-        if self._browser:
-            self._browser.close()
-            self._browser = None
-        if self._playwright:
-            self._playwright.stop()
-            self._playwright = None
+    # 2. If not found, it is likely hidden inside an HTML comment
+    comments = soup.find_all(string=lambda text: isinstance(text, Comment))
+    for comment in comments:
+        if f'id="{table_id}"' in comment or f"id='{table_id}'" in comment:
+            # Parse the hidden HTML
+            hidden_soup = BeautifulSoup(comment, "html.parser")
+            hidden_table = hidden_soup.find("table", id=table_id)
+            if hidden_table:
+                return str(hidden_table)
 
-    @contextmanager
-    def get_page(self) -> Iterator[Page]:
-        """Context manager for Playwright page with rate limiting."""
-        _ensure_bref_enabled()
-        self._rate_limit()
-
-        with self._lock:
-            try:
-                self._ensure_browser_initialized()
-                if self._page is None:
-                    raise RuntimeError("Failed to initialize Playwright page")
-                yield self._page
-            except Exception as e:
-                print(f"Browser error occurred: {e}")
-                # Try to reinitialize browser on error
-                self._cleanup_browser()
-                raise
-
-    def close_browser(self) -> None:
-        """Manually close the browser session."""
-        with self._lock:
-            self._cleanup_browser()
-
-    def __del__(self):
-        """Cleanup when the singleton is destroyed."""
-        self._cleanup_browser()
+    print(f"Table with id '{table_id}' not found in DOM or comments.")
+    return None
 
 
 _INT_PATTERN = re.compile(r"^[+-]?\d+$")
@@ -409,68 +524,3 @@ def resolve_bref_team_code(team: BREFTeams, year: int) -> str:
     raise ValueError(
         f"No Baseball Reference team code mapping found for {team.name} in {year}."
     )
-
-
-def _goto_and_get_stable_html(
-    page: Page,
-    url: str,
-    *,
-    timeout_ms: int = 20000,
-    poll_interval_ms: int = 200,
-    consecutive_stable_checks: int = 2,
-    require_table_presence: bool = True,
-) -> str:
-    """Navigate to a page and wait for stable DOM content.
-
-    This avoids relying on ``networkidle`` (which can be brittle on pages with
-    ongoing background requests) and avoids endpoint-specific selectors.
-
-    Stability is determined by repeated checks where both:
-    - HTML content length, and
-    - ``document.querySelectorAll('table').length``
-    remain unchanged for ``consecutive_stable_checks`` polls.
-    """
-    _ensure_bref_enabled()
-
-    effective_timeout_ms = timeout_ms
-    if os.getenv("CI", "").lower() == "true":
-        # CI runners are generally slower and network variability is higher.
-        effective_timeout_ms = max(timeout_ms, 45000)
-
-    page.goto(url, wait_until="domcontentloaded")
-    try:
-        page.wait_for_function(
-            "() => document.readyState === 'complete'",
-            timeout=effective_timeout_ms,
-        )
-    except PlaywrightTimeoutError:
-        # Do not fail immediately; some pages still expose enough stable DOM
-        # content for parsing even when full load completion lags.
-        pass
-
-    start_time = time.monotonic()
-    stable_checks = 0
-    previous_signature: tuple[int, int] | None = None
-
-    while (time.monotonic() - start_time) * 1000 < effective_timeout_ms:
-        table_count = page.evaluate("() => document.querySelectorAll('table').length")
-        html = page.content()
-        signature = (len(html), int(table_count))
-
-        has_required_content = (
-            signature[1] > 0 if require_table_presence else signature[0] > 0
-        )
-
-        if has_required_content and signature == previous_signature:
-            stable_checks += 1
-            if stable_checks >= consecutive_stable_checks:
-                return html
-        else:
-            stable_checks = 0
-
-        previous_signature = signature
-        page.wait_for_timeout(poll_interval_ms)
-
-    # Fall back to the latest content on timeout so callers can still attempt
-    # parsing and raise domain-specific errors if needed.
-    return page.content()
