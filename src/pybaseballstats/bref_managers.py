@@ -15,11 +15,12 @@ session = BREFSession.instance()  # type: ignore[attr-defined]
 __all__ = ["managers_basic_data", "managers_tendencies_data"]
 
 
-def managers_basic_data(year: int) -> pl.DataFrame:
+def managers_basic_data(year: int, verbose: bool = False) -> pl.DataFrame:
     """Return basic MLB manager statistics for a season.
 
     Args:
         year (int): Season year.
+        verbose (bool, optional): If True, print debug information during the request process. Defaults to False. Useful for troubleshooting Cloudflare blocks.
 
     Raises:
         ValueError: If ``year`` is not provided.
@@ -35,7 +36,7 @@ def managers_basic_data(year: int) -> pl.DataFrame:
         raise TypeError("Year must be an integer")
     if year < 1871:
         raise ValueError("Year must be greater than 1871")
-
+    session.set_verbose(verbose)
     resp = session.get(BREF_MANAGERS_GENERAL_URL.format(year=year))
     polars_data = None
     if resp:
@@ -57,11 +58,12 @@ def managers_basic_data(year: int) -> pl.DataFrame:
     return df
 
 
-def managers_tendencies_data(year: int) -> pl.DataFrame:
+def managers_tendencies_data(year: int, verbose: bool = False) -> pl.DataFrame:
     """Return MLB manager tendencies for a season.
 
     Args:
         year (int): Season year.
+        verbose (bool, optional): If True, print debug information during the request process. Defaults to False. Useful for troubleshooting Cloudflare blocks.
 
     Raises:
         ValueError: If ``year`` is not provided.
@@ -77,7 +79,7 @@ def managers_tendencies_data(year: int) -> pl.DataFrame:
         raise TypeError("Year must be an integer")
     if year < 1871:
         raise ValueError("Year must be greater than 1871")
-
+    session.set_verbose(verbose)
     resp = session.get(BREF_MANAGER_TENDENCIES_URL.format(year=year))
     soup = BeautifulSoup(resp.content, "html.parser")
     table = soup.find("table", {"id": "manager_tendencies"})

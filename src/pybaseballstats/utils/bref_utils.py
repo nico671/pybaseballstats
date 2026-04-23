@@ -19,37 +19,6 @@ from playwright_stealth import Stealth  # type: ignore[import-untyped]
 
 from pybaseballstats.consts.bref_consts import BREF_TEAM_CODE_SWITCHES, BREFTeams
 
-# def _is_bref_temporarily_disabled() -> bool:
-#     """Return whether Baseball Reference scraping is temporarily disabled.
-
-#     By default this hotfix disables BREF-backed endpoints due to upstream
-#     anti-bot protections. Set ``PYBASEBALLSTATS_ENABLE_BREF=1`` to opt in
-#     locally while investigating a long-term workaround.
-#     """
-#     raw_value = os.getenv("PYBASEBALLSTATS_ENABLE_BREF", "0").strip().lower()
-#     return raw_value not in {"1", "true", "yes", "on"}
-
-
-# def _ensure_bref_enabled() -> None:
-#     """Raise a clear error when BREF endpoints are temporarily disabled."""
-#     if _is_bref_temporarily_disabled():
-#         raise RuntimeError(
-#             "Baseball Reference support is temporarily disabled in this release "
-#             "due to upstream anti-bot protections. "
-#             "Set PYBASEBALLSTATS_ENABLE_BREF=1 to re-enable at your own risk."
-#         )
-
-
-# def _is_testing_mode() -> bool:
-#     """Return True when running in explicit test mode (preferred) or under pytest."""
-#     return "pytest" in sys.modules
-
-
-# def _default_bref_rate_limit() -> int:
-#     """Choose default request limit based on runtime context."""
-#     return 10 if _is_testing_mode() else 5
-
-
 # https://stackoverflow.com/questions/31875/is-there-a-simple-elegant-way-to-define-singletons
 T = TypeVar("T")
 
@@ -109,6 +78,11 @@ class BREFSession:
         self.session: requests.Session = requests.Session()
 
         self._lock = Lock()
+        self.verbose = False
+
+    def set_verbose(self, verbose: bool) -> None:
+        """Enable or disable verbose logging for debugging."""
+        self.verbose = verbose
 
     def _rate_limit(self) -> None:
         """Block until it's safe to make another request."""
@@ -119,13 +93,14 @@ class BREFSession:
             # loop to remove timestamps older than 1 minute
             while self.request_timestamps and self.request_timestamps[0] < window_start:
                 self.request_timestamps.popleft()
-
+            # ensures no more than max_req_per_minute requests are made in any rolling 1-minute window
             if len(self.request_timestamps) >= self.max_req_per_minute:
                 oldest_request_time = self.request_timestamps[0]
                 wait_time = 60 - (current_time - oldest_request_time).total_seconds()
                 wait_time = max(wait_time, 0)
                 if wait_time > 0:
-                    print(f"Rate limit reached, sleeping {wait_time:.2f}s")
+                    if self.verbose:
+                        print(f"Rate limit reached, sleeping {wait_time:.2f}s")
                     time.sleep(
                         wait_time + random.uniform(0.5, 1.5)
                     )  # add a bit of jitter
@@ -138,6 +113,19 @@ class BREFSession:
                     and self.request_timestamps[0] < window_start
                 ):
                     self.request_timestamps.popleft()
+            # ensure it has been at least 3 seconds since the last request to avoid hitting Baseball References's rate limits
+            if (
+                self.request_timestamps
+                and (current_time - self.request_timestamps[-1]).total_seconds() < 3
+            ):
+                wait_time = (
+                    3 - (current_time - self.request_timestamps[-1]).total_seconds()
+                )
+                if self.verbose:
+                    print(
+                        f"Enforcing 3-second gap between requests, sleeping ~{wait_time:.2f}s"
+                    )
+                time.sleep(wait_time + random.uniform(0.5, 1.5))  # add a bit of jitter
             self.request_timestamps.append(current_time)
 
     def _is_cloudflare_challenge(self, response: requests.Response) -> bool:
@@ -156,15 +144,17 @@ class BREFSession:
 
     def _solve_cloudflare_challenge(self, url: str) -> None:
         """Spin up an ephemeral, stealthed Playwright instance to bypass Cloudflare."""
-        print(f"\n[DEBUG] === Initiating Cloudflare Bypass for {url} ===")
+        if self.verbose:
+            print(f"\n[DEBUG] === Initiating Cloudflare Bypass for {url} ===")
 
         import time
 
         try:
             with Stealth().use_sync(sync_playwright()) as p:
-                print(
-                    "[DEBUG] Launching visible browser with automation flags disabled..."
-                )
+                if self.verbose:
+                    print(
+                        "[DEBUG] Launching visible browser with automation flags disabled..."
+                    )
                 browser = p.chromium.launch(
                     headless=True,
                     args=[
@@ -179,7 +169,8 @@ class BREFSession:
                 )
                 page = context.new_page()
 
-                print("[DEBUG] Navigating to target URL...")
+                if self.verbose:
+                    print("[DEBUG] Navigating to target URL...")
                 page.goto(url, wait_until="domcontentloaded")
 
                 start_time = time.time()
@@ -188,7 +179,8 @@ class BREFSession:
                 while time.time() - start_time < max_wait:
                     # 1. Victory Check
                     if page.locator("table, #footer").count() > 0:
-                        print("\n[SUCCESS] Clearance achieved! Target page loaded.")
+                        if self.verbose:
+                            print("\n[SUCCESS] Clearance achieved! Target page loaded.")
                         break
 
                     # 2. Element Scans
@@ -204,9 +196,10 @@ class BREFSession:
                     ).count()
                     shadow_count = shadow_turnstile.count()
 
-                    print(
-                        f"[DEBUG] Scan -> Iframes found: {iframe_count} | Hidden Shadow inputs found: {shadow_count}"
-                    )
+                    if self.verbose:
+                        print(
+                            f"[DEBUG] Scan -> Iframes found: {iframe_count} | Hidden Shadow inputs found: {shadow_count}"
+                        )
 
                     try:
                         target_x, target_y = None, None
@@ -215,7 +208,8 @@ class BREFSession:
                         if shadow_count > 0:
                             parent_div = shadow_turnstile.first.locator("..")
                             box = parent_div.bounding_box()
-                            print(f"[DEBUG] Shadow DOM parent bounding box: {box}")
+                            if self.verbose:
+                                print(f"[DEBUG] Shadow DOM parent bounding box: {box}")
 
                             if box and box["width"] > 0:
                                 target_x = box["x"] + 30 + random.uniform(-5, 5)
@@ -224,9 +218,10 @@ class BREFSession:
                                     + (box["height"] / 2)
                                     + random.uniform(-5, 5)
                                 )
-                                print(
-                                    f"[DEBUG] Calculated Shadow Target: X={target_x:.1f}, Y={target_y:.1f}"
-                                )
+                                if self.verbose:
+                                    print(
+                                        f"[DEBUG] Calculated Shadow Target: X={target_x:.1f}, Y={target_y:.1f}"
+                                    )
 
                         # Scenario B: Standard iframe
                         elif iframe_count > 0:
@@ -235,9 +230,10 @@ class BREFSession:
                             ).first
                             if checkbox.is_visible(timeout=2000):
                                 box = checkbox.bounding_box()
-                                print(
-                                    f"[DEBUG] Standard Iframe checkbox bounding box: {box}"
-                                )
+                                if self.verbose:
+                                    print(
+                                        f"[DEBUG] Standard Iframe checkbox bounding box: {box}"
+                                    )
                                 if box:
                                     target_x = (
                                         box["x"]
@@ -249,25 +245,29 @@ class BREFSession:
                                         + (box["height"] / 2)
                                         + random.uniform(-5, 5)
                                     )
-                                    print(
-                                        f"[DEBUG] Calculated Iframe Target: X={target_x:.1f}, Y={target_y:.1f}"
-                                    )
+                                    if self.verbose:
+                                        print(
+                                            f"[DEBUG] Calculated Iframe Target: X={target_x:.1f}, Y={target_y:.1f}"
+                                        )
 
                         # 3. Execution
                         if target_x is not None and target_y is not None:
-                            print(
-                                "\n[ACTION] Target locked. Injecting visual debug dot..."
-                            )
+                            if self.verbose:
+                                print(
+                                    "\n[ACTION] Target locked. Injecting visual debug dot..."
+                                )
 
                             page.wait_for_timeout(random.randint(1000, 2000))
 
-                            print("[ACTION] Moving mouse...")
+                            if self.verbose:
+                                print("[ACTION] Moving mouse...")
                             page.mouse.move(
                                 target_x, target_y, steps=random.randint(15, 30)
                             )
                             page.wait_for_timeout(random.randint(200, 500))
 
-                            print("[ACTION] Clicking...")
+                            if self.verbose:
+                                print("[ACTION] Clicking...")
                             page.mouse.down()
                             page.wait_for_timeout(random.randint(40, 120))
                             page.mouse.up()
@@ -278,28 +278,32 @@ class BREFSession:
                                 steps=random.randint(10, 20),
                             )
 
-                            print(
-                                "[ACTION] Click complete. Waiting 4 seconds for Cloudflare response...\n"
-                            )
-                            page.wait_for_timeout(4000)
+                            if self.verbose:
+                                print(
+                                    "[ACTION] Click complete. Waiting ~5 seconds for Cloudflare response...\n"
+                                )
+                            page.wait_for_timeout(5000 + random.randint(500, 1500))
                             continue
 
                     except Exception as e:
-                        print(f"[DEBUG] Exception during targeting/clicking: {e}")
+                        if self.verbose:
+                            print(f"[DEBUG] Exception during targeting/clicking: {e}")
 
                     page.wait_for_timeout(1500)
 
                 if page.locator("table, #footer").count() == 0:
-                    print(
-                        "\n[WARNING] Loop timed out. Saving debug screenshot to 'cf_timeout_debug.png'"
-                    )
-
-                print("[DEBUG] Extracting cookies...")
+                    if self.verbose:
+                        print(
+                            "\n[WARNING] Loop timed out. Saving debug screenshot to 'cf_timeout_debug.png'"
+                        )
+                if self.verbose:
+                    print("[DEBUG] Extracting cookies...")
                 for cookie in context.cookies():
                     self.session.cookies.set(
                         cookie["name"], cookie["value"], domain=cookie["domain"]
                     )
-                print("[DEBUG] === Bypass Process Complete ===\n")
+                if self.verbose:
+                    print("[DEBUG] === Bypass Process Complete ===\n")
 
         except PlaywrightTimeoutError:
             print("\n[ERROR] Playwright timed out completely.")

@@ -36,7 +36,7 @@ __all__ = [
 # region random functions
 
 
-def batting_orders(team: BREFTeams, year: int) -> pl.DataFrame:
+def batting_orders(team: BREFTeams, year: int, verbose: bool = False) -> pl.DataFrame:
     """Return a per-game batting-orders table for a team season.
 
     The function extracts the Baseball Reference table with class ``grid_table``
@@ -69,6 +69,7 @@ def batting_orders(team: BREFTeams, year: int) -> pl.DataFrame:
 
     team_code = resolve_bref_team_code(team=team, year=year)
     url = f"https://www.baseball-reference.com/teams/{team_code}/{year}-batting-orders.shtml"
+    session.set_verbose(verbose)
     resp = session.get(url)
     if resp is None:
         raise ValueError(f"Failed to fetch batting orders for {team.name} in {year}.")
@@ -180,12 +181,15 @@ def batting_orders(team: BREFTeams, year: int) -> pl.DataFrame:
     return pl.DataFrame(rows)
 
 
-def game_by_game_schedule_results(team: BREFTeams, year: int) -> pl.DataFrame:
+def game_by_game_schedule_results(
+    team: BREFTeams, year: int, verbose: bool = False
+) -> pl.DataFrame:
     """Return game-by-game schedule/results for a team season.
 
     Args:
         team (BREFTeams): Team enum value.
         year (int): MLB season year.
+        verbose (bool, optional): If True, print debug information during the request process. Defaults to False. Useful for troubleshooting Cloudflare blocks.
 
     Raises:
         ValueError: If ``team`` is not a ``BREFTeams`` value.
@@ -199,7 +203,9 @@ def game_by_game_schedule_results(team: BREFTeams, year: int) -> pl.DataFrame:
         raise ValueError("Team must be a member of the BREFTeams enum")
     team_code = resolve_bref_team_code(team=team, year=year)
     url = BREF_TEAMS_SCHEDULE_RESULTS_URL.format(team_code=team_code, year=year)
+    session.set_verbose(verbose)
     resp = session.get(url)
+
     if resp is None:
         raise ValueError(f"Failed to fetch data for {team.name} in {year}.")
 
@@ -215,12 +221,15 @@ def game_by_game_schedule_results(team: BREFTeams, year: int) -> pl.DataFrame:
     return df
 
 
-def roster_and_appearances(team: BREFTeams, year: int) -> pl.DataFrame:
+def roster_and_appearances(
+    team: BREFTeams, year: int, verbose: bool = False
+) -> pl.DataFrame:
     """Return roster and appearances data for a team season.
 
     Args:
         team (BREFTeams): Team enum value.
         year (int): MLB season year.
+        verbose (bool, optional): If True, print debug information during the request process. Defaults to False. Useful for troubleshooting Cloudflare blocks.
 
     Raises:
         ValueError: If ``team`` is not a ``BREFTeams`` value.
@@ -234,6 +243,7 @@ def roster_and_appearances(team: BREFTeams, year: int) -> pl.DataFrame:
     team_code = resolve_bref_team_code(team=team, year=year)
     polars_data = None
     url = BREF_TEAMS_ROSTER_URL.format(team_code=team_code, year=year)
+    session.set_verbose(verbose)
     resp = session.get(url)
     if resp:
         table_html = get_bref_table_html(resp.text, "appearances")
@@ -266,6 +276,7 @@ def batting(
         "pitches",
         "cumulative",
     ] = "standard",
+    verbose: bool = False,
 ) -> pl.DataFrame:
     """Return team batting statistics for one season and metric family.
 
@@ -273,6 +284,10 @@ def batting(
         team (BREFTeams): Team enum value.
         year (int): MLB season year.
         metric_type (Literal[...], optional): Batting table family to fetch.
+            Supported metric families are ``"standard"``, ``"value"``, ``"advanced"``,
+            ``"sabermetric"``, ``"ratio"``, ``"win_probability"``, ``"baserunning"``,
+            ``"situational"``, ``"pitches"``, and ``"cumulative"``.
+        verbose: (bool, optional): If True, print debug information during the request process. Defaults to False. Useful for troubleshooting Cloudflare blocks.
 
     Raises:
         ValueError: If ``team`` is not a ``BREFTeams`` value.
@@ -308,6 +323,7 @@ def batting(
         team_code=resolve_bref_team_code(team, year=year), year=year
     )
     table_id = f"players_{metric_type}_batting"
+    session.set_verbose(verbose)
     resp = session.get(url)
     polars_data = None
     if resp:
@@ -354,6 +370,7 @@ def pitching(
         "baserunning_situational",
         "cumulative",
     ] = "standard",
+    verbose: bool = False,
 ) -> pl.DataFrame:
     """Return team pitching statistics for one season and metric family.
 
@@ -361,6 +378,10 @@ def pitching(
         team (BREFTeams): Team enum value.
         year (int): MLB season year.
         metric_type (Literal[...], optional): Pitching table family to fetch.
+            Supported metric families are ``"standard"``, ``"value"``, ``"advanced"``,
+            ``"ratio"``, ``"batting_against"``, ``"win_probability"``, ``"starting"``,
+            ``"relief"``, ``"baserunning_situational"``, and ``"cumulative"``.
+        verbose: (bool, optional): If True, print debug information during the request process. Defaults to False. Useful for troubleshooting Cloudflare blocks.
 
     Raises:
         ValueError: If ``team`` is not a ``BREFTeams`` value.
@@ -409,6 +430,7 @@ def pitching(
     url = BREF_TEAMS_PITCHING_BASE_URL.format(
         team_code=resolve_bref_team_code(team, year=year), year=year
     )
+    session.set_verbose(verbose)
     resp = session.get(url)
     polars_data = None
     if resp:
@@ -492,6 +514,7 @@ def fielding(
         "dh",
         "c_baserunning",
     ] = "",
+    verbose: bool = False,
 ) -> pl.DataFrame:
     """Return team fielding statistics for one season.
 
@@ -506,6 +529,7 @@ def fielding(
             - For ``metric_type="advanced"``: ``"c"``, ``"c_baserunning"``,
               ``"1b"``, ``"2b"``, ``"3b"``, ``"ss"``, ``"lf"``, ``"cf"``,
               ``"rf"``, ``"p"``.
+        verbose (bool, optional): If True, print debug information during the request process. Defaults to False. Useful for troubleshooting Cloudflare blocks.
 
     Raises:
         ValueError: If ``team`` is not a ``BREFTeams`` value.
@@ -579,6 +603,7 @@ def fielding(
     url = BREF_TEAMS_FIELDING_BASE_URL.format(
         team_code=resolve_bref_team_code(team, year=year), year=year
     )
+    session.set_verbose(verbose)
     resp = session.get(url)
     polars_data = None
     if resp:

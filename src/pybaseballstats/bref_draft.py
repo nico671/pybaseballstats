@@ -19,12 +19,15 @@ session = BREFSession.instance()  # type: ignore[attr-defined]
 __all__ = ["BREFTeams", "draft_order_by_year_round", "franchise_draft_order"]
 
 
-def draft_order_by_year_round(year: int, draft_round: int) -> pl.DataFrame:
+def draft_order_by_year_round(
+    year: int, draft_round: int, verbose: bool = False
+) -> pl.DataFrame:
     """Return MLB draft results for a specific year and round.
 
     Args:
         year (int): Draft year.
         draft_round (int): Draft round number.
+        verbose (bool, optional): If True, print debug information during the request process. Defaults to False. Useful for troubleshooting Cloudflare blocks.
 
     Raises:
         ValueError: If ``year`` is earlier than 1965.
@@ -37,6 +40,7 @@ def draft_order_by_year_round(year: int, draft_round: int) -> pl.DataFrame:
         raise ValueError("Draft data is only available from 1965 onwards")
     if draft_round < 1 or draft_round > 60:
         raise ValueError("Draft round must be between 1 and 60")
+    session.set_verbose(verbose)
     resp = session.get(BREF_DRAFT_YEAR_ROUND_URL.format(year=year, round=draft_round))
     polars_data = None
     if resp:
@@ -55,12 +59,15 @@ def draft_order_by_year_round(year: int, draft_round: int) -> pl.DataFrame:
     return df
 
 
-def franchise_draft_order(team: BREFTeams, year: int) -> pl.DataFrame:
+def franchise_draft_order(
+    team: BREFTeams, year: int, verbose: bool = False
+) -> pl.DataFrame:
     """Return MLB draft results for a specific franchise and year.
 
     Args:
         team (BREFTeams): Franchise filter.
         year (int): Draft year.
+        verbose (bool, optional): If True, print debug information during the request process. Defaults to False. Useful for troubleshooting Cloudflare blocks.
 
     Raises:
         ValueError: If ``year`` is earlier than 1965.
@@ -75,6 +82,8 @@ def franchise_draft_order(team: BREFTeams, year: int) -> pl.DataFrame:
         raise ValueError(
             "Team must be a valid BREFTeams enum value. See BREFTeams class for valid values."
         )
+
+    session.set_verbose(verbose)
     resolved_code = resolve_bref_team_code(team=team, year=year)
 
     candidate_codes = [resolved_code]

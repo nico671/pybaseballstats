@@ -37,6 +37,7 @@ def single_player_batting(
         "pitches",
         "cumulative",
     ] = "standard",
+    verbose: bool = False,
 ) -> pl.DataFrame:
     """Return single-player batting statistics for one metric family.
 
@@ -44,6 +45,10 @@ def single_player_batting(
         player_code (str): Baseball Reference player identifier
             (for example ``"troutmi01"``).
         metric_type (Literal[...], optional): Batting table family to fetch.
+            Supported metric families are ``"standard"``, ``"value"``, ``"advanced"``,
+            ``"sabermetric"``, ``"ratio"``, ``"win_probability"``, ``"baserunning"``,
+            ``"situational"``, ``"pitches"``, and ``"cumulative"``.
+        verbose (bool, optional): If True, print debug information during the request process. Defaults to False. Useful for troubleshooting Cloudflare blocks.
 
     Raises:
         ValueError: If ``metric_type`` is not supported.
@@ -66,6 +71,7 @@ def single_player_batting(
     ]:
         raise ValueError(f"Invalid metric type: {metric_type}")
     last_name_initial = player_code[0].lower()
+    session.set_verbose(verbose)
     resp = session.get(
         BREF_SINGLE_PLAYER_BATTING_URL.format(
             initial=last_name_initial, player_code=player_code
@@ -105,6 +111,7 @@ def single_player_pitching(
         "pitches",
         "cumulative",
     ] = "standard",
+    verbose: bool = False,
 ) -> pl.DataFrame:
     """Return single-player pitching statistics for one metric family.
 
@@ -116,7 +123,7 @@ def single_player_pitching(
         player_code (str): Baseball Reference player identifier
             (for example ``"troutmi01"``).
         metric_type (Literal[...], optional): Pitching table family to fetch.
-
+        verbose (bool, optional): If True, print debug information during the request process. Defaults to False. Useful for troubleshooting Cloudflare blocks.
     Raises:
         ValueError: If ``metric_type`` is not supported.
         ValueError: If the requested pitching table is not found.
@@ -137,6 +144,7 @@ def single_player_pitching(
     ]:
         raise ValueError(f"Invalid metric type: {metric_type}")
     last_name_initial = player_code[0].lower()
+    session.set_verbose(verbose)
     resp = session.get(
         BREF_SINGLE_PLAYER_PITCHING_URL.format(
             initial=last_name_initial, player_code=player_code
@@ -176,6 +184,7 @@ def single_player_fielding(
         "3b", "ss", "2b", "1b", "c", "c_baserunning", "lf", "rf", "cf", "p"
     ]
     | None = None,
+    verbose: bool = False,
 ) -> pl.DataFrame:
     """Return single-player fielding statistics for one metric family.
 
@@ -191,7 +200,7 @@ def single_player_fielding(
             when ``metric_type="advanced_at_position"``.
             Valid values are ``"3b"``, ``"ss"``, ``"2b"``, ``"1b"``, ``"c"``,
             ``"c_baserunning"``, ``"lf"``, ``"rf"``, ``"cf"``, and ``"p"``.
-
+        verbose (bool, optional): If True, print debug information during the request process. Defaults to False. Useful for troubleshooting Cloudflare blocks.
     Raises:
         ValueError: If ``metric_type`` is not supported.
         ValueError: If ``position`` is missing for
@@ -249,6 +258,7 @@ def single_player_fielding(
     else:
         table_id = f"advanced_fielding_{position}"
     last_name_initial = player_code[0].lower()
+    session.set_verbose(verbose)
     resp = session.get(
         BREF_SINGLE_PLAYER_FIELDING_URL.format(
             initial=last_name_initial, player_code=player_code
