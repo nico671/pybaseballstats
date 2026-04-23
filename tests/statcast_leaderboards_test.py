@@ -585,3 +585,34 @@ def test_pitch_arsenals_leaderboard():
     assert df.shape[0] == 711
     assert df.shape[1] == 12
     assert df.select(pl.col("player_id").n_unique()).item() == 711
+
+
+def test_pitch_movement_leaderboard_badinputs():
+    with pytest.raises(ValueError):
+        sl.pitch_movement_leaderboard(season=1900)
+    with pytest.raises(ValueError):
+        sl.pitch_movement_leaderboard(season=10000)
+    with pytest.raises(ValueError):
+        sl.pitch_movement_leaderboard(pitch_type="invalid_pitch_type")
+    with pytest.raises(ValueError):
+        sl.pitch_movement_leaderboard(pitcher_handedness="invalid_handedness")
+    with pytest.raises(ValueError):
+        sl.pitch_movement_leaderboard(min_pitches=0)
+    with pytest.raises(ValueError):
+        sl.pitch_movement_leaderboard(min_pitches="100")
+
+
+def test_pitch_movement_leaderboard():
+    df = sl.pitch_movement_leaderboard(
+        season=2023,
+        pitch_type="FF",
+        pitcher_handedness="L",
+        min_pitches=100,
+    )
+    assert df.shape[0] == 132
+    assert df.shape[1] == 24
+    assert df.select(pl.col("pitcher_id").n_unique()).item() == 132
+    assert df.select(pl.col("pitch_type").unique()).item() == "FF"
+    assert df.select(pl.col("pitch_hand").unique()).item() == "L"
+    assert df.select(pl.col("pitches_thrown").min()).item() >= 100
+    assert df.select(pl.col("year").unique()).item() == 2023
