@@ -92,3 +92,4 @@ print(bd.franchise_draft_order(bd.BREFTeams.ANGELS, 2020))  # will print all dra
 3. `franchise_draft_order` requires `team` to be a valid `BREFTeams` enum value.
 4. This package uses the `polars` library for data manipulation. If you wish to convert the returned DataFrame to a pandas DataFrame, you can use the `.to_pandas()` method on the returned DataFrame to convert it.
 5. All functions will automatically handle Baseball Reference rate limiting via shared session utilities.
+6. All functions take in a `verbose` parameter that, when set to True, will print debug information during the request process. This can be useful for troubleshooting Cloudflare blocks.

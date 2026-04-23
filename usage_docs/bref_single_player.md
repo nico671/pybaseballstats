@@ -150,3 +150,4 @@ advanced_lf_field_df = bsp.single_player_fielding(
 3. Batting table columns are normalized by removing Baseball Reference suffix/prefix patterns such as `b_` and `_abbr`.
 4. Pitching table columns are normalized by removing Baseball Reference suffix/prefix patterns such as `_abbr` (and typically `p_`, depending on source table naming).
 5. Fielding table columns are normalized by removing Baseball Reference suffix/prefix patterns such as `f_` and `_abbr`.
+6. All functions take in a `verbose` parameter that, when set to True, will print debug information during the request process. This can be useful for troubleshooting Cloudflare blocks.

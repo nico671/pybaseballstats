@@ -202,3 +202,4 @@ fielding_advanced_c_br_df = bt.fielding(
 2. Several functions use Playwright-backed rendering and can be slower than direct HTTP table reads.
 3. Most batting/pitching/fielding table functions normalize column names by removing Baseball Reference prefixes/suffixes such as `b_`, `p_`, `f_`, and `_abbr`.
 4. Batting and pitching normalize player identity columns to `player_name`.
+5. All functions take in a `verbose` parameter that, when set to True, will print debug information during the request process. This can be useful for troubleshooting Cloudflare blocks.
