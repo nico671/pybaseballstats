@@ -17,6 +17,7 @@ from pybaseballstats.consts.statcast_leaderboard_consts import (
     PARK_FACTOR_DISTANCE_URL,
     PARK_FACTOR_YEARLY_URL,
     PITCH_ARSENALS_LEADERBOARD_URL,
+    PITCH_MOVEMENT_LEADERBOARD_URL,
     SPIN_DIRECTION_LEADERBOARD_URL,
     TIMER_INFRACTIONS_LEADERBOARD_URL,
     StatcastLeaderboardsTeams,
@@ -1090,6 +1091,65 @@ def pitch_arsenals_leaderboard(
                 df = df.with_columns(
                     pl.col(new_col_name).str.replace("", "0").cast(pl.Float64)
                 )
+    return df
+
+
+def pitch_movement_leaderboard(
+    season: int = 2026,  # from 2017 to current year
+    pitch_type: Literal[
+        "FF", "CH", "CU", "FC", "FO", "KN", "SC", "SI", "SL", "SV", "FS", "ST", "ALL"
+    ] = "ALL",
+    pitcher_handedness: Literal["R", "L", "ALL"] = "ALL",
+    min_pitches: int | str = "q",  # must be at least 1 or "q" if str
+) -> pl.DataFrame:
+    # validate season input
+    if season < 2017 or season > datetime.now().year:
+        raise ValueError(f"season must be between 2017 and {datetime.now().year}")
+    # validate pitch_type input
+    valid_pitch_types = [
+        "FF",
+        "SI",
+        "FC",
+        "CH",
+        "FS",
+        "FO",
+        "SC",
+        "CU",
+        "SL",
+        "ST",
+        "SV",
+        "KN",
+        "ALL",
+    ]
+    if pitch_type not in valid_pitch_types:
+        raise ValueError(
+            f"pitch_type must be one of the following options: {valid_pitch_types}"
+        )
+    # validate pitcher_handedness input
+    if pitcher_handedness not in ["R", "L", "ALL"]:
+        raise ValueError("pitcher_handedness must be 'R', 'L', or 'ALL'")
+    throws_param = pitcher_handedness if pitcher_handedness != "ALL" else ""
+    # validate min_pitches input
+    if isinstance(min_pitches, int):
+        if min_pitches < 1:
+            raise ValueError("min_pitches must be at least 1")
+        min_pitches_param = str(min_pitches)
+    elif isinstance(min_pitches, str):
+        if min_pitches != "q":
+            raise ValueError("min_pitches must be a positive integer or 'q'")
+        min_pitches_param = min_pitches
+    else:
+        raise ValueError("min_pitches must be a positive integer or 'q'")
+
+    url = PITCH_MOVEMENT_LEADERBOARD_URL.format(
+        season=season,
+        pitch_type=pitch_type,
+        pitcher_handedness=throws_param,
+        min_pitches=min_pitches_param,
+    )
+    resp = requests.get(url)
+    df = pl.read_csv(io.StringIO(resp.text))
+    df = df.rename({"last_name, first_name": "player_name"})
     return df
 
 
