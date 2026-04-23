@@ -616,3 +616,78 @@ def test_pitch_movement_leaderboard():
     assert df.select(pl.col("pitch_hand").unique()).item() == "L"
     assert df.select(pl.col("pitches_thrown").min()).item() >= 100
     assert df.select(pl.col("year").unique()).item() == 2023
+
+
+def test_pitcher_running_game_leaderboard_badinputs():
+    with pytest.raises(ValueError):
+        sl.pitcher_running_game_leaderboard(start_season=1900, end_season=2025)
+    with pytest.raises(ValueError):
+        sl.pitcher_running_game_leaderboard(start_season=2025, end_season=1900)
+    with pytest.raises(ValueError):
+        sl.pitcher_running_game_leaderboard(
+            start_season=2025, end_season=2025, game_type="invalid_game_type"
+        )
+    with pytest.raises(ValueError):
+        sl.pitcher_running_game_leaderboard(
+            start_season=2025, end_season=2025, group_by="invalid_group_by"
+        )
+    with pytest.raises(ValueError):
+        sl.pitcher_running_game_leaderboard(
+            start_season=2025, end_season=2025, pitcher_handedness="invalid_handedness"
+        )
+    with pytest.raises(ValueError):
+        sl.pitcher_running_game_leaderboard(
+            start_season=2025,
+            end_season=2025,
+            runner_movement="invalid_runner_movement",
+        )
+    with pytest.raises(ValueError):
+        sl.pitcher_running_game_leaderboard(
+            start_season=2025, end_season=2025, target_base="invalid_target_base"
+        )
+    with pytest.raises(ValueError):
+        sl.pitcher_running_game_leaderboard(
+            start_season=2025, end_season=2025, num_prior_disengagements="100"
+        )
+    with pytest.raises(ValueError):
+        sl.pitcher_running_game_leaderboard(
+            start_season=2025, end_season=2025, min_sb_opportunities=0
+        )
+    with pytest.raises(ValueError):
+        sl.pitcher_running_game_leaderboard(
+            start_season=2025, end_season=2025, min_sb_opportunities="100"
+        )
+    with pytest.raises(ValueError):
+        sl.pitcher_running_game_leaderboard(
+            start_season=2025, end_season=2025, team=108
+        )
+    with pytest.raises(ValueError):
+        sl.pitcher_running_game_leaderboard(
+            start_season=2025, end_season=2025, team="Yankees"
+        )
+
+
+def test_pitcher_running_game_leaderboard():
+    df = sl.pitcher_running_game_leaderboard(
+        start_season=2020,
+        end_season=2023,
+        game_type="Regular",
+        group_by="Pit",
+        pitcher_handedness="ALL",
+        runner_movement="All",
+        target_base="All",
+        num_prior_disengagements="All",
+        min_sb_opportunities=10,
+        team="All",
+        split_years=True,
+    )
+    assert df.shape[0] == 3174
+    assert df.shape[1] == 25
+    assert (
+        df.select(pl.col("player_id").n_unique()).item() == 1374
+    )  # less than total rows due to some pitchers appearing in multiple seasons
+    assert df.select(pl.col("team_name").n_unique()).item() == 30
+    assert df.select(pl.col("start_year").min()).item() == 2020
+    assert df.select(pl.col("end_year").max()).item() == 2023
+    assert df.select(pl.col("key_target_base").unique()).item() == "All"
+    assert df.select(pl.col("n_init").min()).item() >= 10

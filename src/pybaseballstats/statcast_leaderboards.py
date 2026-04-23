@@ -18,6 +18,7 @@ from pybaseballstats.consts.statcast_leaderboard_consts import (
     PARK_FACTOR_YEARLY_URL,
     PITCH_ARSENALS_LEADERBOARD_URL,
     PITCH_MOVEMENT_LEADERBOARD_URL,
+    PITCHER_RUNNING_GAME_LEADERBOARD_URL,
     SPIN_DIRECTION_LEADERBOARD_URL,
     TIMER_INFRACTIONS_LEADERBOARD_URL,
     StatcastLeaderboardsTeams,
@@ -1150,6 +1151,113 @@ def pitch_movement_leaderboard(
     resp = requests.get(url)
     df = pl.read_csv(io.StringIO(resp.text))
     df = df.rename({"last_name, first_name": "player_name"})
+    return df
+
+
+def pitcher_running_game_leaderboard(
+    start_season: int,  # from 2016 to current year
+    end_season: int,  # from start_season to current year
+    game_type: Literal["Regular", "Playoff", "All"] = "All",
+    group_by: Literal[
+        "Pit", "Pitching Team", "League"
+    ] = "Pit",  # Pit returns individual pitcher results, Pitching Team returns results aggregated by pitching team, League returns results aggregated by league
+    pitcher_handedness: Literal["R", "L", "ALL"] = "ALL",  # ALL -> all in the url
+    runner_movement: Literal["All", "Advance", "Out", "Hold"] = "All",
+    target_base: Literal["All", "2B", "3B"] = "All",
+    num_prior_disengagements: Literal[
+        "All", "0", "1", "2", "3+"
+    ] = "All",  # 3+ maps to 3 in url
+    min_sb_opportunities: int | str = "q",  # must be at least 1 or "q" if str
+    team: StatcastLeaderboardsTeams
+    | str = "All",  # if str, the options are "All" for all teams, or "All-Split" to split by teams that player played for
+    split_years: bool = False,  # whether to split the seasons into individual years or aggregate them across the timeframe
+) -> pl.DataFrame:
+    # validate season inputs
+    if start_season < 2016 or start_season > datetime.now().year:
+        raise ValueError(f"start_season must be between 2016 and {datetime.now().year}")
+    if end_season < start_season or end_season > datetime.now().year:
+        raise ValueError(
+            f"end_season must be between start_season and {datetime.now().year}"
+        )
+
+    # validate game_type input
+    if game_type not in ["Regular", "Playoff", "All"]:
+        raise ValueError("game_type must be 'Regular', 'Playoff', or 'All'")
+
+    # validate group_by input
+    if group_by not in ["Pit", "Pitching Team", "League"]:
+        raise ValueError("group_by must be 'Pit', 'Pitching Team', or 'League'")
+    group_by_param = ""
+    if group_by == "Pitching Team":
+        group_by_param = "Pitching+Team"
+    else:
+        group_by_param = group_by
+    # validate pitcher_handedness input
+    if pitcher_handedness not in ["R", "L", "ALL"]:
+        raise ValueError("pitcher_handedness must be 'R', 'L', or 'ALL'")
+    throws_param = pitcher_handedness if pitcher_handedness != "ALL" else "all"
+
+    # validate runner_movement input
+    if runner_movement not in ["All", "Advance", "Out", "Hold"]:
+        raise ValueError("runner_movement must be 'All', 'Advance', 'Out', or 'Hold'")
+
+    # validate target_base input
+    if target_base not in ["All", "2B", "3B"]:
+        raise ValueError("target_base must be 'All', '2B', or '3B'")
+
+    # validate num_prior_disengagements input
+    if num_prior_disengagements not in ["All", "0", "1", "2", "3+"]:
+        raise ValueError(
+            "num_prior_disengagements must be 'All', '0', '1', '2', or '3+'"
+        )
+    num_prior_disengagements_param = (
+        num_prior_disengagements if num_prior_disengagements != "3+" else "3"
+    )
+    min_sb_opportunities_param = ""
+    # validate min_sb_opportunities input
+    if isinstance(min_sb_opportunities, int):
+        if min_sb_opportunities < 1:
+            raise ValueError("min_sb_opportunities must be at least 1")
+        min_sb_opportunities_param = str(min_sb_opportunities)
+    elif isinstance(min_sb_opportunities, str):
+        if min_sb_opportunities != "q":
+            raise ValueError("min_sb_opportunities must be a positive integer or 'q'")
+        min_sb_opportunities_param = min_sb_opportunities
+    else:
+        raise ValueError("min_sb_opportunities must be a positive integer or 'q'")
+    team_param = ""
+    if isinstance(team, StatcastLeaderboardsTeams):
+        team_param = str(team.value)
+    elif isinstance(team, str):
+        if team not in ["All", "All-Split"]:
+            raise ValueError(
+                "team must be an instance of StatcastLeaderboardsTeams or 'All' (all teams) or 'All-Split' (all teams with separate rows for each team a player played for)"
+            )
+        if team == "All":
+            team_param = ""
+        elif team == "All-Split":
+            team_param = "split"
+    else:
+        raise ValueError(
+            "team must be an instance of StatcastLeaderboardsTeams or 'All' (all teams) or 'All-Split' (all teams with separate rows for each team a player played for)"
+        )
+    split_years_param = "yes" if split_years else "no"
+
+    url = PITCHER_RUNNING_GAME_LEADERBOARD_URL.format(
+        game_type=game_type,
+        min_sb_opportunities=min_sb_opportunities_param,
+        pitcher_handedness=throws_param,
+        runner_movement=runner_movement,
+        target_base=target_base,
+        num_prior_disengagements=num_prior_disengagements_param,
+        end_season=end_season,
+        start_season=start_season,
+        split_years=split_years_param,
+        team=team_param,
+        group_by=group_by_param,
+    )
+    resp = requests.get(url)
+    df = pl.read_csv(io.StringIO(resp.text))
     return df
 
 
