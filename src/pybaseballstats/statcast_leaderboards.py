@@ -36,6 +36,8 @@ __all__ = [
     "active_spin_leaderboard",
     "arm_angle_leaderboard",
     "pitch_arsenals_leaderboard",
+    "pitch_movement_leaderboard",
+    "pitcher_running_game_leaderboard",
 ]
 
 
@@ -764,7 +766,7 @@ def arm_strength_leaderboard(
 
 
 # region pitching
-def spin_direction_leaderboard(  # NOTE: removed pov parameter because the returned data is the same regardless of pov, i think baseball savant just changes it on the frontend but the underlying data is the same
+def spin_direction_leaderboard(
     season: int | str = "ALL",
     team: StatcastLeaderboardsTeams | None = None,
     pitch_type: Literal[
@@ -773,6 +775,40 @@ def spin_direction_leaderboard(  # NOTE: removed pov parameter because the retur
     pitcher_handedness: Literal["R", "L", "ALL"] = "ALL",
     min_pitches: int | str = "q",
 ) -> pl.DataFrame:
+    """Return Baseball Savant spin direction leaderboard data.
+
+    Retrieve pitcher spin direction data from Baseball Savant, which provides insight
+    into how pitchers impart spin axis direction on their pitches.
+
+    Args:
+        season (int | str): Season year between 2020 and current year, or ``"ALL"`` for all available years.
+        team (StatcastLeaderboardsTeams | None, optional): Optional team filter. Defaults to ``None``.
+        pitch_type (Literal[...]): Pitch type filter. Options: ``FF`` (Four-Seam Fastball),
+            ``SI`` (Sinker), ``FC`` (Cut Fastball), ``CH`` (Changeup), ``FS`` (Splitter),
+            ``FO`` (Forkball), ``SC`` (Screwball), ``CU`` (Curveball), ``SL`` (Slider),
+            ``ST`` (Sweeper), ``SV`` (Slurve), ``KN`` (Knuckleball), or ``"ALL"`` for all pitch types.
+            Defaults to ``"ALL"``.
+        pitcher_handedness (Literal["R", "L", "ALL"], optional): ``"R"`` for right-handed,
+            ``"L"`` for left-handed, ``"ALL"`` for both. Defaults to ``"ALL"``.
+        min_pitches (int | str, optional): Minimum pitch count threshold. Can be a positive integer
+            or ``"q"`` for Baseball Savant's qualifying threshold. Defaults to ``"q"``.
+
+    Returns:
+        pl.DataFrame: Spin direction leaderboard data with columns including player name,
+            spin direction metrics, and pitch-specific statistics.
+
+    Raises:
+        ValueError: If ``season`` is not an integer between 2020 and current year or ``"ALL"``.
+        ValueError: If ``pitch_type`` is not a valid pitch type.
+        ValueError: If ``pitcher_handedness`` is not ``"R"``, ``"L"``, or ``"ALL"``.
+        ValueError: If ``min_pitches`` is not a positive integer or ``"q"``.
+        ValueError: If ``team`` is not ``None`` or ``StatcastLeaderboardsTeams``.
+
+    Notes:
+        - Data is sourced directly from Baseball Savant via CSV endpoint.
+        - Spin direction data has been available since 2020.
+        - Column names are standardized with ``last_name, first_name`` renamed to ``player_name``.
+    """
     # validate season input, can either be int from 2020 to current year, or "ALL"
     if isinstance(season, int):
         if season < 2020 or season > datetime.now().year:
@@ -840,13 +876,44 @@ def spin_direction_leaderboard(  # NOTE: removed pov parameter because the retur
 
 
 def active_spin_leaderboard(
-    season: int,  # starts from 2017 to current year
-    min_pitches: int = 100,  # >= 1
-    stat_method: Literal[
-        "spin-based", "observed"
-    ] = "spin-based",  # to understand options, there is a writeup here: https://baseballsavant.mlb.com/leaderboard/active-spin, also spin-based is only available from 2020 onwards, observed is available from 2017 onwards
+    season: int,
+    min_pitches: int = 100,
+    stat_method: Literal["spin-based", "observed"] = "spin-based",
     pitcher_handedness: Literal["R", "L", "ALL"] = "ALL",
-):
+) -> pl.DataFrame:
+    """Return Baseball Savant active spin leaderboard data.
+
+    Retrieve pitcher active spin statistics, which measures the amount of spin imparted
+    on a pitch that contributes to actual movement. See the Baseball Savant writeup for details:
+    https://baseballsavant.mlb.com/leaderboard/active-spin
+
+    Args:
+        season (int): Season year between 2017 and current year.
+        min_pitches (int, optional): Minimum pitch count threshold. Must be at least 1.
+            Defaults to ``100``.
+        stat_method (Literal["spin-based", "observed"], optional): Calculation method for active spin.
+            ``"spin-based"`` uses advanced spin modeling (available from 2020 onwards),
+            ``"observed"`` uses direct measurement (available from 2017 onwards).
+            Defaults to ``"spin-based"``.
+        pitcher_handedness (Literal["R", "L", "ALL"], optional): ``"R"`` for right-handed,
+            ``"L"`` for left-handed, ``"ALL"`` for both. Defaults to ``"ALL"``.
+
+    Returns:
+        pl.DataFrame: Active spin leaderboard data with pitcher statistics and spin measurements.
+            Columns include ``player_name`` and ``player_id`` (renamed from ``entity_name`` and ``entity_id``).
+
+    Raises:
+        ValueError: If ``season`` is not between 2017 and current year.
+        ValueError: If ``min_pitches`` is less than 1.
+        ValueError: If ``stat_method`` is not ``"spin-based"`` or ``"observed"``.
+        ValueError: If ``stat_method`` is ``"spin-based"`` but ``season`` is before 2020.
+        ValueError: If ``pitcher_handedness`` is not ``"R"``, ``"L"``, or ``"ALL"``.
+
+    Notes:
+        - Spin-based calculations are only available from 2020 onwards.
+        - Observed spin measurements are available from 2017 onwards.
+        - Column names are standardized with ``entity_name`` to ``player_name`` and ``entity_id`` to ``player_id``.
+    """
     # validate season input
     if season < 2017 or season > datetime.now().year:
         raise ValueError(f"season must be between 2017 and {datetime.now().year}")
@@ -875,31 +942,79 @@ def active_spin_leaderboard(
     return df
 
 
-def arm_angle_leaderboard(  # NOTE: ignoring season param because start/end_date filtering is allowed
-    start_date: str = "2020-01-01",  # YYYY-MM-DD, 2020-01-01 is the earliest possible start date
-    end_date: str = datetime.today().strftime(
-        "%Y-%m-%d"
-    ),  # YYYY-MM-DD must be after start_date and cannot be in the future
-    teams: List[StatcastLeaderboardsTeams]
-    | None = None,  # 0+ teams, separated by |, if empty then ""
-    season_type: List[Literal["R", "WC", "DS", "CS", "WS"]]
-    | None = None,  # 0+ season types, separated by |, if empty then "", mappings (R-> R, WC->F, DS->D, CS->L, WS->W)
-    pitcher_handedness: Literal["R", "L", "ALL"] = "ALL",  # all maps to ""
-    batter_handedness: Literal["R", "L", "ALL"] = "ALL",  # all maps to ""
+def arm_angle_leaderboard(
+    start_date: str = "2020-01-01",
+    end_date: str = datetime.today().strftime("%Y-%m-%d"),
+    teams: List[StatcastLeaderboardsTeams] | None = None,
+    season_type: List[Literal["R", "WC", "DS", "CS", "WS"]] | None = None,
+    pitcher_handedness: Literal["R", "L", "ALL"] = "ALL",
+    batter_handedness: Literal["R", "L", "ALL"] = "ALL",
     pitch_types: List[
         Literal["FF", "SI", "FC", "CH", "FS", "FO", "SC", "CU", "SL", "ST", "SV", "KN"]
     ]
-    | None = None,  # 0+ pitch types, separated by |, if empty then ""
-    min_pitches: int
-    | str = "q",  # must be at least 1 if int, or "q" for qualifying threshold if str
+    | None = None,
+    min_pitches: int | str = "q",
     group_by: List[
         Literal[
             "season", "month", "pitch_type", "game_type", "bat_side", "fielding_team"
         ]
     ]
-    | None = None,  # 0-4 group by options, separated by |, if empty then "", options map as follows: season->year, month->api_game_date_month_text, pitch_type->api_pitch_type_group03, game_type->game_type, bat_side->bat_side, fielding_team->fld_team_id
-    min_group_size: int = 1,  # must be at least 1, groups smaller than this will be filtered out
-):
+    | None = None,
+    min_group_size: int = 1,
+) -> pl.DataFrame:
+    """Return Baseball Savant arm angle leaderboard data.
+
+    Retrieve pitcher arm angle statistics over a date range with optional filtering
+    and grouping. Arm angle affects pitch movement and deception.
+
+    Args:
+        start_date (str, optional): Start date in ``YYYY-MM-DD`` format. The earliest possible
+            date is ``2020-01-01``. Defaults to ``"2020-01-01"``.
+        end_date (str, optional): End date in ``YYYY-MM-DD`` format. Must be after ``start_date``
+            and cannot be in the future. Defaults to today's date.
+        teams (List[StatcastLeaderboardsTeams] | None, optional): Optional list of teams to filter.
+            Defaults to ``None`` (all teams).
+        season_type (List[Literal[...]] | None, optional): Season type(s) to include.
+            ``R`` = Regular season, ``WC`` = Wild Card, ``DS`` = Divisional Series,
+            ``CS`` = Championship Series, ``WS`` = World Series. Defaults to ``None`` (all types).
+        pitcher_handedness (Literal["R", "L", "ALL"], optional): ``"R"`` for right-handed,
+            ``"L"`` for left-handed, ``"ALL"`` for both. Defaults to ``"ALL"``.
+        batter_handedness (Literal["R", "L", "ALL"], optional): ``"R"`` for right-handed batters,
+            ``"L"`` for left-handed batters, ``"ALL"`` for both. Defaults to ``"ALL"``.
+        pitch_types (List[...] | None, optional): Optional list of pitch types to filter.
+            Valid options: ``FF``, ``SI``, ``FC``, ``CH``, ``FS``, ``FO``, ``SC``, ``CU``, ``SL``,
+            ``ST``, ``SV``, ``KN``. Defaults to ``None`` (all pitch types).
+        min_pitches (int | str, optional): Minimum pitch count threshold. Can be a positive integer
+            or ``"q"`` for Baseball Savant's qualifying threshold. Defaults to ``"q"``.
+        group_by (List[...] | None, optional): Grouping dimensions (max 4). Options:
+            ``"season"``, ``"month"``, ``"pitch_type"``, ``"game_type"``, ``"bat_side"``,
+            ``"fielding_team"``. Defaults to ``None`` (no grouping).
+        min_group_size (int, optional): Minimum group size threshold. Groups smaller than this
+            are filtered out. Must be at least 1. Defaults to ``1``.
+
+    Returns:
+        pl.DataFrame: Arm angle leaderboard data with standardized column names.
+            Pitch type column (if present) is renamed to ``pitch_type``.
+            Month-related columns (if present) are renamed to ``month`` and ``month_num``.
+
+    Raises:
+        ValueError: If ``start_date`` or ``end_date`` is not in ``YYYY-MM-DD`` format.
+        ValueError: If ``end_date`` is before ``start_date``.
+        ValueError: If ``end_date`` is in the future.
+        ValueError: If ``teams`` is not a list of ``StatcastLeaderboardsTeams`` or ``None``.
+        ValueError: If ``season_type`` is not a valid season type list or ``None``.
+        ValueError: If ``pitcher_handedness`` is not ``"R"``, ``"L"``, or ``"ALL"``.
+        ValueError: If ``batter_handedness`` is not ``"R"``, ``"L"``, or ``"ALL"``.
+        ValueError: If ``pitch_types`` contains invalid pitch type(s).
+        ValueError: If ``min_pitches`` is not a positive integer or ``"q"``.
+        ValueError: If ``group_by`` contains invalid dimensions or more than 4 items.
+        ValueError: If ``min_group_size`` is less than 1.
+
+    Notes:
+        - Date range must span from 2020-01-01 onwards (earliest available data).
+        - Seasons are automatically inferred from the date range.
+        - Data is aggregated across all inferred seasons unless ``group_by`` includes ``"season"``.
+    """
     # validate date inputs
     try:
         start_date_obj = datetime.strptime(start_date, "%Y-%m-%d")
@@ -1046,11 +1161,43 @@ def arm_angle_leaderboard(  # NOTE: ignoring season param because start/end_date
 
 
 def pitch_arsenals_leaderboard(
-    season: int = 2026,  # from 2008 to current year
+    season: int = 2026,
     metric_type: Literal["avg_speed", "usage_percentage", "avg_spin"] = "avg_speed",
     pitcher_handedness: Literal["R", "L", "ALL"] = "ALL",
-    min_pitches: int | str = "q",  # must be at least 1 or "q" if str
+    min_pitches: int | str = "q",
 ) -> pl.DataFrame:
+    """Return Baseball Savant pitch arsenal leaderboard data.
+
+    Retrieve pitcher arsenal statistics including pitch velocities, usage percentages,
+    or spin rates across different pitch types.
+
+    Args:
+        season (int, optional): Season year between 2008 and current year. Defaults to ``2026``.
+        metric_type (Literal["avg_speed", "usage_percentage", "avg_spin"], optional):
+            Metric to retrieve: ``"avg_speed"`` for average velocity, ``"usage_percentage"``
+            for pitch type usage distribution, ``"avg_spin"`` for average spin rate.
+            Defaults to ``"avg_speed"``.
+        pitcher_handedness (Literal["R", "L", "ALL"], optional): ``"R"`` for right-handed,
+            ``"L"`` for left-handed, ``"ALL"`` for both. Defaults to ``"ALL"``.
+        min_pitches (int | str, optional): Minimum pitch count threshold. Can be a positive integer
+            or ``"q"`` for Baseball Savant's qualifying threshold. Defaults to ``"q"``.
+
+    Returns:
+        pl.DataFrame: Pitch arsenal leaderboard data. Column names are standardized with
+            ``last_name, first_name`` renamed to ``player_name`` and ``pitcher`` renamed to ``player_id``.
+            When ``metric_type`` is ``"usage_percentage"``, pitch type columns are converted to percentage columns.
+
+    Raises:
+        ValueError: If ``season`` is not between 2008 and current year.
+        ValueError: If ``metric_type`` is not one of the valid options.
+        ValueError: If ``pitcher_handedness`` is not ``"R"``, ``"L"``, or ``"ALL"``.
+        ValueError: If ``min_pitches`` is not a positive integer or ``"q"``.
+
+    Notes:
+        - Data availability starts from 2008 for all metric types.
+        - Usage percentage metrics are calculated as percentages across all pitch types thrown.
+        - Column names are automatically standardized after retrieval.
+    """
     # validate season input
     if season < 2008 or season > datetime.now().year:
         raise ValueError(f"season must be between 2008 and {datetime.now().year}")
@@ -1096,13 +1243,45 @@ def pitch_arsenals_leaderboard(
 
 
 def pitch_movement_leaderboard(
-    season: int = 2026,  # from 2017 to current year
+    season: int = 2026,
     pitch_type: Literal[
         "FF", "CH", "CU", "FC", "FO", "KN", "SC", "SI", "SL", "SV", "FS", "ST", "ALL"
     ] = "ALL",
     pitcher_handedness: Literal["R", "L", "ALL"] = "ALL",
-    min_pitches: int | str = "q",  # must be at least 1 or "q" if str
+    min_pitches: int | str = "q",
 ) -> pl.DataFrame:
+    """Return Baseball Savant pitch movement leaderboard data.
+
+    Retrieve pitcher pitch movement statistics, which measure vertical and horizontal
+    break induced by spin and other factors.
+
+    Args:
+        season (int, optional): Season year between 2017 and current year. Defaults to ``2026``.
+        pitch_type (Literal[...]): Pitch type filter. Options: ``FF`` (Four-Seam Fastball),
+            ``SI`` (Sinker), ``FC`` (Cut Fastball), ``CH`` (Changeup), ``FS`` (Splitter),
+            ``FO`` (Forkball), ``SC`` (Screwball), ``CU`` (Curveball), ``SL`` (Slider),
+            ``ST`` (Sweeper), ``SV`` (Slurve), ``KN`` (Knuckleball), or ``"ALL"`` for all pitch types.
+            Defaults to ``"ALL"``.
+        pitcher_handedness (Literal["R", "L", "ALL"], optional): ``"R"`` for right-handed,
+            ``"L"`` for left-handed, ``"ALL"`` for both. Defaults to ``"ALL"``.
+        min_pitches (int | str, optional): Minimum pitch count threshold. Can be a positive integer
+            or ``"q"`` for Baseball Savant's qualifying threshold. Defaults to ``"q"``.
+
+    Returns:
+        pl.DataFrame: Pitch movement leaderboard data with pitcher statistics and movement metrics.
+            Column names are standardized with ``last_name, first_name`` renamed to ``player_name``.
+
+    Raises:
+        ValueError: If ``season`` is not between 2017 and current year.
+        ValueError: If ``pitch_type`` is not a valid pitch type or ``"ALL"``.
+        ValueError: If ``pitcher_handedness`` is not ``"R"``, ``"L"``, or ``"ALL"``.
+        ValueError: If ``min_pitches`` is not a positive integer or ``"q"``.
+
+    Notes:
+        - Pitch movement data has been available since 2017.
+        - Movement metrics typically include induced vertical break (IVB) and horizontal break (HB).
+        - Column names are standardized with ``last_name, first_name`` renamed to ``player_name``.
+    """
     # validate season input
     if season < 2017 or season > datetime.now().year:
         raise ValueError(f"season must be between 2017 and {datetime.now().year}")
@@ -1155,23 +1334,72 @@ def pitch_movement_leaderboard(
 
 
 def pitcher_running_game_leaderboard(
-    start_season: int,  # from 2016 to current year
-    end_season: int,  # from start_season to current year
+    start_season: int,
+    end_season: int,
     game_type: Literal["Regular", "Playoff", "All"] = "All",
-    group_by: Literal[
-        "Pit", "Pitching Team", "League"
-    ] = "Pit",  # Pit returns individual pitcher results, Pitching Team returns results aggregated by pitching team, League returns results aggregated by league
-    pitcher_handedness: Literal["R", "L", "ALL"] = "ALL",  # ALL -> all in the url
+    group_by: Literal["Pit", "Pitching Team", "League"] = "Pit",
+    pitcher_handedness: Literal["R", "L", "ALL"] = "ALL",
     runner_movement: Literal["All", "Advance", "Out", "Hold"] = "All",
     target_base: Literal["All", "2B", "3B"] = "All",
-    num_prior_disengagements: Literal[
-        "All", "0", "1", "2", "3+"
-    ] = "All",  # 3+ maps to 3 in url
-    min_sb_opportunities: int | str = "q",  # must be at least 1 or "q" if str
-    team: StatcastLeaderboardsTeams
-    | str = "All",  # if str, the options are "All" for all teams, or "All-Split" to split by teams that player played for
-    split_years: bool = False,  # whether to split the seasons into individual years or aggregate them across the timeframe
+    num_prior_disengagements: Literal["All", "0", "1", "2", "3+"] = "All",
+    min_sb_opportunities: int | str = "q",
+    team: StatcastLeaderboardsTeams | str = "All",
+    split_years: bool = False,
 ) -> pl.DataFrame:
+    """Return Baseball Savant pitcher running game leaderboard data.
+
+    Retrieve pitcher statistics related to runner movement, stolen base prevention,
+    and pitcher engagement with baserunners.
+
+    Args:
+        start_season (int): Starting season year (2016 or later).
+        end_season (int): Ending season year (must be >= ``start_season``).
+        game_type (Literal["Regular", "Playoff", "All"], optional): Game type filter.
+            ``"Regular"`` = regular season, ``"Playoff"`` = playoff games, ``"All"`` = both.
+            Defaults to ``"All"``.
+        group_by (Literal["Pit", "Pitching Team", "League"], optional): Aggregation level.
+            ``"Pit"`` = individual pitcher, ``"Pitching Team"`` = aggregate by pitching team,
+            ``"League"`` = aggregate by league. Defaults to ``"Pit"``.
+        pitcher_handedness (Literal["R", "L", "ALL"], optional): ``"R"`` for right-handed,
+            ``"L"`` for left-handed, ``"ALL"`` for both. Defaults to ``"ALL"``.
+        runner_movement (Literal["All", "Advance", "Out", "Hold"], optional): Filter by runner outcome.
+            ``"All"`` = all outcomes, ``"Advance"`` = runners advanced,
+            ``"Out"`` = runners thrown out, ``"Hold"`` = runners held. Defaults to ``"All"``.
+        target_base (Literal["All", "2B", "3B"], optional): Base being targeted.
+            ``"All"`` = both 2nd and 3rd base attempts, ``"2B"`` = 2nd base only,
+            ``"3B"`` = 3rd base only. Defaults to ``"All"``.
+        num_prior_disengagements (Literal["All", "0", "1", "2", "3+"], optional):
+            Number of prior pitcher disengagements (pickoff attempts/throws to base).
+            Defaults to ``"All"``.
+        min_sb_opportunities (int | str, optional): Minimum stolen base opportunity count.
+            Can be a positive integer or ``"q"`` for qualifying threshold. Defaults to ``"q"``.
+        team (StatcastLeaderboardsTeams | str, optional): Team filter. Can be a ``StatcastLeaderboardsTeams``
+            enum, ``"All"`` for all teams, or ``"All-Split"`` to aggregate by each team a player played for.
+            Defaults to ``"All"``.
+        split_years (bool, optional): If ``True``, splits results by individual season.
+            If ``False``, aggregates across the entire date range. Defaults to ``False``.
+
+    Returns:
+        pl.DataFrame: Pitcher running game leaderboard data with runner movement and
+            stolen base statistics.
+
+    Raises:
+        ValueError: If ``start_season`` is before 2016 or after current year.
+        ValueError: If ``end_season`` is before ``start_season`` or after current year.
+        ValueError: If ``game_type`` is not one of the valid options.
+        ValueError: If ``group_by`` is not ``"Pit"``, ``"Pitching Team"``, or ``"League"``.
+        ValueError: If ``pitcher_handedness`` is not ``"R"``, ``"L"``, or ``"ALL"``.
+        ValueError: If ``runner_movement`` is not a valid option.
+        ValueError: If ``target_base`` is not a valid option.
+        ValueError: If ``num_prior_disengagements`` is not a valid option.
+        ValueError: If ``min_sb_opportunities`` is not a positive integer or ``"q"``.
+        ValueError: If ``team`` is not a valid ``StatcastLeaderboardsTeams``, ``"All"``, or ``"All-Split"``.
+
+    Notes:
+        - Data is available from 2016 onwards.
+        - The ``"All-Split"`` team option is useful for tracking pitchers who played for multiple teams.
+        - Results can be aggregated across years or split by individual season using ``split_years``.
+    """
     # validate season inputs
     if start_season < 2016 or start_season > datetime.now().year:
         raise ValueError(f"start_season must be between 2016 and {datetime.now().year}")
