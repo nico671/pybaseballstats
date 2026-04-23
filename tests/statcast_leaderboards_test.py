@@ -206,19 +206,6 @@ def test_arm_strength_leaderboard_badinputs():
 
 
 def test_arm_strength_leaderboard_player_and_team_modes(monkeypatch):
-    class MockResponse:
-        def __init__(self, text: str):
-            self.text = text
-
-    csv_text = """fielder_name,player_id,primary_position,primary_position_name,total_throws,total_throws_inf,total_throws_of,arm_inf,arm_of,team_name,metric
-John Doe,123,RF,Right Field,100,10,90,88.1,90.2,NYY,89.5
-Jane Smith,456,CF,Center Field,120,20,100,87.4,91.1,BOS,90.0
-"""
-
-    def fake_get(_url: str):
-        return MockResponse(csv_text)
-
-    monkeypatch.setattr(sl.requests, "get", fake_get)
 
     # Cover year="All" conversion branch and player-mode column drop.
     df_player = sl.arm_strength_leaderboard(
@@ -228,10 +215,10 @@ Jane Smith,456,CF,Center Field,120,20,100,87.4,91.1,BOS,90.0
         pos="rf",
         team=sl.StatcastLeaderboardsTeams.YANKEES,
     )
-    assert df_player.shape[0] == 2
+    assert df_player.shape[0] == 8
+    assert df_player.shape[1] == 25
     assert "team_name" not in df_player.columns
     assert "fielder_name" in df_player.columns
-    assert df_player.select(pl.col("metric").max()).item() == 90.0
 
     # Cover team-mode drop path.
     df_team = sl.arm_strength_leaderboard(
@@ -241,11 +228,11 @@ Jane Smith,456,CF,Center Field,120,20,100,87.4,91.1,BOS,90.0
         pos="All",
         team=None,
     )
-    assert df_team.shape[0] == 2
+    assert df_team.shape[0] == 30
+    assert df_team.shape[1] == 17
     assert "team_name" in df_team.columns
     assert "fielder_name" not in df_team.columns
     assert "player_id" not in df_team.columns
-    assert df_team.select(pl.col("metric").min()).item() == 89.5
 
 
 def test_abs_challenges_leaderboard_badinputs():
@@ -361,3 +348,346 @@ def test_abs_challenges_leaderboard_challenge_type():
     assert df.shape[0] >= 63
     assert df.shape[1] == 35
     assert df.select(pl.col("team_abbr").n_unique()).item() == 30
+
+
+def test_spin_direction_leaderboard_badinputs():
+    with pytest.raises(ValueError):
+        sl.spin_direction_leaderboard(season=1900)
+    with pytest.raises(ValueError):
+        sl.spin_direction_leaderboard(season=10000)
+    with pytest.raises(ValueError):
+        sl.spin_direction_leaderboard(season="2025")
+    with pytest.raises(ValueError):
+        sl.spin_direction_leaderboard(team="yankees")
+    with pytest.raises(ValueError):
+        sl.spin_direction_leaderboard(pitch_type="four_seamer")
+    with pytest.raises(ValueError):
+        sl.spin_direction_leaderboard(pitcher_handedness="right")
+    with pytest.raises(ValueError):
+        sl.spin_direction_leaderboard(min_pitches=0)
+    with pytest.raises(ValueError):
+        sl.spin_direction_leaderboard(min_pitches="100")
+
+
+def test_spin_direction_leaderboard():
+    # single season
+    df = sl.spin_direction_leaderboard(
+        season=2025,
+        team=sl.StatcastLeaderboardsTeams.ASTROS,
+        pitch_type="FF",
+        pitcher_handedness="R",
+        min_pitches=100,
+    )
+    assert df.shape == (14, 29)
+    assert df.select(pl.col("year").unique()).item() == 2025
+    assert df.select(pl.col("player_name").n_unique()).item() == 14
+    assert df.select(pl.col("pitch_hand").unique()).item() == "R"
+    assert df.select(pl.col("api_pitch_type").unique()).item() == "FF"
+    assert df.select(pl.col("n_pitches").min()).item() >= 100
+
+    df = sl.spin_direction_leaderboard(
+        season="ALL",
+        team=sl.StatcastLeaderboardsTeams.ASTROS,
+        pitch_type="FF",
+        pitcher_handedness="R",
+        min_pitches=100,
+    )
+    assert df.shape[0] >= 80
+    assert df.shape[1] == 29
+    assert df.select(pl.col("pitch_hand").unique()).item() == "R"
+    assert df.select(pl.col("api_pitch_type").unique()).item() == "FF"
+    assert df.select(pl.col("n_pitches").min()).item() >= 100
+
+
+def test_active_spin_leaderboard_badinputs():
+    with pytest.raises(ValueError):
+        sl.active_spin_leaderboard(season=1900)
+    with pytest.raises(ValueError):
+        sl.active_spin_leaderboard(
+            season=1900,
+            stat_method="spin-based",
+            min_pitches=100,
+            pitcher_handedness="R",
+        )
+    with pytest.raises(ValueError):
+        sl.active_spin_leaderboard(
+            season=2025,
+            stat_method="invalid_method",
+            min_pitches=100,
+            pitcher_handedness="R",
+        )
+    with pytest.raises(ValueError):
+        sl.active_spin_leaderboard(
+            season=2025, stat_method="spin-based", min_pitches=0, pitcher_handedness="R"
+        )
+    with pytest.raises(ValueError):
+        sl.active_spin_leaderboard(
+            season=2025,
+            stat_method="spin-based",
+            min_pitches=100,
+            pitcher_handedness="invalid_handedness",
+        )
+
+
+def test_active_spin_leaderboard():
+    df = sl.active_spin_leaderboard(
+        season=2023, min_pitches=100, stat_method="spin-based", pitcher_handedness="R"
+    )
+    assert df.shape[0] == 510
+    assert df.shape[1] == 12
+    assert df.select(pl.col("pitch_hand").unique()).item() == "R"
+    assert df.select(pl.col("player_id").n_unique()).item() == 510
+
+
+def test_arm_angle_leaderboard_badinputs():
+    with pytest.raises(ValueError):
+        sl.arm_angle_leaderboard(start_date="2023/04/01", end_date="2023/10/01")
+    with pytest.raises(ValueError):
+        sl.arm_angle_leaderboard(start_date="2023-04-01", end_date="2023/10/01")
+    with pytest.raises(ValueError):
+        sl.arm_angle_leaderboard(start_date="2023-04-01", end_date="2022-10-01")
+    with pytest.raises(ValueError):
+        sl.arm_angle_leaderboard(start_date="2024-04-01", end_date="10000-10-01")
+    with pytest.raises(ValueError):
+        sl.arm_angle_leaderboard(
+            start_date="2023-04-01", end_date="2023-10-01", teams=["Yankees"]
+        )
+    with pytest.raises(ValueError):
+        sl.arm_angle_leaderboard(
+            start_date="2023-04-01",
+            end_date="2023-10-01",
+            teams=[sl.StatcastLeaderboardsTeams.YANKEES, "BOS"],
+        )
+    with pytest.raises(ValueError):
+        sl.arm_angle_leaderboard(
+            start_date="2023-04-01",
+            end_date="2023-10-01",
+            season_type=["R", "WC", "Invalid"],
+        )
+    with pytest.raises(ValueError):
+        sl.arm_angle_leaderboard(
+            start_date="2023-04-01",
+            end_date="2023-10-01",
+            pitcher_handedness="invalid_handedness",
+        )
+    with pytest.raises(ValueError):
+        sl.arm_angle_leaderboard(
+            start_date="2023-04-01",
+            end_date="2023-10-01",
+            batter_handedness="invalid_batter_handedness",
+        )
+    with pytest.raises(ValueError):
+        sl.arm_angle_leaderboard(
+            start_date="2023-04-01",
+            end_date="2023-10-01",
+            pitch_types="FF",
+        )
+    with pytest.raises(ValueError):
+        sl.arm_angle_leaderboard(
+            start_date="2023-04-01",
+            end_date="2023-10-01",
+            pitch_types=["invalid_pitch_type"],
+        )
+    with pytest.raises(ValueError):
+        sl.arm_angle_leaderboard(
+            start_date="2023-04-01",
+            end_date="2023-10-01",
+            min_pitches=0,
+        )
+    with pytest.raises(ValueError):
+        sl.arm_angle_leaderboard(
+            start_date="2023-04-01",
+            end_date="2023-10-01",
+            min_pitches="100",
+        )
+    with pytest.raises(ValueError):
+        sl.arm_angle_leaderboard(
+            start_date="2023-04-01",
+            end_date="2023-10-01",
+            group_by="invalid_group_by",
+        )
+    with pytest.raises(ValueError):
+        sl.arm_angle_leaderboard(
+            start_date="2023-04-01",
+            end_date="2023-10-01",
+            group_by=[
+                "season",
+                "month",
+                "pitch_type",
+                "game_type",
+                "bat_side",
+                "fielding_team",
+            ],
+        )
+    with pytest.raises(ValueError):
+        sl.arm_angle_leaderboard(
+            start_date="2023-04-01", end_date="2023-10-01", min_group_size=0
+        )
+
+
+def test_arm_angle_leaderboard():
+    df = sl.arm_angle_leaderboard(
+        start_date="2020-01-01",
+        end_date="2020-12-31",
+        teams=[
+            sl.StatcastLeaderboardsTeams.DODGERS,
+            sl.StatcastLeaderboardsTeams.YANKEES,
+        ],
+        pitcher_handedness="R",
+        batter_handedness="L",
+        season_type=["R"],
+        pitch_types=["FF", "SL"],
+        min_pitches=100,
+        group_by=["month", "pitch_type", "game_type", "bat_side"],
+        min_group_size=10,
+    )
+    assert df.shape[0] == 11
+    assert df.shape[1] == 15
+    assert df.select(pl.col("pitch_hand").unique()).item() == "R"
+    for col_name in ["month", "pitch_type", "game_type", "bat_side"]:
+        assert col_name in df.columns
+    assert df.select(pl.col("n_pitches").min()).item() >= 10
+    assert df.select(pl.col("pitch_type").n_unique()).item() <= 2
+    assert df.select(pl.col("game_type").unique()).item() == "R"
+    assert df.select(pl.col("bat_side").n_unique()).item() == 1
+
+
+def test_pitch_arsenals_leaderboard_badinputs():
+    with pytest.raises(ValueError):
+        sl.pitch_arsenals_leaderboard(season=1900)
+    with pytest.raises(ValueError):
+        sl.pitch_arsenals_leaderboard(season=10000)
+    with pytest.raises(ValueError):
+        sl.pitch_arsenals_leaderboard(metric_type="invalid_metric_type")
+    with pytest.raises(ValueError):
+        sl.pitch_arsenals_leaderboard(pitcher_handedness="invalid_handedness")
+    with pytest.raises(ValueError):
+        sl.pitch_arsenals_leaderboard(min_pitches=0)
+    with pytest.raises(ValueError):
+        sl.pitch_arsenals_leaderboard(min_pitches="100")
+
+
+def test_pitch_arsenals_leaderboard():
+    df = sl.pitch_arsenals_leaderboard(
+        season=2023, metric_type="avg_speed", pitcher_handedness="R", min_pitches=100
+    )
+    assert df.shape[0] == 515
+    assert df.shape[1] == 12
+    assert df.select(pl.col("player_id").n_unique()).item() == 515
+    assert df.select(pl.col("ff_avg_speed").max()).item() == 101.8
+
+    df = sl.pitch_arsenals_leaderboard(
+        season=2023,
+        metric_type="usage_percentage",
+        pitcher_handedness="ALL",
+        min_pitches=100,
+    )
+    assert df.shape[0] == 711
+    assert df.shape[1] == 12
+    assert df.select(pl.col("player_id").n_unique()).item() == 711
+
+
+def test_pitch_movement_leaderboard_badinputs():
+    with pytest.raises(ValueError):
+        sl.pitch_movement_leaderboard(season=1900)
+    with pytest.raises(ValueError):
+        sl.pitch_movement_leaderboard(season=10000)
+    with pytest.raises(ValueError):
+        sl.pitch_movement_leaderboard(pitch_type="invalid_pitch_type")
+    with pytest.raises(ValueError):
+        sl.pitch_movement_leaderboard(pitcher_handedness="invalid_handedness")
+    with pytest.raises(ValueError):
+        sl.pitch_movement_leaderboard(min_pitches=0)
+    with pytest.raises(ValueError):
+        sl.pitch_movement_leaderboard(min_pitches="100")
+
+
+def test_pitch_movement_leaderboard():
+    df = sl.pitch_movement_leaderboard(
+        season=2023,
+        pitch_type="FF",
+        pitcher_handedness="L",
+        min_pitches=100,
+    )
+    assert df.shape[0] == 132
+    assert df.shape[1] == 24
+    assert df.select(pl.col("pitcher_id").n_unique()).item() == 132
+    assert df.select(pl.col("pitch_type").unique()).item() == "FF"
+    assert df.select(pl.col("pitch_hand").unique()).item() == "L"
+    assert df.select(pl.col("pitches_thrown").min()).item() >= 100
+    assert df.select(pl.col("year").unique()).item() == 2023
+
+
+def test_pitcher_running_game_leaderboard_badinputs():
+    with pytest.raises(ValueError):
+        sl.pitcher_running_game_leaderboard(start_season=1900, end_season=2025)
+    with pytest.raises(ValueError):
+        sl.pitcher_running_game_leaderboard(start_season=2025, end_season=1900)
+    with pytest.raises(ValueError):
+        sl.pitcher_running_game_leaderboard(
+            start_season=2025, end_season=2025, game_type="invalid_game_type"
+        )
+    with pytest.raises(ValueError):
+        sl.pitcher_running_game_leaderboard(
+            start_season=2025, end_season=2025, group_by="invalid_group_by"
+        )
+    with pytest.raises(ValueError):
+        sl.pitcher_running_game_leaderboard(
+            start_season=2025, end_season=2025, pitcher_handedness="invalid_handedness"
+        )
+    with pytest.raises(ValueError):
+        sl.pitcher_running_game_leaderboard(
+            start_season=2025,
+            end_season=2025,
+            runner_movement="invalid_runner_movement",
+        )
+    with pytest.raises(ValueError):
+        sl.pitcher_running_game_leaderboard(
+            start_season=2025, end_season=2025, target_base="invalid_target_base"
+        )
+    with pytest.raises(ValueError):
+        sl.pitcher_running_game_leaderboard(
+            start_season=2025, end_season=2025, num_prior_disengagements="100"
+        )
+    with pytest.raises(ValueError):
+        sl.pitcher_running_game_leaderboard(
+            start_season=2025, end_season=2025, min_sb_opportunities=0
+        )
+    with pytest.raises(ValueError):
+        sl.pitcher_running_game_leaderboard(
+            start_season=2025, end_season=2025, min_sb_opportunities="100"
+        )
+    with pytest.raises(ValueError):
+        sl.pitcher_running_game_leaderboard(
+            start_season=2025, end_season=2025, team=108
+        )
+    with pytest.raises(ValueError):
+        sl.pitcher_running_game_leaderboard(
+            start_season=2025, end_season=2025, team="Yankees"
+        )
+
+
+def test_pitcher_running_game_leaderboard():
+    df = sl.pitcher_running_game_leaderboard(
+        start_season=2020,
+        end_season=2023,
+        game_type="Regular",
+        group_by="Pit",
+        pitcher_handedness="ALL",
+        runner_movement="All",
+        target_base="All",
+        num_prior_disengagements="All",
+        min_sb_opportunities=10,
+        team="All",
+        split_years=True,
+    )
+    assert df.shape[0] == 3174
+    assert df.shape[1] == 25
+    assert (
+        df.select(pl.col("player_id").n_unique()).item() == 1374
+    )  # less than total rows due to some pitchers appearing in multiple seasons
+    assert df.select(pl.col("team_name").n_unique()).item() == 30
+    assert df.select(pl.col("start_year").min()).item() == 2020
+    assert df.select(pl.col("end_year").max()).item() == 2023
+    assert df.select(pl.col("key_target_base").unique()).item() == "All"
+    assert df.select(pl.col("n_init").min()).item() >= 10
