@@ -7,13 +7,13 @@ from pybaseballstats.consts.bref_consts import (
     BREFTeams,
 )
 from pybaseballstats.utils.bref_utils import (
-    BREFSession,
     _extract_table,
     get_bref_table_html,
     resolve_bref_team_code,
 )
+from pybaseballstats.utils.session_utils import PBSSessionManager
 
-session = BREFSession.instance()  # type: ignore[attr-defined]
+session = PBSSessionManager.instance(max_req_per_minute=5)  # type: ignore[attr-defined]
 
 
 __all__ = ["BREFTeams", "draft_order_by_year_round", "franchise_draft_order"]

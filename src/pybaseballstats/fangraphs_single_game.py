@@ -7,11 +7,12 @@ from pybaseballstats.consts.fangraphs_consts import (
     FG_SINGLE_GAME_URL,
     FangraphsSingleGameTeams,
 )
-from pybaseballstats.utils.fangraphs_utils import FGSession
 
 __all__ = ["FangraphsSingleGameTeams", "fangraphs_single_game_play_by_play"]
 
-session = FGSession.instance()  # type: ignore[attr-defined]
+from pybaseballstats.utils.session_utils import PBSSessionManager
+
+session = PBSSessionManager.instance(max_req_per_minute=None)  # type: ignore[attr-defined]
 
 
 def fangraphs_single_game_play_by_play(

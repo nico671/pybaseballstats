@@ -6,12 +6,12 @@ from pybaseballstats.consts.bref_consts import (
     BREF_MANAGERS_GENERAL_URL,
 )
 from pybaseballstats.utils.bref_utils import (
-    BREFSession,
     _extract_table,
     get_bref_table_html,
 )
+from pybaseballstats.utils.session_utils import PBSSessionManager
 
-session = BREFSession.instance()  # type: ignore[attr-defined]
+session = PBSSessionManager.instance(max_req_per_minute=5)  # type: ignore[attr-defined]
 __all__ = ["managers_basic_data", "managers_tendencies_data"]
 
 

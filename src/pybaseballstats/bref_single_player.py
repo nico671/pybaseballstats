@@ -10,12 +10,12 @@ from pybaseballstats.consts.bref_consts import (
     BREF_SINGLE_PLAYER_PITCHING_URL,
 )
 from pybaseballstats.utils.bref_utils import (
-    BREFSession,
     _extract_table,
     get_bref_table_html,
 )
+from pybaseballstats.utils.session_utils import PBSSessionManager
 
-session = BREFSession.instance()  # type: ignore[attr-defined]
+session = PBSSessionManager.instance(max_req_per_minute=5)  # type: ignore[attr-defined]
 __all__ = [
     "single_player_batting",
     "single_player_pitching",
