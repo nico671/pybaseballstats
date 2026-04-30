@@ -15,7 +15,7 @@ This module provides functions to retrieve grouped player-season data from the [
 
 - `player_id` (int): MLBAM player identifier.
 - `season` (int): MLB season year.
-- `player_type` ("batter" | "pitcher"): Player perspective. Must be either `"batter"` or `"pitcher"`.
+- `player_type` ("batter" | "pitcher"): Player perspective. Must be either `"batter"` or `"pitcher"`. It is not inferred from the player. For example, requesting `player_type="batter"` for a pitcher with no batting data may return no data from Baseball Savant.
 - `show_progress` (bool): Show progress indicators while downloading/loading the response.
 - `concurrency` (int | None): Optional max concurrency override for HTTP requests.
 - `verbose` (bool): Print additional runtime logs.
