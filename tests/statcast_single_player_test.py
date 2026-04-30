@@ -9,6 +9,8 @@ pytestmark = [
     pytest.mark.data_dependent,
 ]
 
+# 660271 is Shohei Ohtani's MLBAM player ID
+# 605141 is Mookie Betts' MLBAM player ID
 
 def test_single_player_season_stats_bad_inputs():
     with pytest.raises(TypeError):
@@ -30,6 +32,7 @@ def test_single_player_season_stats_bad_inputs():
 
 
 def test_single_player_season_stats_batter():
+    # Mookie Betts
     df = ssp.single_player_season_stats(
         player_id=605141,
         season=2023,
@@ -43,6 +46,7 @@ def test_single_player_season_stats_batter():
 
 
 def test_single_player_season_stats_pitcher():
+    # Shohei Ohtani
     df = ssp.single_player_season_stats(
         player_id=660271,
         season=2023,
