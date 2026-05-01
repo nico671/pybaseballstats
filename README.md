@@ -60,6 +60,9 @@ df_pandas = df_polars.to_pandas()
 
 Improvements and bug fixes are welcome! This project follows a branch-based development workflow to keep releases stable and active development fast.
 
+> [!NOTE]
+> Currently, the development workflow is set up for Unix based systems. If you are developing on Windows, please use WSL or Docker to ensure compatibility with the development workflow. I am working on making the development workflow more cross-platform compatible, but for now I recommend using a Unix based environment for development.
+
 ### 1. Branching Strategy
 
 We use a standard two-branch workflow:
@@ -73,21 +76,18 @@ We use a standard two-branch workflow:
 
 ### 2. Local Development & Committing
 
-This project uses `just` to automate safety checks before code is pushed.
-
-When your changes are ready, run:
+For local development, due to the slow nature of the full testing suite (as well as certain modules which I am working on optimizing), rather than using the just `commit` command, please just run tests for the specific module you are working on. For example, if you are working on the `bref` module, you can run:
 
 ```bash
-just commit "your descriptive commit message"
+uv run pytest tests/draft_bref_test.py
 ```
 
-This command automatically:
+This will run the tests for the `bref` module without running the full test suite, which can be very slow. Once you are confident that your changes are working correctly and have passed the relevant tests, you can commit your changes with a descriptive message:
 
-- Runs `mypy` for strict type checking.
-- Runs `pytest` with coverage tracking.
-- Commits your changes and safely pushes them to your current GitHub branch.
-
-If type checking or tests fail, the commit is automatically aborted so you can fix issues first.
+```bashbash
+git add .
+git commit -m "Add new feature/fix bug in bref module"
+```
 
 ### 3. Submitting Your Changes
 
