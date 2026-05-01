@@ -18,12 +18,14 @@ session = PBSSessionManager.instance(max_req_per_minute=None)  # type: ignore[at
 def fangraphs_single_game_play_by_play(
     date: str,  # date in 'YYYY-MM-DD' format
     team: FangraphsSingleGameTeams,  # team name
+    verbose: bool = False,  # if True, print debug information during the request process. Defaults to False. Useful for troubleshooting Cloudflare blocks.
 ) -> pl.DataFrame:
     """Returns a DataFrame of play-by-play data for a given date and team from Fangraphs.
 
     Args:
         date (str): date in 'YYYY-MM-DD' format, dictating which game to pull data from
         team (FangraphsSingleGameTeams): team name, use the FangraphsSingleGameTeams enum to get the correct team code. Use the show_options() method to see all available teams.
+        verbose (bool): if True, print debug information during the request process. Defaults to False. Useful for troubleshooting Cloudflare blocks.
     Raises:
         ValueError: If date is in the future
         ValueError: If date is before 1977-04-06
@@ -43,6 +45,7 @@ def fangraphs_single_game_play_by_play(
 
     if type(team) is not FangraphsSingleGameTeams:
         raise ValueError("team must be of type FangraphsSingleGameTeams")
+    session.set_verbose(verbose)
     resp = session.get(
         FG_SINGLE_GAME_URL.format(
             date=date_object.strftime("%Y-%m-%d"), team=team.value
