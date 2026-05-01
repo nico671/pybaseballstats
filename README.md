@@ -60,6 +60,9 @@ df_pandas = df_polars.to_pandas()
 
 Improvements and bug fixes are welcome! This project follows a branch-based development workflow to keep releases stable and active development fast.
 
+> [!NOTE]
+> Currently, the development workflow is set up for Unix based systems. If you are developing on Windows, please use WSL or Docker to ensure compatibility with the development workflow. I am working on making the development workflow more cross-platform compatible, but for now I recommend using a Unix based environment for development.
+
 ### 1. Branching Strategy
 
 We use a standard two-branch workflow:
