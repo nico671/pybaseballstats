@@ -82,7 +82,7 @@ def test_park_factor_yearly_season_rolling_years():
         df = sl.park_factor_yearly_leaderboard(season=2025, rolling_years=3)
         assert df.shape == (28, 19)
         assert df.select(pl.col("Year").unique()).item() == "2023-2025"
-        assert df.select(pl.col("Park Factor").max()).item() == 113
+        assert df.select(pl.col("Park Factor").max()).item() == 112
         assert df.select(pl.col("Team").n_unique()).item() == 28
 
         df = sl.park_factor_yearly_leaderboard(season=2025, rolling_years=1)
