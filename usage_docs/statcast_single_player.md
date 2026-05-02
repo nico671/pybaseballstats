@@ -15,7 +15,7 @@ This module provides functions to retrieve grouped player-season data from the [
 
 - `player_id` (int): MLBAM player identifier.
 - `season` (int): MLB season year.
-- `player_type` ("batter" | "pitcher"): Player perspective. Must be either `"batter"` or `"pitcher"`. It is not inferred from the player. For example, requesting `player_type="batter"` for a pitcher with no batting data may return no data from Baseball Savant.
+- `player_type` ("batter" | "pitcher"): Player perspective. Must be either `"batter"` or `"pitcher"`. It is not inferred from the player. For example, requesting `player_type="batter"` for a pitcher with no batting data may produce an empty Baseball Savant CSV, which is currently reported as a `RuntimeError` by the shared Statcast download layer.
 - `show_progress` (bool): Show progress indicators while downloading/loading the response.
 - `concurrency` (int | None): Optional max concurrency override for HTTP requests.
 - `verbose` (bool): Print additional runtime logs.
@@ -23,7 +23,14 @@ This module provides functions to retrieve grouped player-season data from the [
 ## Return Value
 
 - `pl.DataFrame` containing Baseball Savant grouped Statcast Search stats for the requested player season.
-- Returns an empty `pl.DataFrame` when no data is returned for the requested player/season/player type.
+- The query is grouped by player name and uses Baseball Savant's unfiltered pitch-result selection. If you compare against a Baseball Savant web export, make sure the web UI does not have pitch-result filters such as bunts, competitive swings, or takes selected.
+- Returns an empty `pl.DataFrame` only when the download succeeds but no frames are available after processing.
+
+## Errors
+
+- Raises `TypeError` when `player_id` or `season` is not an integer.
+- Raises `ValueError` when `season` is not a supported Statcast season or when `player_type` is not `"batter"` or `"pitcher"`.
+- Raises `RuntimeError` when Baseball Savant data cannot be downloaded or parsed. This includes cases where Baseball Savant returns an empty CSV for an invalid player query, because the shared Statcast download layer treats that as a failed chunk.
 
 ## Example Usage
 

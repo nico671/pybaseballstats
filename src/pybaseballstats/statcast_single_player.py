@@ -24,19 +24,25 @@ async def _async_single_player_season_stats(
     concurrency: int | None = None,
     verbose: bool = False,
 ) -> pl.DataFrame:
-    """Asynchronously fetch Baseball Savant stats for one player season.
+    """Asynchronously fetch grouped Baseball Savant stats for one player season.
 
     Args:
         player_id (int): MLBAM player identifier.
         season (int): MLB season year.
-        player_type (Literal["batter", "pitcher"]): Player perspective.
+        player_type (Literal["batter", "pitcher"]): Statcast Search player
+            perspective. This controls whether ``player_id`` is sent as a
+            batter or pitcher lookup.
         show_progress (bool, optional): Show progress while downloading/loading.
         concurrency (int | None, optional): Max concurrent requests override.
         verbose (bool, optional): Print additional runtime logs.
 
+    Raises:
+        RuntimeError: If the Baseball Savant CSV cannot be downloaded or parsed.
+
     Returns:
         pl.DataFrame: Baseball Savant grouped Statcast Search stats for the
-        requested player, or an empty DataFrame when no rows are returned.
+        requested player season. Returns an empty DataFrame only when the
+        download succeeds but no frames are available after processing.
     """
     if verbose:
         print(f"Pulling Statcast data for player {player_id} in {season}.")
@@ -92,12 +98,15 @@ def single_player_season_stats(
     """Return Baseball Savant Statcast Search stats for one player season.
 
     This function manages async downloading internally and exposes a synchronous
-    interface for scripts and notebooks.
+    interface for scripts and notebooks. Results are grouped by player name and
+    use the unfiltered Baseball Savant Statcast Search pitch-result selection.
 
     Args:
         player_id (int): MLBAM player identifier.
         season (int): MLB season year.
-        player_type (Literal["batter", "pitcher"]): Player perspective.
+        player_type (Literal["batter", "pitcher"]): Statcast Search player
+            perspective. This controls whether ``player_id`` is sent as a
+            batter or pitcher lookup; it is not inferred from the player.
         show_progress (bool, optional): Show progress while downloading/loading.
         concurrency (int | None, optional): Max concurrent requests override.
         verbose (bool, optional): Print additional runtime logs.
@@ -106,10 +115,12 @@ def single_player_season_stats(
         TypeError: If ``player_id`` or ``season`` is not an integer.
         ValueError: If ``season`` is not available.
         ValueError: If ``player_type`` is not ``"batter"`` or ``"pitcher"``.
+        RuntimeError: If the Baseball Savant CSV cannot be downloaded or parsed.
 
     Returns:
         pl.DataFrame: Baseball Savant grouped Statcast Search stats for the
-        requested player, or an empty DataFrame when no rows are returned.
+        requested player season. Returns an empty DataFrame only when the
+        download succeeds but no frames are available after processing.
     """
     if not isinstance(player_id, int):
         raise TypeError("player_id must be an integer")
