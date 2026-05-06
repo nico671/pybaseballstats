@@ -132,31 +132,53 @@ def test_single_player_season_stats_bad_inputs():
         ssp.single_player_season_stats(
             player_id=660271, season=2023, player_type="fielder"
         )
-
-
-def test_single_player_season_stats_player_not_found(monkeypatch):
-    async def _mock_fetch_all_data(*args, **kwargs):
-        raise RuntimeError(
-            "Statcast download failed to retrieve all requested chunks after retries. "
-            "1/1 chunk(s) failed. Data integrity policy prevented returning partial data. "
-            "Failure details: CSV parse error: NoDataError: empty CSV"
+    with pytest.raises(TypeError):
+        ssp.single_player_season_stats(
+            player_id=660271,
+            season=2023,
+            player_type="batter",
+            show_progress=False,
+        )
+    with pytest.raises(TypeError):
+        ssp.single_player_season_stats(
+            player_id=660271,
+            season=2023,
+            player_type="batter",
+            concurrency=1,
         )
 
-    monkeypatch.setattr(ssp, "_fetch_all_data", _mock_fetch_all_data)
 
+def test_single_player_season_stats_player_not_found():
     with pytest.raises(
         RuntimeError,
-        match=(
-            "Unable to complete Statcast single-player download for the requested "
-            "player 999999999 in 2024"
-        ),
+        match="No Statcast single-player data found for batter 999999999 in 2024",
     ):
         ssp.single_player_season_stats(
             player_id=999999999,
             season=2024,
             player_type="batter",
-            show_progress=False,
         )
+
+
+def test_single_player_season_stats_malformed_csv(monkeypatch):
+    class MockResponse:
+        text = "a,b\n1,2,3\n"
+
+    def _mock_get(*args, **kwargs):
+        return MockResponse()
+
+    monkeypatch.setattr(ssp.requests, "get", _mock_get)
+
+    with pytest.raises(
+        RuntimeError,
+        match="Unable to parse Statcast single-player CSV for pitcher 808967 in 2025",
+    ):
+        ssp.single_player_season_stats(
+            player_id=808967,
+            season=2025,
+            player_type="pitcher",
+        )
+
 
 def test_single_player_season_stats_batter():
     # Shohei Ohtani
@@ -164,7 +186,6 @@ def test_single_player_season_stats_batter():
         player_id=660271,
         season=2024,
         player_type="batter",
-        show_progress=False,
     )
 
     assert_single_player_row_matches(
@@ -256,7 +277,6 @@ def test_single_player_season_stats_pitcher():
         player_id=808967,
         season=2025,
         player_type="pitcher",
-        show_progress=False,
     )
 
     assert_single_player_row_matches(
