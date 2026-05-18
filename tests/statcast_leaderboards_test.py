@@ -5,14 +5,6 @@ import pytest
 
 import pybaseballstats.statcast_leaderboards as sl
 
-pytestmark = [
-    pytest.mark.integration,
-    pytest.mark.playwright,
-    pytest.mark.heavy,
-    pytest.mark.slow,
-    pytest.mark.data_dependent,
-]
-
 
 # Helper to run tests in a separate thread to avoid "Sync API inside asyncio loop" errors
 def run_in_thread(func, *args, **kwargs):

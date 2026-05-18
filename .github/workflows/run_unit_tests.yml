@@ -85,7 +85,7 @@ jobs:
 
       - name: Run tests
         if: steps.changes.outputs.run_tests == 'true'
-        run: uv run coverage run -m pytest tests/
+        run: uv run coverage run -m pytest tests/ -n auto --dist=loadgroup
 
       - name: Generate coverage report
         if: steps.changes.outputs.run_tests == 'true'

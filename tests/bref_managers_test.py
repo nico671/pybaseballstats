@@ -3,9 +3,8 @@ import pytest
 
 import pybaseballstats.bref_managers as bm
 
-pytestmark = [pytest.mark.integration, pytest.mark.data_dependent]
 
-
+@pytest.mark.xdist_group(name="bref_test")
 def test_manager_basic_data_errors():
     with pytest.raises(ValueError):
         bm.managers_basic_data(year=None)
@@ -15,6 +14,7 @@ def test_manager_basic_data_errors():
         bm.managers_basic_data(year=1800)
 
 
+@pytest.mark.xdist_group(name="bref_test")
 def test_manager_basic_data():
     df = bm.managers_basic_data(year=2023)
     assert df.shape[0] == 31
@@ -27,6 +27,7 @@ def test_manager_basic_data():
     assert df.select(pl.col("mgr_ejections").max()).item() == 7
 
 
+@pytest.mark.xdist_group(name="bref_test")
 def test_manager_tendencies_data_errors():
     with pytest.raises(ValueError):
         bm.managers_tendencies_data(year=None)
@@ -36,6 +37,7 @@ def test_manager_tendencies_data_errors():
         bm.managers_tendencies_data(year=1800)
 
 
+@pytest.mark.xdist_group(name="bref_test")
 def test_manager_tendencies_data():
     df = bm.managers_tendencies_data(year=2024)
     assert df.shape[0] == 33

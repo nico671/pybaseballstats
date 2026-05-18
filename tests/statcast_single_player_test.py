@@ -3,12 +3,6 @@ import pytest
 
 import pybaseballstats.statcast_single_player as ssp
 
-pytestmark = [
-    pytest.mark.integration,
-    pytest.mark.heavy,
-    pytest.mark.data_dependent,
-]
-
 EXPECTED_SINGLE_PLAYER_SEASON_COLUMNS = [
     "pitches",
     "player_id",
@@ -109,9 +103,7 @@ def test_single_player_season_stats_bad_inputs():
             player_id="660271", season=2023, player_type="batter"
         )
     with pytest.raises(TypeError):
-        ssp.single_player_season_stats(
-            player_id="", season=2023, player_type="batter"
-        )
+        ssp.single_player_season_stats(player_id="", season=2023, player_type="batter")
     with pytest.raises(TypeError):
         ssp.single_player_season_stats(
             player_id=None, season=2023, player_type="batter"

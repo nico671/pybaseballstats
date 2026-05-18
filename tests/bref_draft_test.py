@@ -3,9 +3,8 @@ import pytest
 
 import pybaseballstats.bref_draft as bd
 
-pytestmark = [pytest.mark.integration, pytest.mark.data_dependent]
 
-
+@pytest.mark.xdist_group(name="bref_test")
 def test_draft_order_by_year_round():
     with pytest.raises(ValueError):
         bd.draft_order_by_year_round(year=1964, draft_round=1)
@@ -22,6 +21,7 @@ def test_draft_order_by_year_round():
     assert df.select(pl.col("overall_pick").max()).item() == 39
 
 
+@pytest.mark.xdist_group(name="bref_test")
 def test_franchise_draft_order():
     with pytest.raises(ValueError):
         bd.franchise_draft_order(team="XXX", year=2023)

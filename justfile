@@ -28,7 +28,7 @@ test:
     echo "Ensuring the coverage directory exists..."
     mkdir -p .github/coverage
     echo "Running tests with coverage..."
-    uv run coverage run -m pytest tests/
+    uv run coverage run -m pytest tests/ -n auto --dist=loadgroup
     if test $status -eq 0
         echo "Tests passed! Generating coverage report..."
         echo "Coverage report:"

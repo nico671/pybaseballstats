@@ -3,14 +3,9 @@ import pytest
 
 import pybaseballstats.bref_teams as bt
 
-pytestmark = [
-    pytest.mark.integration,
-    pytest.mark.heavy,
-    pytest.mark.data_dependent,
-]
-
 
 # region random function tests
+@pytest.mark.xdist_group(name="bref_test")
 def test_schedule_results():
     with pytest.raises(ValueError):
         bt.game_by_game_schedule_results(team="XXX", year=2023)
@@ -30,6 +25,7 @@ def test_schedule_results():
     )
 
 
+@pytest.mark.xdist_group(name="bref_test")
 def test_roster_and_appearances():
     with pytest.raises(ValueError):
         bt.roster_and_appearances(team="XXX", year=2023)
@@ -49,6 +45,7 @@ def test_roster_and_appearances():
     assert df.select(pl.col("name_display").n_unique()).item() == 66
 
 
+@pytest.mark.xdist_group(name="bref_test")
 def test_batting_orders():
     with pytest.raises(ValueError):
         bt.batting_orders(team="XXX", year=2023)
@@ -67,6 +64,7 @@ def test_batting_orders():
 
 
 # region pitching function tests
+@pytest.mark.xdist_group(name="bref_test")
 def test_pitching_bad_inputs():
     with pytest.raises(ValueError):
         bt.pitching(team="XXX", year=2023)
@@ -78,6 +76,7 @@ def test_pitching_bad_inputs():
         bt.pitching(team=bt.BREFTeams.YANKEES, year=2025, metric_type="foo")
 
 
+@pytest.mark.xdist_group(name="bref_test")
 def test_pitching():
     # standard
     df = bt.pitching(team=bt.BREFTeams.YANKEES, year=2025, metric_type="standard")
@@ -123,6 +122,7 @@ def test_pitching():
 
 
 # region fielding function tests
+@pytest.mark.xdist_group(name="bref_test")
 def test_fielding_standard_all_and_position():
     with pytest.raises(ValueError):
         bt.fielding(team="XXX", year=2023, metric_type="standard", position="all")
@@ -153,6 +153,7 @@ def test_fielding_standard_all_and_position():
     assert df_c.shape[1] > 0
 
 
+@pytest.mark.xdist_group(name="bref_test")
 def test_fielding_advanced_validation_and_position():
     with pytest.raises(ValueError):
         bt.fielding(
@@ -179,6 +180,7 @@ def test_fielding_advanced_validation_and_position():
     assert df.shape[1] > 0
 
 
+@pytest.mark.xdist_group(name="bref_test")
 def test_fielding_invalid_metric_type():
     with pytest.raises(ValueError):
         bt.fielding(
@@ -193,6 +195,7 @@ def test_fielding_invalid_metric_type():
 
 
 # region batting function tests
+@pytest.mark.xdist_group(name="bref_test")
 def test_batting_bad_inputs():
     with pytest.raises(ValueError):
         bt.batting(team="XXX", year=2023)
@@ -204,6 +207,7 @@ def test_batting_bad_inputs():
         bt.batting(team=bt.BREFTeams.YANKEES, year=2023, metric_type="foo")
 
 
+@pytest.mark.xdist_group(name="bref_test")
 def test_batting():
     # standard
     df = bt.batting(team=bt.BREFTeams.YANKEES, year=2025, metric_type="standard")

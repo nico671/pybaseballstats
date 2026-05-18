@@ -3,14 +3,14 @@ import pytest
 
 from pybaseballstats import bref_single_player as bsp
 
-pytestmark = [pytest.mark.integration, pytest.mark.data_dependent]
 
-
+@pytest.mark.xdist_group(name="bref_test")
 def test_single_player_batting_invalid_metric_type():
     with pytest.raises(ValueError, match="Invalid metric type: invalid_metric"):
         bsp.single_player_batting("suzukse01", metric_type="invalid_metric")
 
 
+@pytest.mark.xdist_group(name="bref_test")
 def test_single_player_batting_valid_metric_types():
     df = bsp.single_player_batting("suzukse01", metric_type="standard")
     assert df.shape[0] >= 4
@@ -38,11 +38,13 @@ def test_single_player_batting_valid_metric_types():
     assert df.head(4).select(pl.col("age").max()).item() == 30
 
 
+@pytest.mark.xdist_group(name="bref_test")
 def test_single_player_pitching_bad_inputs():
     with pytest.raises(ValueError):
         bsp.single_player_pitching("suzukse01", metric_type="invalid_metric")
 
 
+@pytest.mark.xdist_group(name="bref_test")
 def test_single_player_pitching_valid_metric_types():
     df = bsp.single_player_pitching("imanash01", metric_type="standard")
     assert df.shape[0] >= 2
@@ -67,6 +69,7 @@ def test_single_player_pitching_valid_metric_types():
     assert df.head(2).select(pl.col("SHO").max()).item() == 0
 
 
+@pytest.mark.xdist_group(name="bref_test")
 def test_single_player_fielding_bad_inputs():
     with pytest.raises(ValueError):
         bsp.single_player_fielding("suzukse01", metric_type="invalid_metric")
@@ -80,6 +83,7 @@ def test_single_player_fielding_bad_inputs():
         bsp.single_player_fielding("suzukse01", metric_type="standard", position="p")
 
 
+@pytest.mark.xdist_group(name="bref_test")
 def test_single_player_fielding():
     df = bsp.single_player_fielding("sheldsc01", metric_type="standard")
     assert df.shape[0] == 25
