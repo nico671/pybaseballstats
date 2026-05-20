@@ -114,17 +114,18 @@ class PBSSessionManager:
                     and self.request_timestamps[0] < window_start
                 ):
                     self.request_timestamps.popleft()
-            # ensure it has been at least 3 seconds since the last request to avoid hitting Baseball References's rate limits
+            # ensure it has been at least 5 seconds since the last request to avoid hitting Baseball References's rate limits
+            # (they require 3 seconds)
             if (
                 self.request_timestamps
-                and (current_time - self.request_timestamps[-1]).total_seconds() < 3
+                and (current_time - self.request_timestamps[-1]).total_seconds() < 5
             ):
                 wait_time = (
-                    3 - (current_time - self.request_timestamps[-1]).total_seconds()
+                    5 - (current_time - self.request_timestamps[-1]).total_seconds()
                 )
                 if self.verbose:
                     print(
-                        f"Enforcing 3-second gap between requests, sleeping ~{wait_time:.2f}s"
+                        f"Enforcing 5-second gap between requests, sleeping ~{wait_time:.2f}s"
                     )
                 time.sleep(wait_time + random.uniform(0.5, 1.5))  # add a bit of jitter
             self.request_timestamps.append(current_time)
@@ -172,7 +173,7 @@ class PBSSessionManager:
                     print("[DEBUG] Navigating to target URL...")
                 page.goto(url, wait_until="domcontentloaded")
 
-                max_clicks = 5
+                max_clicks = 3
                 num_clicks = 0
 
                 while num_clicks < max_clicks:
