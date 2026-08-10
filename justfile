@@ -34,7 +34,7 @@ test:
 smoke:
     #!/usr/bin/env fish
     echo "Running live unique-page smoke tests..."
-    uv run pytest smoke_tests/ -m live -q
+    uv run pytest smoke_tests/ -m live -n auto --dist loadgroup -q
 
 commit message:
     #!/usr/bin/env fish

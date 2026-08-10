@@ -93,6 +93,8 @@ manually with:
 just smoke
 ```
 
+The smoke suite uses pytest-xdist to run independent live endpoint tests in parallel. All Baseball-Reference page tests are assigned to the same xdist worker so their shared session can enforce BREF's rate limit; keep `--dist loadgroup` when invoking the suite directly.
+
 Baseball Reference fixtures can be refreshed explicitly with
 `uv run python scripts/capture_bref_fixtures.py`. Fixture capture is never part of
 normal pytest execution.

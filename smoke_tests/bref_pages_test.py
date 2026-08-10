@@ -22,7 +22,7 @@ from pybaseballstats.utils.bref_utils import _extract_table, get_bref_table_html
 from pybaseballstats.utils.session_utils import PBSSessionManager
 
 
-pytestmark = pytest.mark.live
+pytestmark = [pytest.mark.live, pytest.mark.xdist_group("bref")]
 
 
 @dataclass(frozen=True)

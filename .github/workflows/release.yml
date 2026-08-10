@@ -37,7 +37,7 @@ jobs:
         run: uv run playwright install --with-deps chromium
 
       - name: Run required live smoke tests
-        run: uv run pytest smoke_tests/ -m live -q
+        run: uv run pytest smoke_tests/ -m live -n auto --dist loadgroup -q
 
   pypi-publish:
     name: Build and publish to PyPI
