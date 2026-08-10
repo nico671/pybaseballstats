@@ -140,6 +140,7 @@ def test_single_player_season_stats_bad_inputs():
         )
 
 
+@pytest.mark.live
 def test_single_player_season_stats_player_not_found():
     with pytest.raises(
         RuntimeError,
@@ -172,6 +173,7 @@ def test_single_player_season_stats_malformed_csv(monkeypatch):
         )
 
 
+@pytest.mark.live
 def test_single_player_season_stats_batter():
     # Shohei Ohtani
     df = ssp.single_player_season_stats(
@@ -263,6 +265,7 @@ def test_single_player_season_stats_batter():
     )
 
 
+@pytest.mark.live
 def test_single_player_season_stats_pitcher():
     # Yoshinobu Yamamoto
     df = ssp.single_player_season_stats(

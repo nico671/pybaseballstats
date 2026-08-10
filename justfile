@@ -1,4 +1,4 @@
-set shell := ["fish"]
+set shell := ["fish", "-c"]
 
 default:
     #!/usr/bin/env fish
@@ -15,6 +15,17 @@ mypy:
         exit 1
     end
 
+lint:
+    #!/usr/bin/env fish
+    echo "Running Ruff lint checks..."
+    uv run ruff check .
+    if test $status -eq 0
+        echo "Ruff lint checks passed!"
+    else
+        echo "Ruff lint checks failed!"
+        exit 1
+    end
+
 set dotenv-load := true
 
 build:
@@ -22,28 +33,29 @@ build:
 
 test:
     #!/usr/bin/env fish
-    echo "Cleaning up previous coverage data..."
-    rm -f .coverage
-    rm -f .github/coverage/coverage.json
-    echo "Ensuring the coverage directory exists..."
-    mkdir -p .github/coverage
-    echo "Running tests with coverage..."
-    uv run pytest tests/ --cov=src/pybaseballstats/ -n auto --dist=loadgroup
+    echo "Running tests..."
+    uv run pytest tests/
     if test $status -eq 0
-        echo "Tests passed! Generating coverage report..."
-        echo "Coverage report:"
-        uv run coverage report -m
-        echo "Generating JSON coverage report..."
-        uv run coverage json -o .github/coverage/coverage.json
-        echo "Coverage analysis complete!"
-        echo "JSON report saved to: .github/coverage/coverage.json"
+        echo "Tests passed!"
     else
-        echo "Tests failed! Coverage report not generated."
+        echo "Tests failed."
         exit 1
     end
 
+smoke:
+    #!/usr/bin/env fish
+    echo "Running live unique-page smoke tests..."
+    uv run pytest tests/ -m live -n auto --dist loadgroup -q
+
 commit message:
     #!/usr/bin/env fish
+    echo "Running lint checks before commit..."
+    just lint
+    if test $status -ne 0
+        echo "Commit aborted: lint checks failed."
+        exit 1
+    end
+
     echo "Running mypy checks before commit..."
     just mypy
     if test $status -ne 0
@@ -106,18 +118,39 @@ release version commit_message:
         exit 1
     end
     
-    echo "Step 3: Running tests..."
+    echo "Step 3: Running lint checks..."
+    just lint
+    if test $status -ne 0
+        echo "Release aborted: lint checks failed!"
+        exit 1
+    end
+
+    echo "Step 4: Running tests..."
     just test
     if test $status -ne 0
         echo "Release aborted: tests failed!"
         exit 1
     end
     
-    echo "Step 4: Committing version bump..."
+    echo "Step 5: Running required live smoke tests..."
+    just smoke
+    if test $status -ne 0
+        echo "Release aborted: live smoke tests failed!"
+        exit 1
+    end
+
+    echo "Step 6: Building package..."
+    just build
+    if test $status -ne 0
+        echo "Release aborted: package build failed!"
+        exit 1
+    end
+
+    echo "Step 7: Committing version bump..."
     git add pyproject.toml
     git commit -m "Bump version to {{ version }}; Message: {{ commit_message }}"
     
-    echo "Step 5: Creating and pushing tag..."
+    echo "Step 8: Creating and pushing tag..."
     git tag -a v{{ version }} -m "Release version {{ version }}"
     
     git push origin main

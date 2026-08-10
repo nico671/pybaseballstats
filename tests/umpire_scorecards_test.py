@@ -3,6 +3,8 @@ import pytest
 
 import pybaseballstats.umpire_scorecards as us
 
+pytestmark = pytest.mark.live
+
 # region game_data function tests
 
 

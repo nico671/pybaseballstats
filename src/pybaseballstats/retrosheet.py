@@ -139,6 +139,7 @@ def ejections_data(
         requests.get(EJECTIONS_URL).content,
         infer_schema_length=None,
         truncate_ragged_lines=True,
+        schema_overrides={"INNING": pl.String},
     )
     df = df.with_columns(
         pl.col("DATE").str.to_date("%m/%d/%Y").alias("DATE"),

@@ -18,7 +18,7 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   test:
@@ -60,79 +60,10 @@ jobs:
         if: steps.changes.outputs.run_tests == 'true'
         run: uv sync --locked --all-extras --dev
 
-      - name: Get Playwright version
-        if: steps.changes.outputs.run_tests == 'true'
-        id: playwright-version
-        run: |
-          playwright_version=$(uv run python - <<'PY'
-          from importlib.metadata import version
-          print(version("playwright"))
-          PY
-          )
-          echo "version=${playwright_version}" >> "$GITHUB_OUTPUT"
-
-      - name: Cache Playwright browsers
-        if: steps.changes.outputs.run_tests == 'true'
-        uses: actions/cache@v5
-        id: playwright-cache
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ steps.playwright-version.outputs.version }}
-
-      - name: Install playwright browsers
-        if: steps.changes.outputs.run_tests == 'true'
-        run: uv run playwright install chromium
-
-      - name: Install playwright browser dependencies
-        if: steps.changes.outputs.run_tests == 'true'
-        run: uv run playwright install-deps chromium
-
       - name: Run tests
         if: steps.changes.outputs.run_tests == 'true'
-        run: uv run pytest tests/ --cov=src/pybaseballstats/ -n auto --dist=loadgroup
+        run: uv run pytest tests/
 
-      - name: Generate coverage report
+      - name: Run Ruff lint checks
         if: steps.changes.outputs.run_tests == 'true'
-        run: |
-          uv run coverage report -m
-          uv run coverage json -o coverage.json
-
-      - name: Install jq
-        if: steps.changes.outputs.run_tests == 'true' && github.ref == 'refs/heads/dev'
-        run: sudo apt-get update && sudo apt-get install -y jq
-
-      - name: Convert coverage.json to badge
-        if: steps.changes.outputs.run_tests == 'true' && github.ref == 'refs/heads/dev'
-        run: |
-          percent=$(jq '.totals.percent_covered | round' coverage.json)
-          mkdir -p badges
-
-          if [ "$percent" -ge 80 ]; then
-            color="brightgreen"
-          elif [ "$percent" -ge 60 ]; then
-            color="yellow"
-          else
-            color="red"
-          fi
-
-          curl -o badges/coverage.svg "https://img.shields.io/badge/coverage-${percent}%25-${color}"
-
-      - name: Commit and push coverage badge
-        if: steps.changes.outputs.run_tests == 'true' && github.ref == 'refs/heads/dev'
-        run: |
-          git config --local user.email "actions@github.com"
-          git config --local user.name "github-actions"
-
-          git fetch origin coverage-badge || git checkout --orphan coverage-badge
-          git checkout coverage-badge || git checkout --orphan coverage-badge
-
-          git rm -rf . 2>/dev/null || true
-          mkdir -p badges
-          cp coverage.json badges/ 2>/dev/null || true
-          cp badges/coverage.svg badges/coverage.svg 2>/dev/null || true
-
-          git add badges/
-          git diff --cached --quiet || git commit -m "Update coverage badge [skip ci]"
-          git push -u origin coverage-badge --force
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: uv run ruff check .

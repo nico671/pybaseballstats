@@ -100,9 +100,9 @@ def test_pitching():
 
     # ratio
     df = bt.pitching(team=bt.BREFTeams.YANKEES, year=2025, metric_type="ratio")
-    assert df.shape[0] == 34
+    assert df.shape[0] == 36
     assert df.shape[1] == 19
-    assert df.select(pl.col("player_name").n_unique()).item() == 34
+    assert df.select(pl.col("player_name").n_unique()).item() == 36
     assert df.select(pl.col("home_run_perc").max()).item() == 16.700000762939453
     assert (
         "League Average" not in df.select(pl.col("player_name")).to_series().to_list()

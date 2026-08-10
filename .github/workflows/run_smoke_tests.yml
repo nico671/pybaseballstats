@@ -1,28 +1,27 @@
-name: Run mypy type checks
+name: Run Live Smoke Tests
 
 on:
-  pull_request:
-    branches:
-      - main
-      - dev
+  schedule:
+    - cron: "17 8 * * *"
+  workflow_dispatch:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  mypy:
+  smoke:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+
     steps:
       - uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
 
       - name: Install uv
         uses: astral-sh/setup-uv@v7
@@ -35,5 +34,8 @@ jobs:
       - name: Install dependencies
         run: uv sync --locked --all-extras --dev
 
-      - name: Run mypy type checks
-        run: uv run mypy src/pybaseballstats/
+      - name: Install Playwright browser
+        run: uv run playwright install --with-deps chromium
+
+      - name: Run unique-page smoke tests
+        run: uv run pytest tests/ -m live -n auto --dist loadgroup -q

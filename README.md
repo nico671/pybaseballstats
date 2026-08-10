@@ -4,7 +4,7 @@ A Python package for scraping baseball statistics from the web. Inspired by the 
 
 ---
 
-[![PyPI Downloads](https://static.pepy.tech/badge/pybaseballstats)](https://pepy.tech/projects/pybaseballstats)  ![Coverage](https://github.com/nico671/pybaseballstats/blob/coverage-badge/badges/coverage.svg)  ![Pytest Status](https://github.com/nico671/pybaseballstats/actions/workflows/run_unit_tests.yml/badge.svg)  ![Mypy Status](https://github.com/nico671/pybaseballstats/actions/workflows/run_mypy.yml/badge.svg)
+[![PyPI Downloads](https://static.pepy.tech/badge/pybaseballstats)](https://pepy.tech/projects/pybaseballstats)  ![Pytest Status](https://github.com/nico671/pybaseballstats/actions/workflows/run_unit_tests.yml/badge.svg)  ![Mypy Status](https://github.com/nico671/pybaseballstats/actions/workflows/run_mypy.yml/badge.svg)
 
 ---
 
@@ -76,13 +76,37 @@ We use a standard two-branch workflow:
 
 ### 2. Local Development & Committing
 
-For local development, due to the slow nature of the full testing suite (as well as certain modules which I am working on optimizing), rather than using the just `commit` command, please just run tests for the specific module you are working on. For example, if you are working on the `bref` module, you can run:
+The default test suite is offline. Network responses are replayed from committed
+fixtures, so local development and pull-request checks do not depend on external
+websites:
 
 ```bash
-uv run pytest tests/draft_bref_test.py
+just test
 ```
 
-This will run the tests for the `bref` module without running the full test suite, which can be very slow. Once you are confident that your changes are working correctly and have passed the relevant tests, you can commit your changes with a descriptive message:
+Live smoke tests use the `live` pytest mark. They fetch one representative
+response for each distinct page or API contract and validate every table exposed
+by that response. They run nightly and are required before a release, but they
+do not block pull requests. Run them manually with:
+
+```bash
+just smoke
+```
+
+The smoke suite uses pytest-xdist to run independent live endpoint tests in parallel. All Baseball-Reference page tests are assigned to the same xdist worker so their shared session can enforce BREF's rate limit; keep `--dist loadgroup` when invoking the suite directly.
+
+Run static checks before a commit with:
+
+```bash
+just lint
+just mypy
+```
+
+Baseball Reference fixtures can be refreshed explicitly with
+`uv run python scripts/capture_bref_fixtures.py`. Fixture capture is never part of
+normal pytest execution.
+
+Once the relevant offline tests pass, commit your changes with a descriptive message:
 
 ```bashbash
 git add .
@@ -96,9 +120,6 @@ Once your feature or bug fix is complete and tested locally:
 1. Open a pull request from your feature branch into `dev`.
 2. GitHub Actions automatically runs CI (unit tests + `mypy`).
 3. After checks pass and review is complete, your changes are merged into `dev`.
-
-> [!NOTE]
-> Coverage badges in this README reflect the current state of the `dev` branch, giving real-time visibility into active development health.
 
 ### 4. Release Pipeline (Maintainers Only)
 
