@@ -4,6 +4,7 @@ import pytest
 import pybaseballstats.statcast as sc
 
 
+@pytest.mark.live
 def test_pitch_by_pitch_data_errors():
     """Test error handling in pitch_by_pitch_data."""
     with pytest.raises(ValueError):
@@ -31,6 +32,7 @@ def test_pitch_by_pitch_data_fails_gracefully_when_chunk_fails(monkeypatch):
         sc.pitch_by_pitch_data(start_date="2023-07-01", end_date="2023-07-02")
 
 
+@pytest.mark.live
 def test_pitch_by_pitch_data_general():
     """Test general functionality of pitch_by_pitch_data."""
     df = sc.pitch_by_pitch_data(
@@ -46,6 +48,7 @@ def test_pitch_by_pitch_data_general():
     assert df.select(pl.col("player_name").n_unique()).item() == 296
 
 
+@pytest.mark.live
 def test_pitch_by_pitch_data_team_none_returns_all():
     """Ensure no filtering is applied when team is None."""
     df = sc.pitch_by_pitch_data(
@@ -57,6 +60,7 @@ def test_pitch_by_pitch_data_team_none_returns_all():
     assert df.select(pl.col("away_team").n_unique()).item() > 1
 
 
+@pytest.mark.live
 def test_pitch_by_pitch_data_team_filtering():
     """Test team filtering of pitch_by_pitch_data."""
     df = sc.pitch_by_pitch_data(

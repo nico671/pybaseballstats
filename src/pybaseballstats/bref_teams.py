@@ -201,6 +201,8 @@ def game_by_game_schedule_results(
     """
     if not isinstance(team, BREFTeams):
         raise ValueError("Team must be a member of the BREFTeams enum")
+    if year < 1871:
+        raise ValueError("Year must be greater than or equal to 1871.")
     team_code = resolve_bref_team_code(team=team, year=year)
     url = BREF_TEAMS_SCHEDULE_RESULTS_URL.format(team_code=team_code, year=year)
     session.set_verbose(verbose)
@@ -240,6 +242,8 @@ def roster_and_appearances(
     """
     if not isinstance(team, BREFTeams):
         raise ValueError("Team must be a member of the BREFTeams enum")
+    if year < 1871:
+        raise ValueError("Year must be greater than or equal to 1871.")
     team_code = resolve_bref_team_code(team=team, year=year)
     polars_data = None
     url = BREF_TEAMS_ROSTER_URL.format(team_code=team_code, year=year)

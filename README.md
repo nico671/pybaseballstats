@@ -76,13 +76,28 @@ We use a standard two-branch workflow:
 
 ### 2. Local Development & Committing
 
-For local development, due to the slow nature of the full testing suite (as well as certain modules which I am working on optimizing), rather than using the just `commit` command, please just run tests for the specific module you are working on. For example, if you are working on the `bref` module, you can run:
+The default test suite is offline. Network responses are replayed from committed
+fixtures, so local development and pull-request checks do not depend on external
+websites:
 
 ```bash
-uv run pytest tests/draft_bref_test.py
+just test
 ```
 
-This will run the tests for the `bref` module without running the full test suite, which can be very slow. Once you are confident that your changes are working correctly and have passed the relevant tests, you can commit your changes with a descriptive message:
+Live smoke tests fetch one representative response for each distinct page or API
+contract and validate every table exposed by that response. They run nightly and
+are required before a release, but they do not block pull requests. Run them
+manually with:
+
+```bash
+just smoke
+```
+
+Baseball Reference fixtures can be refreshed explicitly with
+`uv run python scripts/capture_bref_fixtures.py`. Fixture capture is never part of
+normal pytest execution.
+
+Once the relevant offline tests pass, commit your changes with a descriptive message:
 
 ```bashbash
 git add .

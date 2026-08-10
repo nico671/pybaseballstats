@@ -23,6 +23,7 @@ def test_player_lookup_errors():
         rs.player_lookup(first_name="Babe", last_name=456)
 
 
+@pytest.mark.live
 def test_player_lookup():
     # # normal test looking up babe ruth
     # df = rs.player_lookup(first_name="Babe", last_name="Ruth")
@@ -47,6 +48,7 @@ def test_player_lookup():
     assert df.select(pl.col("key_bbref").unique()).item() == "ruthba01"
 
 
+@pytest.mark.live
 def test_ejections_data_errors():
     with pytest.raises(ValueError):
         rs.ejections_data(start_date="2023-04-01", end_date="10/01/2023")
@@ -60,6 +62,7 @@ def test_ejections_data_errors():
         rs.ejections_data(inning=21)
 
 
+@pytest.mark.live
 def test_ejections_data_just_dates():
     df = rs.ejections_data(start_date="04/01/2023", end_date="10/01/2023")
     assert df.shape[0] == 243
@@ -77,6 +80,7 @@ def test_ejections_data_just_dates():
     assert df.select(pl.col("INNING").n_unique()).item() == 12
 
 
+@pytest.mark.live
 def test_ejection_data_ejectee_name():
     df = rs.ejections_data(
         start_date="04/01/2016", end_date="10/01/2025", ejectee_name="Machado"
@@ -102,6 +106,7 @@ def test_ejection_data_ejectee_name():
     assert df.shape[1] == 11
 
 
+@pytest.mark.live
 def test_ejection_data_umpire_name():
     df = rs.ejections_data(
         start_date="04/01/2016", end_date="10/01/2025", umpire_name="Alfonso Marquez"
@@ -126,6 +131,7 @@ def test_ejection_data_umpire_name():
     assert df.shape[1] == 11
 
 
+@pytest.mark.live
 def test_ejection_data_inning():
     df = rs.ejections_data(start_date="04/01/2016", end_date="10/01/2025", inning=7)
     assert df.shape[0] == 278

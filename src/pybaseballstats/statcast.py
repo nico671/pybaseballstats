@@ -161,7 +161,7 @@ def pitch_by_pitch_data(
         return asyncio.run(coro)
     else:
         # Event loop already running - Jupyter notebooks, existing async context
-        import nest_asyncio  # type: ignore
+        import nest_asyncio  # type: ignore [import-untyped]
 
         nest_asyncio.apply()
         return loop.run_until_complete(coro)

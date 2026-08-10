@@ -80,4 +80,8 @@ source = ["src/pybaseballstats"]
 concurrency = ["thread", "greenlet"]
 
 [tool.pytest.ini_options]
-addopts = "-ra --strict-markers"
+addopts = "-ra --strict-markers -m 'not live'"
+markers = [
+    "live: tests that contact external data sources",
+]
+pythonpath = ["."]

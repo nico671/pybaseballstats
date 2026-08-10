@@ -60,36 +60,9 @@ jobs:
         if: steps.changes.outputs.run_tests == 'true'
         run: uv sync --locked --all-extras --dev
 
-      - name: Get Playwright version
-        if: steps.changes.outputs.run_tests == 'true'
-        id: playwright-version
-        run: |
-          playwright_version=$(uv run python - <<'PY'
-          from importlib.metadata import version
-          print(version("playwright"))
-          PY
-          )
-          echo "version=${playwright_version}" >> "$GITHUB_OUTPUT"
-
-      - name: Cache Playwright browsers
-        if: steps.changes.outputs.run_tests == 'true'
-        uses: actions/cache@v5
-        id: playwright-cache
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ steps.playwright-version.outputs.version }}
-
-      - name: Install playwright browsers
-        if: steps.changes.outputs.run_tests == 'true'
-        run: uv run playwright install chromium
-
-      - name: Install playwright browser dependencies
-        if: steps.changes.outputs.run_tests == 'true'
-        run: uv run playwright install-deps chromium
-
       - name: Run tests
         if: steps.changes.outputs.run_tests == 'true'
-        run: uv run pytest tests/ --cov=src/pybaseballstats/ -n auto --dist=loadgroup
+        run: uv run pytest tests/ --cov=src/pybaseballstats/
 
       - name: Generate coverage report
         if: steps.changes.outputs.run_tests == 'true'

@@ -28,7 +28,7 @@ test:
     echo "Ensuring the coverage directory exists..."
     mkdir -p .github/coverage
     echo "Running tests with coverage..."
-    uv run pytest tests/ --cov=src/pybaseballstats/ -n auto --dist=loadgroup
+    uv run pytest tests/ --cov=src/pybaseballstats/
     if test $status -eq 0
         echo "Tests passed! Generating coverage report..."
         echo "Coverage report:"
@@ -41,6 +41,11 @@ test:
         echo "Tests failed! Coverage report not generated."
         exit 1
     end
+
+smoke:
+    #!/usr/bin/env fish
+    echo "Running live unique-page smoke tests..."
+    uv run pytest smoke_tests/ -m live -q
 
 commit message:
     #!/usr/bin/env fish
@@ -113,11 +118,18 @@ release version commit_message:
         exit 1
     end
     
-    echo "Step 4: Committing version bump..."
+    echo "Step 4: Running required live smoke tests..."
+    just smoke
+    if test $status -ne 0
+        echo "Release aborted: live smoke tests failed!"
+        exit 1
+    end
+
+    echo "Step 5: Committing version bump..."
     git add pyproject.toml
     git commit -m "Bump version to {{ version }}; Message: {{ commit_message }}"
     
-    echo "Step 5: Creating and pushing tag..."
+    echo "Step 6: Creating and pushing tag..."
     git tag -a v{{ version }} -m "Release version {{ version }}"
     
     git push origin main

@@ -13,6 +13,7 @@ def run_in_thread(func, *args, **kwargs):
         return future.result()
 
 
+@pytest.mark.live
 def test_park_factor_dimensions():
     def _test():
         with pytest.raises(ValueError):
@@ -69,6 +70,7 @@ def test_park_factor_yearly_badinput():
     run_in_thread(_test)
 
 
+@pytest.mark.live
 def test_park_factor_yearly_season_rolling_years():
     def _test():
         df = sl.park_factor_yearly_leaderboard(season=2025, rolling_years=3)
@@ -86,6 +88,7 @@ def test_park_factor_yearly_season_rolling_years():
     run_in_thread(_test)
 
 
+@pytest.mark.live
 def test_park_factor_yearly_bat_side():
     def _test():
         df = sl.park_factor_yearly_leaderboard(
@@ -107,6 +110,7 @@ def test_park_factor_yearly_bat_side():
     run_in_thread(_test)
 
 
+@pytest.mark.live
 def test_park_factor_yearly_conditions():
     def _test():
         df = sl.park_factor_yearly_leaderboard(
@@ -138,6 +142,7 @@ def test_park_factor_distance_badinputs():
     run_in_thread(_test)
 
 
+@pytest.mark.live
 def test_park_factor_distance():
     def _test():
         df = sl.park_factor_distance_leaderboard(season=2023)
@@ -166,6 +171,7 @@ def test_timer_infractions_leaderboard_badinputs():
     run_in_thread(_test)
 
 
+@pytest.mark.live
 def test_timer_infractions_leaderboard():
     def _test():
         df = sl.timer_infractions_leaderboard(season=2023, perspective="Team")
@@ -197,6 +203,7 @@ def test_arm_strength_leaderboard_badinputs():
         sl.arm_strength_leaderboard(team="NYY")
 
 
+@pytest.mark.live
 def test_arm_strength_leaderboard_player_and_team_modes(monkeypatch):
 
     # Cover year="All" conversion branch and player-mode column drop.
@@ -300,6 +307,7 @@ def test_abs_challenges_leaderboard_badinputs():
         )
 
 
+@pytest.mark.live
 def test_abs_challenges_leaderboard_season():
     df = sl.abs_challenges_leaderboard(
         season=2026,
@@ -310,6 +318,7 @@ def test_abs_challenges_leaderboard_season():
     assert df.select(pl.col("team_abbr").n_unique()).item() == 30
 
 
+@pytest.mark.live
 def test_abs_challenges_leaderboard_challenge_type():
     df_batter = sl.abs_challenges_leaderboard(
         season=2026,
@@ -361,6 +370,7 @@ def test_spin_direction_leaderboard_badinputs():
         sl.spin_direction_leaderboard(min_pitches="100")
 
 
+@pytest.mark.live
 def test_spin_direction_leaderboard():
     # single season
     df = sl.spin_direction_leaderboard(
@@ -421,6 +431,7 @@ def test_active_spin_leaderboard_badinputs():
         )
 
 
+@pytest.mark.live
 def test_active_spin_leaderboard():
     df = sl.active_spin_leaderboard(
         season=2023, min_pitches=100, stat_method="spin-based", pitcher_handedness="R"
@@ -517,6 +528,7 @@ def test_arm_angle_leaderboard_badinputs():
         )
 
 
+@pytest.mark.live
 def test_arm_angle_leaderboard():
     df = sl.arm_angle_leaderboard(
         start_date="2020-01-01",
@@ -559,6 +571,7 @@ def test_pitch_arsenals_leaderboard_badinputs():
         sl.pitch_arsenals_leaderboard(min_pitches="100")
 
 
+@pytest.mark.live
 def test_pitch_arsenals_leaderboard():
     df = sl.pitch_arsenals_leaderboard(
         season=2023, metric_type="avg_speed", pitcher_handedness="R", min_pitches=100
@@ -594,6 +607,7 @@ def test_pitch_movement_leaderboard_badinputs():
         sl.pitch_movement_leaderboard(min_pitches="100")
 
 
+@pytest.mark.live
 def test_pitch_movement_leaderboard():
     df = sl.pitch_movement_leaderboard(
         season=2023,
@@ -659,6 +673,7 @@ def test_pitcher_running_game_leaderboard_badinputs():
         )
 
 
+@pytest.mark.live
 def test_pitcher_running_game_leaderboard():
     df = sl.pitcher_running_game_leaderboard(
         start_season=2020,
