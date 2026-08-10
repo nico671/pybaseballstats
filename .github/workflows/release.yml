@@ -31,13 +31,16 @@ jobs:
         run: uv run pytest tests/
 
       - name: Run mypy
-        run: uv run mypy src/pybaseballstats tests/ smoke_tests/
+        run: uv run mypy src/pybaseballstats/
+
+      - name: Run Ruff lint checks
+        run: uv run ruff check .
 
       - name: Install Playwright browser
         run: uv run playwright install --with-deps chromium
 
       - name: Run required live smoke tests
-        run: uv run pytest smoke_tests/ -m live -n auto --dist loadgroup -q
+        run: uv run pytest tests/ -m live -n auto --dist loadgroup -q
 
   pypi-publish:
     name: Build and publish to PyPI

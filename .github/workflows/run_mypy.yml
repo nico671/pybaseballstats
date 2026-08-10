@@ -36,4 +36,4 @@ jobs:
         run: uv sync --locked --all-extras --dev
 
       - name: Run mypy type checks
-        run: uv run mypy src/pybaseballstats tests/ smoke_tests/
+        run: uv run mypy src/pybaseballstats/

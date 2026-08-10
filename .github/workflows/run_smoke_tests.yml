@@ -38,4 +38,4 @@ jobs:
         run: uv run playwright install --with-deps chromium
 
       - name: Run unique-page smoke tests
-        run: uv run pytest smoke_tests/ -m live -n auto --dist loadgroup -q
+        run: uv run pytest tests/ -m live -n auto --dist loadgroup -q

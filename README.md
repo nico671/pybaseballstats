@@ -84,16 +84,23 @@ websites:
 just test
 ```
 
-Live smoke tests fetch one representative response for each distinct page or API
-contract and validate every table exposed by that response. They run nightly and
-are required before a release, but they do not block pull requests. Run them
-manually with:
+Live smoke tests use the `live` pytest mark. They fetch one representative
+response for each distinct page or API contract and validate every table exposed
+by that response. They run nightly and are required before a release, but they
+do not block pull requests. Run them manually with:
 
 ```bash
 just smoke
 ```
 
 The smoke suite uses pytest-xdist to run independent live endpoint tests in parallel. All Baseball-Reference page tests are assigned to the same xdist worker so their shared session can enforce BREF's rate limit; keep `--dist loadgroup` when invoking the suite directly.
+
+Run static checks before a commit with:
+
+```bash
+just lint
+just mypy
+```
 
 Baseball Reference fixtures can be refreshed explicitly with
 `uv run python scripts/capture_bref_fixtures.py`. Fixture capture is never part of

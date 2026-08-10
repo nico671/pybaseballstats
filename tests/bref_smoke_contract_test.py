@@ -6,7 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from smoke_tests.bref_pages_test import (
+from bref_pages_live_test import (
     PAGE_CONTRACTS,
     PageContract,
     assert_batting_orders_page,

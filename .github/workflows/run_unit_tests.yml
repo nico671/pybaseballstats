@@ -63,3 +63,7 @@ jobs:
       - name: Run tests
         if: steps.changes.outputs.run_tests == 'true'
         run: uv run pytest tests/
+
+      - name: Run Ruff lint checks
+        if: steps.changes.outputs.run_tests == 'true'
+        run: uv run ruff check .

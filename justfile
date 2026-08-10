@@ -1,4 +1,4 @@
-set shell := ["fish"]
+set shell := ["fish", "-c"]
 
 default:
     #!/usr/bin/env fish
@@ -12,6 +12,17 @@ mypy:
         echo "Mypy type checking passed!"
     else
         echo "Mypy type checking failed!"
+        exit 1
+    end
+
+lint:
+    #!/usr/bin/env fish
+    echo "Running Ruff lint checks..."
+    uv run ruff check .
+    if test $status -eq 0
+        echo "Ruff lint checks passed!"
+    else
+        echo "Ruff lint checks failed!"
         exit 1
     end
 
@@ -34,10 +45,17 @@ test:
 smoke:
     #!/usr/bin/env fish
     echo "Running live unique-page smoke tests..."
-    uv run pytest smoke_tests/ -m live -n auto --dist loadgroup -q
+    uv run pytest tests/ -m live -n auto --dist loadgroup -q
 
 commit message:
     #!/usr/bin/env fish
+    echo "Running lint checks before commit..."
+    just lint
+    if test $status -ne 0
+        echo "Commit aborted: lint checks failed."
+        exit 1
+    end
+
     echo "Running mypy checks before commit..."
     just mypy
     if test $status -ne 0
@@ -100,25 +118,39 @@ release version commit_message:
         exit 1
     end
     
-    echo "Step 3: Running tests..."
+    echo "Step 3: Running lint checks..."
+    just lint
+    if test $status -ne 0
+        echo "Release aborted: lint checks failed!"
+        exit 1
+    end
+
+    echo "Step 4: Running tests..."
     just test
     if test $status -ne 0
         echo "Release aborted: tests failed!"
         exit 1
     end
     
-    echo "Step 4: Running required live smoke tests..."
+    echo "Step 5: Running required live smoke tests..."
     just smoke
     if test $status -ne 0
         echo "Release aborted: live smoke tests failed!"
         exit 1
     end
 
-    echo "Step 5: Committing version bump..."
+    echo "Step 6: Building package..."
+    just build
+    if test $status -ne 0
+        echo "Release aborted: package build failed!"
+        exit 1
+    end
+
+    echo "Step 7: Committing version bump..."
     git add pyproject.toml
     git commit -m "Bump version to {{ version }}; Message: {{ commit_message }}"
     
-    echo "Step 6: Creating and pushing tag..."
+    echo "Step 8: Creating and pushing tag..."
     git tag -a v{{ version }} -m "Release version {{ version }}"
     
     git push origin main
