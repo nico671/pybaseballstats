@@ -17,4 +17,5 @@ todolist.txt
 *.py[cod]
 .env
 deprecated_or_broken/
-dev.md
+*.md
+!README.md

@@ -4,7 +4,7 @@ A Python package for scraping baseball statistics from the web. Inspired by the 
 
 ---
 
-[![PyPI Downloads](https://static.pepy.tech/badge/pybaseballstats)](https://pepy.tech/projects/pybaseballstats)  ![Coverage](https://github.com/nico671/pybaseballstats/blob/coverage-badge/badges/coverage.svg)  ![Pytest Status](https://github.com/nico671/pybaseballstats/actions/workflows/run_unit_tests.yml/badge.svg)  ![Mypy Status](https://github.com/nico671/pybaseballstats/actions/workflows/run_mypy.yml/badge.svg)
+[![PyPI Downloads](https://static.pepy.tech/badge/pybaseballstats)](https://pepy.tech/projects/pybaseballstats)  ![Pytest Status](https://github.com/nico671/pybaseballstats/actions/workflows/run_unit_tests.yml/badge.svg)  ![Mypy Status](https://github.com/nico671/pybaseballstats/actions/workflows/run_mypy.yml/badge.svg)
 
 ---
 
@@ -111,9 +111,6 @@ Once your feature or bug fix is complete and tested locally:
 1. Open a pull request from your feature branch into `dev`.
 2. GitHub Actions automatically runs CI (unit tests + `mypy`).
 3. After checks pass and review is complete, your changes are merged into `dev`.
-
-> [!NOTE]
-> Coverage badges in this README reflect the current state of the `dev` branch, giving real-time visibility into active development health.
 
 ### 4. Release Pipeline (Maintainers Only)
 

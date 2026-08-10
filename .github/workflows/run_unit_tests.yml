@@ -18,7 +18,7 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   test:
@@ -62,50 +62,4 @@ jobs:
 
       - name: Run tests
         if: steps.changes.outputs.run_tests == 'true'
-        run: uv run pytest tests/ --cov=src/pybaseballstats/
-
-      - name: Generate coverage report
-        if: steps.changes.outputs.run_tests == 'true'
-        run: |
-          uv run coverage report -m
-          uv run coverage json -o coverage.json
-
-      - name: Install jq
-        if: steps.changes.outputs.run_tests == 'true' && github.ref == 'refs/heads/dev'
-        run: sudo apt-get update && sudo apt-get install -y jq
-
-      - name: Convert coverage.json to badge
-        if: steps.changes.outputs.run_tests == 'true' && github.ref == 'refs/heads/dev'
-        run: |
-          percent=$(jq '.totals.percent_covered | round' coverage.json)
-          mkdir -p badges
-
-          if [ "$percent" -ge 80 ]; then
-            color="brightgreen"
-          elif [ "$percent" -ge 60 ]; then
-            color="yellow"
-          else
-            color="red"
-          fi
-
-          curl -o badges/coverage.svg "https://img.shields.io/badge/coverage-${percent}%25-${color}"
-
-      - name: Commit and push coverage badge
-        if: steps.changes.outputs.run_tests == 'true' && github.ref == 'refs/heads/dev'
-        run: |
-          git config --local user.email "actions@github.com"
-          git config --local user.name "github-actions"
-
-          git fetch origin coverage-badge || git checkout --orphan coverage-badge
-          git checkout coverage-badge || git checkout --orphan coverage-badge
-
-          git rm -rf . 2>/dev/null || true
-          mkdir -p badges
-          cp coverage.json badges/ 2>/dev/null || true
-          cp badges/coverage.svg badges/coverage.svg 2>/dev/null || true
-
-          git add badges/
-          git diff --cached --quiet || git commit -m "Update coverage badge [skip ci]"
-          git push -u origin coverage-badge --force
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: uv run pytest tests/
