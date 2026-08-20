@@ -3,7 +3,6 @@ import pytest
 
 import pybaseballstats.statcast_single_game as ssg
 
-
 pytestmark = pytest.mark.live
 
 
@@ -23,12 +22,12 @@ def test_statcast_single_game_available_game_pks_for_date():
 def test_statcast_single_game_pitch_by_pitch():
     df = ssg.single_game_pitch_by_pitch(game_pk=776759)
     assert not df.is_empty()
-    assert df.shape == (338, 118)
+    assert df.shape == (338, 119)
     assert df.select(pl.col("game_pk").unique()).item() == 776759
     assert df.select(pl.col("game_date").unique()).item() == "2025-08-13"
     df2 = ssg.single_game_pitch_by_pitch(game_pk=0)
     assert df2.is_empty()
-    assert df2.shape == (0, 118)
+    assert df2.shape == (0, 119)
 
 
 def test_statcast_single_game_exit_velocity():

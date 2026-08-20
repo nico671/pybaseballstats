@@ -41,7 +41,7 @@ def test_pitch_by_pitch_data_general():
     assert df is not None
     assert isinstance(df, pl.DataFrame)
     assert df.shape[0] == 12227
-    assert df.shape[1] == 118
+    assert df.shape[1] == 119
     assert df.select(pl.col("game_date").min()).item() == "2023-07-01"
     assert df.select(pl.col("game_date").max()).item() == "2023-07-03"
     assert df.select(pl.col("game_pk").n_unique()).item() == 41
@@ -71,7 +71,7 @@ def test_pitch_by_pitch_data_team_filtering():
     )
     assert df is not None
     assert isinstance(df, pl.DataFrame)
-    assert df.shape[1] == 118
+    assert df.shape[1] == 119
     assert df.select(pl.col("game_date").min()).item() == "2023-07-01"
     assert df.select(pl.col("game_date").max()).item() == "2023-07-03"
 

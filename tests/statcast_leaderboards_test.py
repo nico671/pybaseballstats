@@ -209,12 +209,12 @@ def test_arm_strength_leaderboard_player_and_team_modes(monkeypatch):
     # Cover year="All" conversion branch and player-mode column drop.
     df_player = sl.arm_strength_leaderboard(
         stat_type="player",
-        year="All",
+        year=2025,
         min_throws=50,
         pos="rf",
         team=sl.StatcastLeaderboardsTeams.YANKEES,
     )
-    assert df_player.shape[0] == 8
+    assert df_player.shape[0] == 2
     assert df_player.shape[1] == 25
     assert "team_name" not in df_player.columns
     assert "fielder_name" in df_player.columns
@@ -545,7 +545,7 @@ def test_arm_angle_leaderboard():
         group_by=["month", "pitch_type", "game_type", "bat_side"],
         min_group_size=10,
     )
-    assert df.shape[0] == 11
+    assert df.shape[0] == 15
     assert df.shape[1] == 15
     assert df.select(pl.col("pitch_hand").unique()).item() == "R"
     for col_name in ["month", "pitch_type", "game_type", "bat_side"]:

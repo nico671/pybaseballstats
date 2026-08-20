@@ -58,9 +58,7 @@ def single_player_season_stats(
         print(f"Pulling Statcast data for player {player_id} in {season}.")
 
     player_lookup_param = (
-        "batters_lookup%5B%5D"
-        if player_type == "batter"
-        else "pitchers_lookup%5B%5D"
+        "batters_lookup%5B%5D" if player_type == "batter" else "pitchers_lookup%5B%5D"
     )
     url = STATCAST_SINGLE_PLAYER_STATS_URL.format(
         season=season,
