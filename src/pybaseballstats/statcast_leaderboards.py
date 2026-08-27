@@ -14,6 +14,7 @@ from pybaseballstats.consts.statcast_leaderboard_consts import (
     ARM_STRENGTH_LEADERBOARD_URL,
     ARM_STRENGTH_POS_INPUT_MAP,
     CATCHER_BLOCKING_LEADERBOARD_URL,
+    CATCHER_FRAMING_LEADERBOARD_URL,
     PARK_FACTOR_DIMENSIONS_URL,
     PARK_FACTOR_DISTANCE_URL,
     PARK_FACTOR_YEARLY_URL,
@@ -35,6 +36,7 @@ __all__ = [
     "abs_challenges_leaderboard",
     "spin_direction_leaderboard",
     "catcher_blocking_leaderboard",
+    "catcher_framing_leaderboard",
     "active_spin_leaderboard",
     "arm_angle_leaderboard",
     "pitch_arsenals_leaderboard",
@@ -859,6 +861,132 @@ def catcher_blocking_leaderboard(
     )
     resp = requests.get(url)
     return pl.read_csv(io.StringIO(resp.text))
+
+
+def catcher_framing_leaderboard(
+    start_season: int,
+    end_season: int,
+    group_by: Literal[
+        "catcher", "catching-team", "batter", "batting-team", "pitcher", "league"
+    ] = "catcher",
+    game_type: Literal["Any", "Regular", "Playoff"] = "Regular",
+    min_pitches: int | str = "q",
+    teams: List[StatcastLeaderboardsTeams] | None = None,
+    batter_handedness: Literal["L", "R", "ALL"] = "ALL",
+    pitcher_handedness: Literal["L", "R", "ALL"] = "ALL",
+    in_zone: bool | None = None,
+    min_results: int = 1,
+) -> pl.DataFrame:
+    """Return Baseball Savant catcher-framing leaderboard data.
+
+    Args:
+        start_season (int): First season to include. Must be 2018 or later.
+        end_season (int): Last season to include. Must not precede ``start_season``.
+        group_by (Literal[...], optional): Leaderboard entity. Options are
+            ``"catcher"``, ``"catching-team"``, ``"batter"``, ``"batting-team"``,
+            ``"pitcher"``, and ``"league"``.
+        game_type (Literal["Any", "Regular", "Playoff"], optional): Game-type filter.
+        min_pitches (int | str, optional): Minimum shadow-pitch threshold, or
+            ``"q"`` for Baseball Savant's qualifying threshold. Defaults to ``"q"``.
+        teams (List[StatcastLeaderboardsTeams] | None, optional): Organizations to
+            include. ``None`` includes all teams.
+        batter_handedness (Literal["L", "R", "ALL"], optional): Batter-side filter.
+        pitcher_handedness (Literal["L", "R", "ALL"], optional): Pitcher-hand filter.
+        in_zone (bool | None, optional): ``True`` for in-zone pitches, ``False`` for
+            out-of-zone pitches, or ``None`` for both.
+        min_results (int, optional): Minimum result count. Must be at least 1.
+
+    Raises:
+        ValueError: If a season, filter, team, or threshold value is invalid.
+
+    Returns:
+        pl.DataFrame: Catcher-framing leaderboard data. Player groupings use
+            ``player_id`` and ``player_name``; team groupings use ``team_id`` and
+            ``team_name``; league groupings use ``league_id`` and ``league_name``.
+
+    Notes:
+        Catcher-framing data is available from 2018 onwards.
+    """
+    current_year = datetime.now().year
+    if not isinstance(start_season, int) or not 2018 <= start_season <= current_year:
+        raise ValueError(f"start_season must be between 2018 and {current_year}")
+    if not isinstance(end_season, int) or not start_season <= end_season <= current_year:
+        raise ValueError(
+            f"end_season must be between start_season and {current_year}"
+        )
+    if group_by not in [
+        "catcher",
+        "catching-team",
+        "batter",
+        "batting-team",
+        "pitcher",
+        "league",
+    ]:
+        raise ValueError(
+            "group_by must be 'catcher', 'catching-team', 'batter', "
+            "'batting-team', 'pitcher', or 'league'"
+        )
+    if game_type not in ["Any", "Regular", "Playoff"]:
+        raise ValueError("game_type must be 'Any', 'Regular', or 'Playoff'")
+
+    if isinstance(min_pitches, int):
+        if min_pitches < 1:
+            raise ValueError("min_pitches must be at least 1")
+        min_pitches_param = str(min_pitches)
+    elif isinstance(min_pitches, str) and min_pitches == "q":
+        min_pitches_param = min_pitches
+    else:
+        raise ValueError("min_pitches must be a positive integer or 'q'")
+
+    if teams is not None:
+        if not isinstance(teams, list) or not all(
+            isinstance(team, StatcastLeaderboardsTeams) for team in teams
+        ):
+            raise ValueError(
+                "teams must be a list of StatcastLeaderboardsTeams enums or None"
+            )
+        teams_param = "|".join(str(team.value) for team in teams)
+    else:
+        teams_param = ""
+
+    if batter_handedness not in ["L", "R", "ALL"]:
+        raise ValueError("batter_handedness must be 'L', 'R', or 'ALL'")
+    bat_side_param = batter_handedness if batter_handedness != "ALL" else ""
+    if pitcher_handedness not in ["L", "R", "ALL"]:
+        raise ValueError("pitcher_handedness must be 'L', 'R', or 'ALL'")
+    pitch_hand_param = pitcher_handedness if pitcher_handedness != "ALL" else ""
+
+    if in_zone is not None and not isinstance(in_zone, bool):
+        raise ValueError("in_zone must be a boolean or None")
+    if in_zone is True:
+        ball_strike_param = "in"
+    elif in_zone is False:
+        ball_strike_param = "out"
+    else:
+        ball_strike_param = ""
+
+    if not isinstance(min_results, int) or min_results < 1:
+        raise ValueError("min_results must be at least 1")
+
+    url = CATCHER_FRAMING_LEADERBOARD_URL.format(
+        game_type=game_type,
+        start_season=start_season,
+        end_season=end_season,
+        teams=teams_param,
+        group_by=group_by,
+        min_pitches=min_pitches_param,
+        min_results=min_results,
+        bat_side=bat_side_param,
+        pitch_hand=pitch_hand_param,
+        ball_strike=ball_strike_param,
+    )
+    resp = requests.get(url)
+    df = pl.read_csv(io.StringIO(resp.text))
+    if group_by in ["catcher", "batter", "pitcher"]:
+        return df.rename({"id": "player_id", "name": "player_name"})
+    if group_by in ["catching-team", "batting-team"]:
+        return df.rename({"id": "team_id", "name": "team_name"})
+    return df.rename({"id": "league_id", "name": "league_name"})
 
 
 # endregion

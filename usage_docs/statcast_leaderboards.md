@@ -16,6 +16,7 @@ This module provides access to several Baseball Savant leaderboard endpoints.
 - `abs_challenges_leaderboard(season, challenge_type="batter", game_type="regular", challenging_teams=None, opposing_teams=None, pitch_types=None, attack_zone=None, in_zone=None, min_challenges=0, min_opp_challenges=0)`
 - `arm_strength_leaderboard(stat_type="player", year=2025, min_throws=50, pos="All", team=None)`
 - `catcher_blocking_leaderboard(start_season, end_season, game_type="Regular", group_by="Cat", min_pitches="q", team="All", split_years=False)`
+- `catcher_framing_leaderboard(start_season, end_season, group_by="catcher", game_type="Regular", min_pitches="q", teams=None, batter_handedness="ALL", pitcher_handedness="ALL", in_zone=None, min_results=1)`
 
 ### Pitcher Specific Functions
 
@@ -126,6 +127,33 @@ Validation:
 - `end_season` must not precede `start_season`.
 - `min_pitches` must be a positive integer or `"q"`.
 - `team` must be a supported team enum, `"All"`, or `"All-Split"`.
+
+## Catcher-Framing Leaderboard
+
+### `catcher_framing_leaderboard`
+
+This function returns Baseball Savant's Catcher Framing leaderboard table.
+
+- `start_season` (`int`): First season. Valid from `2018` through the current year.
+- `end_season` (`int`): Last season. Must be at least `start_season`.
+- `group_by` (`"catcher" | "catching-team" | "batter" | "batting-team" | "pitcher" | "league"`):
+  Entity type for the returned rows.
+- `game_type` (`"Any" | "Regular" | "Playoff"`): Game-type filter.
+- `min_pitches` (`int | "q"`): Minimum shadow pitches, or `"q"` for qualified players.
+- `teams` (`list[StatcastLeaderboardsTeams] | None`): Teams to include. `None` includes all teams.
+- `batter_handedness` (`"L" | "R" | "ALL"`): Batter-side filter.
+- `pitcher_handedness` (`"L" | "R" | "ALL"`): Pitcher-hand filter.
+- `in_zone` (`bool | None`): `True` for in-zone pitches, `False` for out-of-zone pitches,
+  or `None` for both.
+- `min_results` (`int`): Minimum number of results. Must be at least `1`.
+
+Validation:
+
+- `start_season` and `end_season` must be valid seasons from `2018` through the current year.
+- `end_season` must not precede `start_season`.
+- `min_pitches` must be a positive integer or `"q"`.
+- `teams` must be a list of `StatcastLeaderboardsTeams` values or `None`.
+- `min_results` must be at least `1`.
 
 ## Pitcher Leaderboards
 
@@ -316,6 +344,26 @@ df = sl.abs_challenges_leaderboard(
     in_zone=True,
     min_challenges=5,
     min_opp_challenges=2,
+)
+print(df)
+```
+
+### Catcher framing leaderboard
+
+```python
+import pybaseballstats.statcast_leaderboards as sl
+
+df = sl.catcher_framing_leaderboard(
+    start_season=2024,
+    end_season=2024,
+    group_by="catcher",
+    game_type="Regular",
+    min_pitches=100,
+    teams=[sl.StatcastLeaderboardsTeams.BLUE_JAYS],
+    batter_handedness="L",
+    pitcher_handedness="R",
+    in_zone=True,
+    min_results=25,
 )
 print(df)
 ```
