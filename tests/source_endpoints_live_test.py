@@ -220,6 +220,15 @@ def test_statcast_gamefeed_endpoint(function, required_columns):
             {"entity_name", "entity_id", "pop_2b_sba", "pop_3b_sba"},
         ),
         (
+            "catcher-stance",
+            lambda: leaderboards.catcher_stance_leaderboard(
+                start_season=2023,
+                end_season=2023,
+                min_pitches=100,
+            ),
+            {"player_id", "player_name", "pitches", "knee_down_pct"},
+        ),
+        (
             "pitcher-running-game",
             lambda: leaderboards.pitcher_running_game_leaderboard(
                 start_season=2023,
@@ -244,6 +253,7 @@ def test_statcast_gamefeed_endpoint(function, required_columns):
         "catcher-blocking",
         "catcher-framing",
         "catcher-pop-time",
+        "catcher-stance",
         "pitcher-running-game",
     ),
 )

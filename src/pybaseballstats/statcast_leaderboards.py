@@ -15,6 +15,7 @@ from pybaseballstats.consts.statcast_leaderboard_consts import (
     ARM_STRENGTH_POS_INPUT_MAP,
     CATCHER_BLOCKING_LEADERBOARD_URL,
     CATCHER_FRAMING_LEADERBOARD_URL,
+    CATCHER_STANCE_LEADERBOARD_URL,
     PARK_FACTOR_DIMENSIONS_URL,
     PARK_FACTOR_DISTANCE_URL,
     PARK_FACTOR_YEARLY_URL,
@@ -39,6 +40,7 @@ __all__ = [
     "catcher_blocking_leaderboard",
     "catcher_framing_leaderboard",
     "catcher_pop_time_leaderboard",
+    "catcher_stance_leaderboard",
     "active_spin_leaderboard",
     "arm_angle_leaderboard",
     "pitch_arsenals_leaderboard",
@@ -1032,6 +1034,165 @@ def catcher_pop_time_leaderboard(
     )
     resp = requests.get(url)
     return pl.read_csv(io.StringIO(resp.text))
+
+
+def catcher_stance_leaderboard(
+    start_season: int,
+    end_season: int,
+    group_by: Literal[
+        "catcher", "catching-team", "batter", "batting-team", "pitcher", "league"
+    ] = "catcher",
+    game_type: Literal["Any", "Regular", "Playoff"] = "Regular",
+    min_pitches: int | str = "q",
+    teams: List[StatcastLeaderboardsTeams] | None = None,
+    batter_handedness: Literal["L", "R", "ALL"] = "ALL",
+    pitcher_handedness: Literal["L", "R", "ALL"] = "ALL",
+    knee_position: Literal[
+        "ALL", "Knee(s) Down", "Both Up", "Both Down", "R Up, L Down", "L Up, R Down"
+    ] = "ALL",
+    min_results: int = 1,
+    start_date: str | None = None,
+    end_date: str | None = None,
+) -> pl.DataFrame:
+    """Return Baseball Savant catcher-stance leaderboard data.
+
+    Args:
+        start_season (int): First season to include. Must be 2020 or later.
+        end_season (int): Last season to include. Must not precede ``start_season``.
+        group_by (Literal[...], optional): Leaderboard entity. Options are
+            ``"catcher"``, ``"catching-team"``, ``"batter"``, ``"batting-team"``,
+            ``"pitcher"``, and ``"league"``.
+        game_type (Literal["Any", "Regular", "Playoff"], optional): Game-type filter.
+        min_pitches (int | str, optional): Minimum pitch threshold, or ``"q"`` for
+            Baseball Savant's qualifying threshold. Defaults to ``"q"``.
+        teams (List[StatcastLeaderboardsTeams] | None, optional): Organizations to
+            include. ``None`` includes all teams.
+        batter_handedness (Literal["L", "R", "ALL"], optional): Batter-side filter.
+        pitcher_handedness (Literal["L", "R", "ALL"], optional): Pitcher-hand filter.
+        knee_position (Literal[...], optional): Catcher stance filter. Options are
+            ``"ALL"``, ``"Knee(s) Down"``, ``"Both Up"``, ``"Both Down"``,
+            ``"R Up, L Down"``, and ``"L Up, R Down"``.
+        min_results (int, optional): Minimum result count. Must be at least 1.
+        start_date (str | None, optional): Optional start date in ``YYYY-MM-DD``
+            format. The earliest available date is ``2020-07-23``.
+        end_date (str | None, optional): Optional end date in ``YYYY-MM-DD`` format.
+
+    Raises:
+        ValueError: If a season, date, filter, team, or threshold value is invalid.
+
+    Returns:
+        pl.DataFrame: Catcher-stance leaderboard data. Player groupings use
+            ``player_id`` and ``player_name``; team groupings use ``team_id`` and
+            ``team_name``; league groupings use ``league_id`` and ``league_name``.
+    """
+    current_year = datetime.now().year
+    if not isinstance(start_season, int) or not 2020 <= start_season <= current_year:
+        raise ValueError(f"start_season must be between 2020 and {current_year}")
+    if not isinstance(end_season, int) or not start_season <= end_season <= current_year:
+        raise ValueError(
+            f"end_season must be between start_season and {current_year}"
+        )
+    if group_by not in [
+        "catcher",
+        "catching-team",
+        "batter",
+        "batting-team",
+        "pitcher",
+        "league",
+    ]:
+        raise ValueError(
+            "group_by must be 'catcher', 'catching-team', 'batter', "
+            "'batting-team', 'pitcher', or 'league'"
+        )
+    if game_type not in ["Any", "Regular", "Playoff"]:
+        raise ValueError("game_type must be 'Any', 'Regular', or 'Playoff'")
+
+    if isinstance(min_pitches, int):
+        if min_pitches < 1:
+            raise ValueError("min_pitches must be at least 1")
+        min_pitches_param = str(min_pitches)
+    elif isinstance(min_pitches, str) and min_pitches == "q":
+        min_pitches_param = min_pitches
+    else:
+        raise ValueError("min_pitches must be a positive integer or 'q'")
+
+    if teams is not None:
+        if not isinstance(teams, list) or not all(
+            isinstance(team, StatcastLeaderboardsTeams) for team in teams
+        ):
+            raise ValueError(
+                "teams must be a list of StatcastLeaderboardsTeams enums or None"
+            )
+        teams_param = "|".join(str(team.value) for team in teams)
+    else:
+        teams_param = ""
+
+    if batter_handedness not in ["L", "R", "ALL"]:
+        raise ValueError("batter_handedness must be 'L', 'R', or 'ALL'")
+    bat_side_param = batter_handedness if batter_handedness != "ALL" else ""
+    if pitcher_handedness not in ["L", "R", "ALL"]:
+        raise ValueError("pitcher_handedness must be 'L', 'R', or 'ALL'")
+    pitch_hand_param = pitcher_handedness if pitcher_handedness != "ALL" else ""
+
+    knee_position_codes = {
+        "ALL": "",
+        "Knee(s) Down": "9999",
+        "Both Up": "4",
+        "Both Down": "1",
+        "R Up, L Down": "2",
+        "L Up, R Down": "3",
+    }
+    if knee_position not in knee_position_codes:
+        raise ValueError(
+            "knee_position must be 'ALL', 'Knee(s) Down', 'Both Up', 'Both Down', "
+            "'R Up, L Down', or 'L Up, R Down'"
+        )
+    knee_code_param = knee_position_codes[knee_position]
+
+    if not isinstance(min_results, int) or min_results < 1:
+        raise ValueError("min_results must be at least 1")
+
+    earliest_date = datetime(2020, 7, 23).date()
+    latest_date = datetime.today().date()
+    date_params = {}
+    for name, value in [("start_date", start_date), ("end_date", end_date)]:
+        if value is None:
+            date_params[name] = ""
+            continue
+        try:
+            date_value = datetime.strptime(value, "%Y-%m-%d").date()
+        except (TypeError, ValueError):
+            raise ValueError(f"{name} must be in YYYY-MM-DD format")
+        if date_value < earliest_date:
+            raise ValueError(f"{name} must be on or after 2020-07-23")
+        if date_value > latest_date:
+            raise ValueError(f"{name} cannot be in the future")
+        date_params[name] = value
+
+    if start_date is not None and end_date is not None and start_date > end_date:
+        raise ValueError("end_date must be on or after start_date")
+
+    url = CATCHER_STANCE_LEADERBOARD_URL.format(
+        game_type=game_type,
+        start_season=start_season,
+        end_season=end_season,
+        teams=teams_param,
+        group_by=group_by,
+        min_pitches=min_pitches_param,
+        min_results=min_results,
+        bat_side=bat_side_param,
+        pitch_hand=pitch_hand_param,
+        knee_code=knee_code_param,
+        start_date=date_params["start_date"],
+        end_date=date_params["end_date"],
+    )
+    resp = requests.get(url)
+    df = pl.read_csv(io.StringIO(resp.text))
+    if group_by in ["catcher", "batter", "pitcher"]:
+        return df.rename({"id": "player_id", "name": "player_name"})
+    if group_by in ["catching-team", "batting-team"]:
+        return df.rename({"id": "team_id", "name": "team_name"})
+    return df.rename({"id": "league_id", "name": "league_name"})
 
 
 # endregion

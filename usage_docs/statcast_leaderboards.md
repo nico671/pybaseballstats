@@ -18,6 +18,7 @@ This module provides access to several Baseball Savant leaderboard endpoints.
 - `catcher_blocking_leaderboard(start_season, end_season, game_type="Regular", group_by="Cat", min_pitches="q", team="All", split_years=False)`
 - `catcher_framing_leaderboard(start_season, end_season, group_by="catcher", game_type="Regular", min_pitches="q", teams=None, batter_handedness="ALL", pitcher_handedness="ALL", in_zone=None, min_results=1)`
 - `catcher_pop_time_leaderboard(season=2026, team=None, min_2b_attempts=5, min_3b_attempts=0)`
+- `catcher_stance_leaderboard(start_season, end_season, group_by="catcher", game_type="Regular", min_pitches="q", teams=None, batter_handedness="ALL", pitcher_handedness="ALL", knee_position="ALL", min_results=1, start_date=None, end_date=None)`
 
 ### Pitcher Specific Functions
 
@@ -172,6 +173,36 @@ Validation:
 - `season` must be between `2015` and the current year.
 - `team` must be `None` or a `StatcastLeaderboardsTeams` enum value.
 - `min_2b_attempts` and `min_3b_attempts` must be integers.
+
+## Catcher Stance Leaderboard
+
+### `catcher_stance_leaderboard`
+
+This function returns Baseball Savant's Catcher Stance leaderboard table.
+
+- `start_season` (`int`): First season. Valid from `2020` through the current year.
+- `end_season` (`int`): Last season. Must be at least `start_season`.
+- `group_by` (`"catcher" | "catching-team" | "batter" | "batting-team" | "pitcher" | "league"`):
+  Entity type for the returned rows.
+- `game_type` (`"Any" | "Regular" | "Playoff"`): Game-type filter.
+- `min_pitches` (`int | "q"`): Minimum pitch threshold, or `"q"` for qualified players.
+- `teams` (`list[StatcastLeaderboardsTeams] | None`): Teams to include. `None` includes all teams.
+- `batter_handedness` (`"L" | "R" | "ALL"`): Batter-side filter.
+- `pitcher_handedness` (`"L" | "R" | "ALL"`): Pitcher-hand filter.
+- `knee_position` (`"ALL" | "Knee(s) Down" | "Both Up" | "Both Down" | "R Up, L Down" | "L Up, R Down"`):
+  Catcher stance filter.
+- `min_results` (`int`): Minimum number of results. Must be at least `1`.
+- `start_date` (`str | None`): Optional start date in `YYYY-MM-DD` format.
+- `end_date` (`str | None`): Optional end date in `YYYY-MM-DD` format.
+
+Validation:
+
+- `start_season` and `end_season` must be valid seasons from `2020` through the current year.
+- `end_season` must not precede `start_season`.
+- `min_pitches` must be a positive integer or `"q"`.
+- `teams` must be a list of `StatcastLeaderboardsTeams` values or `None`.
+- `min_results` must be at least `1`.
+- Dates must be from `2020-07-23` through today, and `end_date` must not precede `start_date`.
 
 ## Pitcher Leaderboards
 
@@ -396,6 +427,28 @@ df = sl.catcher_pop_time_leaderboard(
     team=sl.StatcastLeaderboardsTeams.BLUE_JAYS,
     min_2b_attempts=10,
     min_3b_attempts=5,
+)
+print(df)
+```
+
+### Catcher Stance leaderboard
+
+```python
+import pybaseballstats.statcast_leaderboards as sl
+
+df = sl.catcher_stance_leaderboard(
+    start_season=2023,
+    end_season=2023,
+    group_by="catcher",
+    game_type="Regular",
+    min_pitches=100,
+    teams=[sl.StatcastLeaderboardsTeams.BLUE_JAYS],
+    batter_handedness="L",
+    pitcher_handedness="R",
+    knee_position="Knee(s) Down",
+    min_results=25,
+    start_date="2023-04-01",
+    end_date="2023-10-01",
 )
 print(df)
 ```
