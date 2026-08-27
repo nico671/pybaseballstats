@@ -197,6 +197,15 @@ def test_statcast_gamefeed_endpoint(function, required_columns):
             {"pitcher_id", "pitches_thrown"},
         ),
         (
+            "catcher-blocking",
+            lambda: leaderboards.catcher_blocking_leaderboard(
+                start_season=2023,
+                end_season=2023,
+                min_pitches=100,
+            ),
+            {"player_id", "player_name", "pitches", "blocks_above_average"},
+        ),
+        (
             "pitcher-running-game",
             lambda: leaderboards.pitcher_running_game_leaderboard(
                 start_season=2023,
@@ -218,6 +227,7 @@ def test_statcast_gamefeed_endpoint(function, required_columns):
         "arm-angle",
         "pitch-arsenals",
         "pitch-movement",
+        "catcher-blocking",
         "pitcher-running-game",
     ),
 )

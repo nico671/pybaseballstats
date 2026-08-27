@@ -15,6 +15,7 @@ This module provides access to several Baseball Savant leaderboard endpoints.
 - `timer_infractions_leaderboard(season, perspective="Pit", min_pitches=1)`
 - `abs_challenges_leaderboard(season, challenge_type="batter", game_type="regular", challenging_teams=None, opposing_teams=None, pitch_types=None, attack_zone=None, in_zone=None, min_challenges=0, min_opp_challenges=0)`
 - `arm_strength_leaderboard(stat_type="player", year=2025, min_throws=50, pos="All", team=None)`
+- `catcher_blocking_leaderboard(start_season, end_season, game_type="Regular", group_by="Cat", min_pitches="q", team="All", split_years=False)`
 
 ### Pitcher Specific Functions
 
@@ -99,6 +100,32 @@ Validation:
 
 - `min_throws` must be at least `1`.
 - `team` must be `None` or a `StatcastLeaderboardsTeams` enum value.
+
+## Catcher-Blocking Leaderboard
+
+### `catcher_blocking_leaderboard`
+
+This function returns the table data from Baseball Savant's Catcher Blocking
+leaderboard.
+
+- `start_season` (`int`): First season. Valid from `2018` through the current year.
+- `end_season` (`int`): Last season. Must be at least `start_season`.
+- `game_type` (`"Regular" | "Playoff" | "All"`): Regular season, playoffs, or both.
+- `group_by` (`"Cat" | "Pit" | "Catching Team" | "League"`): Catchers, pitchers,
+  catching-team aggregates, or league aggregates.
+- `min_pitches` (`int | "q"`): Minimum pitches, or `"q"` for qualified players.
+- `team` (`StatcastLeaderboardsTeams | "All" | "All-Split"`): Team filter.
+- `split_years` (`bool`): Return separate rows by season when `True`.
+
+When `group_by="Catching Team"`, Baseball Savant ignores the team and minimum-pitch
+filters. The function follows this behavior.
+
+Validation:
+
+- `start_season` and `end_season` must be valid seasons from 2018 through the current year.
+- `end_season` must not precede `start_season`.
+- `min_pitches` must be a positive integer or `"q"`.
+- `team` must be a supported team enum, `"All"`, or `"All-Split"`.
 
 ## Pitcher Leaderboards
 

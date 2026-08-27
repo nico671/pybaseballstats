@@ -13,6 +13,7 @@ from pybaseballstats.consts.statcast_leaderboard_consts import (
     ARM_ANGLE_LEADERBOARD_URL,
     ARM_STRENGTH_LEADERBOARD_URL,
     ARM_STRENGTH_POS_INPUT_MAP,
+    CATCHER_BLOCKING_LEADERBOARD_URL,
     PARK_FACTOR_DIMENSIONS_URL,
     PARK_FACTOR_DISTANCE_URL,
     PARK_FACTOR_YEARLY_URL,
@@ -33,6 +34,7 @@ __all__ = [
     "arm_strength_leaderboard",
     "abs_challenges_leaderboard",
     "spin_direction_leaderboard",
+    "catcher_blocking_leaderboard",
     "active_spin_leaderboard",
     "arm_angle_leaderboard",
     "pitch_arsenals_leaderboard",
@@ -760,6 +762,103 @@ def arm_strength_leaderboard(
             ]
         )
     return df
+
+
+def catcher_blocking_leaderboard(
+    start_season: int,
+    end_season: int,
+    game_type: Literal["Regular", "Playoff", "All"] = "Regular",
+    group_by: Literal["Cat", "Pit", "Catching Team", "League"] = "Cat",
+    min_pitches: int | str = "q",
+    team: StatcastLeaderboardsTeams | str = "All",
+    split_years: bool = False,
+) -> pl.DataFrame:
+    """Return Baseball Savant catcher-blocking leaderboard data.
+
+    Args:
+        start_season (int): First season to include. Must be 2018 or later.
+        end_season (int): Last season to include. Must not precede ``start_season``.
+        game_type (Literal["Regular", "Playoff", "All"], optional): Game-type filter.
+        group_by (Literal["Cat", "Pit", "Catching Team", "League"], optional):
+            Leaderboard grouping. ``"Cat"`` returns catchers, ``"Pit"`` returns
+            pitchers, ``"Catching Team"`` returns catching-team aggregates, and
+            ``"League"`` returns league aggregates.
+        min_pitches (int | str, optional): Minimum pitch count threshold, or
+            ``"q"`` for Baseball Savant's qualifying threshold. Defaults to ``"q"``.
+        team (StatcastLeaderboardsTeams | str, optional): Team filter. Use a team
+            enum, ``"All"`` for all teams, or ``"All-Split"`` for separate team
+            stints. Defaults to ``"All"``.
+        split_years (bool, optional): If ``True``, return one row per season.
+            Otherwise, aggregate across the requested season range.
+
+    Raises:
+        ValueError: If a season, filter, threshold, or team value is invalid.
+
+    Returns:
+        pl.DataFrame: Catcher-blocking leaderboard data.
+
+    Notes:
+        - Catcher-blocking data is available from 2018 onwards.
+        - The website's ``Difficulty`` and ``Pitches`` controls filter only the
+          selected catcher's visualization; they are not table CSV filters.
+        - The website disables team and minimum-pitch filters for ``"Catching Team"``
+          grouping, so this function follows that behavior.
+    """
+    current_year = datetime.now().year
+    if not isinstance(start_season, int) or not 2018 <= start_season <= current_year:
+        raise ValueError(f"start_season must be between 2018 and {current_year}")
+    if (
+        not isinstance(end_season, int)
+        or not start_season <= end_season <= current_year
+    ):
+        raise ValueError(f"end_season must be between start_season and {current_year}")
+    if game_type not in ["Regular", "Playoff", "All"]:
+        raise ValueError("game_type must be 'Regular', 'Playoff', or 'All'")
+    if group_by not in ["Cat", "Pit", "Catching Team", "League"]:
+        raise ValueError("group_by must be 'Cat', 'Pit', 'Catching Team', or 'League'")
+
+    if isinstance(min_pitches, int):
+        if min_pitches < 1:
+            raise ValueError("min_pitches must be at least 1")
+        min_pitches_param = str(min_pitches)
+    elif isinstance(min_pitches, str) and min_pitches == "q":
+        min_pitches_param = min_pitches
+    else:
+        raise ValueError("min_pitches must be a positive integer or 'q'")
+
+    if isinstance(team, StatcastLeaderboardsTeams):
+        team_param = str(team.value)
+    elif team == "All":
+        team_param = ""
+    elif team == "All-Split":
+        team_param = "split"
+    else:
+        raise ValueError(
+            "team must be a StatcastLeaderboardsTeams enum, 'All', or 'All-Split'"
+        )
+
+    if not isinstance(split_years, bool):
+        raise ValueError("split_years must be a boolean")
+    split_years_param = "yes" if split_years else "no"
+
+    if group_by == "Catching Team":
+        group_by_param = "Pitching+Team"
+        team_param = ""
+        min_pitches_param = ""
+    else:
+        group_by_param = group_by
+
+    url = CATCHER_BLOCKING_LEADERBOARD_URL.format(
+        game_type=game_type,
+        min_pitches=min_pitches_param,
+        end_season=end_season,
+        start_season=start_season,
+        split_years=split_years_param,
+        team=team_param,
+        group_by=group_by_param,
+    )
+    resp = requests.get(url)
+    return pl.read_csv(io.StringIO(resp.text))
 
 
 # endregion
