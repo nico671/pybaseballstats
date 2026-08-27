@@ -16,6 +16,7 @@ from pybaseballstats.consts.statcast_leaderboard_consts import (
     CATCHER_BLOCKING_LEADERBOARD_URL,
     CATCHER_FRAMING_LEADERBOARD_URL,
     CATCHER_STANCE_LEADERBOARD_URL,
+    CATCHER_THROWING_LEADERBOARD_URL,
     PARK_FACTOR_DIMENSIONS_URL,
     PARK_FACTOR_DISTANCE_URL,
     PARK_FACTOR_YEARLY_URL,
@@ -41,6 +42,7 @@ __all__ = [
     "catcher_framing_leaderboard",
     "catcher_pop_time_leaderboard",
     "catcher_stance_leaderboard",
+    "catcher_throwing_leaderboard",
     "active_spin_leaderboard",
     "arm_angle_leaderboard",
     "pitch_arsenals_leaderboard",
@@ -1193,6 +1195,91 @@ def catcher_stance_leaderboard(
     if group_by in ["catching-team", "batting-team"]:
         return df.rename({"id": "team_id", "name": "team_name"})
     return df.rename({"id": "league_id", "name": "league_name"})
+
+
+def catcher_throwing_leaderboard(
+    start_season: int,
+    end_season: int,
+    game_type: Literal["Regular", "Playoff", "All"] = "Regular",
+    group_by: Literal["Cat", "Pitching Team", "League"] = "Cat",
+    min_sb_attempts: int | str = "q",
+    target_base: Literal["2B", "3B", "All"] = "All",
+    team: StatcastLeaderboardsTeams | str = "All",
+    split_years: bool = False,
+    with_team_only: bool = True,
+) -> pl.DataFrame:
+    """Return Baseball Savant catcher-throwing leaderboard data.
+
+    Args:
+        start_season (int): First season to include. Must be 2016 or later.
+        end_season (int): Last season to include. Must not precede start_season.
+        game_type (Literal[Regular, Playoff, All], optional): Game-type filter.
+        group_by (Literal[Cat, Pitching Team, League], optional): Leaderboard
+            grouping. Cat returns catchers, Pitching Team returns catching-team
+            aggregates, and League returns league aggregates.
+        min_sb_attempts (int | str, optional): Minimum stolen-base attempt threshold,
+            or q for Baseball Savant's qualifying threshold. Defaults to q.
+        target_base (Literal[2B, 3B, All], optional): Base targeted by the throw.
+        team (StatcastLeaderboardsTeams | str, optional): Team filter. Use a team
+            enum, All for all teams, or All-Split for separate team stints.
+        split_years (bool, optional): If True, return one row per season.
+        with_team_only (bool, optional): If True, include only rows with a team.
+
+    Raises:
+        ValueError: If a season, filter, threshold, team, or boolean value is invalid.
+
+    Returns:
+        pl.DataFrame: Catcher-throwing leaderboard data.
+    """
+    current_year = datetime.now().year
+    if not isinstance(start_season, int) or not 2016 <= start_season <= current_year:
+        raise ValueError(f"start_season must be between 2016 and {current_year}")
+    if not isinstance(end_season, int) or not start_season <= end_season <= current_year:
+        raise ValueError(f"end_season must be between start_season and {current_year}")
+    if game_type not in ["Regular", "Playoff", "All"]:
+        raise ValueError("game_type must be 'Regular', 'Playoff', or 'All'")
+    if group_by not in ["Cat", "Pitching Team", "League"]:
+        raise ValueError("group_by must be 'Cat', 'Pitching Team', or 'League'")
+
+    if isinstance(min_sb_attempts, int):
+        if min_sb_attempts < 1:
+            raise ValueError("min_sb_attempts must be at least 1")
+        min_sb_attempts_param = str(min_sb_attempts)
+    elif isinstance(min_sb_attempts, str) and min_sb_attempts == "q":
+        min_sb_attempts_param = min_sb_attempts
+    else:
+        raise ValueError("min_sb_attempts must be a positive integer or 'q'")
+
+    if target_base not in ["2B", "3B", "All"]:
+        raise ValueError("target_base must be '2B', '3B', or 'All'")
+    if isinstance(team, StatcastLeaderboardsTeams):
+        team_param = str(team.value)
+    elif team == "All":
+        team_param = ""
+    elif team == "All-Split":
+        team_param = "split"
+    else:
+        raise ValueError(
+            "team must be a StatcastLeaderboardsTeams enum, 'All', or 'All-Split'"
+        )
+    if not isinstance(split_years, bool):
+        raise ValueError("split_years must be a boolean")
+    if not isinstance(with_team_only, bool):
+        raise ValueError("with_team_only must be a boolean")
+
+    url = CATCHER_THROWING_LEADERBOARD_URL.format(
+        game_type=game_type,
+        min_sb_attempts=min_sb_attempts_param,
+        end_season=end_season,
+        start_season=start_season,
+        split_years="yes" if split_years else "no",
+        team=team_param,
+        group_by=group_by,
+        with_team_only="1" if with_team_only else "0",
+        target_base=target_base,
+    )
+    resp = requests.get(url)
+    return pl.read_csv(io.StringIO(resp.text))
 
 
 # endregion

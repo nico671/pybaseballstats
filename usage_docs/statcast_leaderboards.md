@@ -19,6 +19,7 @@ This module provides access to several Baseball Savant leaderboard endpoints.
 - `catcher_framing_leaderboard(start_season, end_season, group_by="catcher", game_type="Regular", min_pitches="q", teams=None, batter_handedness="ALL", pitcher_handedness="ALL", in_zone=None, min_results=1)`
 - `catcher_pop_time_leaderboard(season=2026, team=None, min_2b_attempts=5, min_3b_attempts=0)`
 - `catcher_stance_leaderboard(start_season, end_season, group_by="catcher", game_type="Regular", min_pitches="q", teams=None, batter_handedness="ALL", pitcher_handedness="ALL", knee_position="ALL", min_results=1, start_date=None, end_date=None)`
+- `catcher_throwing_leaderboard(start_season, end_season, game_type="Regular", group_by="Cat", min_sb_attempts="q", target_base="All", team="All", split_years=False, with_team_only=True)`
 
 ### Pitcher Specific Functions
 
@@ -203,6 +204,30 @@ Validation:
 - `teams` must be a list of `StatcastLeaderboardsTeams` values or `None`.
 - `min_results` must be at least `1`.
 - Dates must be from `2020-07-23` through today, and `end_date` must not precede `start_date`.
+
+## Catcher Throwing Leaderboard
+
+### `catcher_throwing_leaderboard`
+
+This function returns Baseball Savant's Catcher Throwing leaderboard table.
+
+- `start_season` (`int`): First season. Valid from `2016` through the current year.
+- `end_season` (`int`): Last season. Must be at least `start_season`.
+- `game_type` (`"Regular" | "Playoff" | "All"`): Game-type filter.
+- `group_by` (`"Cat" | "Pitching Team" | "League"`): Catchers, catching-team aggregates, or league aggregates.
+- `min_sb_attempts` (`int | "q"`): Minimum stolen-base attempt threshold, or `"q"` for qualified players.
+- `target_base` (`"2B" | "3B" | "All"`): Base targeted by the throw.
+- `team` (`StatcastLeaderboardsTeams | "All" | "All-Split"`): Team filter.
+- `split_years` (`bool`): Return separate rows by season when `True`.
+- `with_team_only` (`bool`): Include only rows with a team when `True`.
+
+Validation:
+
+- `start_season` and `end_season` must be valid seasons from `2016` through the current year.
+- `end_season` must not precede `start_season`.
+- `min_sb_attempts` must be a positive integer or `"q"`.
+- `team` must be a supported team enum, `"All"`, or `"All-Split"`.
+- `split_years` and `with_team_only` must be booleans.
 
 ## Pitcher Leaderboards
 
@@ -449,6 +474,25 @@ df = sl.catcher_stance_leaderboard(
     min_results=25,
     start_date="2023-04-01",
     end_date="2023-10-01",
+)
+print(df)
+```
+
+### Catcher Throwing leaderboard
+
+```python
+import pybaseballstats.statcast_leaderboards as sl
+
+df = sl.catcher_throwing_leaderboard(
+    start_season=2023,
+    end_season=2023,
+    game_type="Regular",
+    group_by="Cat",
+    min_sb_attempts=10,
+    target_base="2B",
+    team=sl.StatcastLeaderboardsTeams.BLUE_JAYS,
+    split_years=False,
+    with_team_only=True,
 )
 print(df)
 ```
