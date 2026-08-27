@@ -17,6 +17,7 @@ This module provides access to several Baseball Savant leaderboard endpoints.
 - `arm_strength_leaderboard(stat_type="player", year=2025, min_throws=50, pos="All", team=None)`
 - `catcher_blocking_leaderboard(start_season, end_season, game_type="Regular", group_by="Cat", min_pitches="q", team="All", split_years=False)`
 - `catcher_framing_leaderboard(start_season, end_season, group_by="catcher", game_type="Regular", min_pitches="q", teams=None, batter_handedness="ALL", pitcher_handedness="ALL", in_zone=None, min_results=1)`
+- `catcher_pop_time_leaderboard(season=2026, team=None, min_2b_attempts=5, min_3b_attempts=0)`
 
 ### Pitcher Specific Functions
 
@@ -154,6 +155,23 @@ Validation:
 - `min_pitches` must be a positive integer or `"q"`.
 - `teams` must be a list of `StatcastLeaderboardsTeams` values or `None`.
 - `min_results` must be at least `1`.
+
+## Catcher Pop Time Leaderboard
+
+### `catcher_pop_time_leaderboard`
+
+This function returns Baseball Savant's Catcher Pop Time leaderboard table.
+
+- `season` (`int`): Season from `2015` through the current year.
+- `team` (`StatcastLeaderboardsTeams | None`): Optional team filter.
+- `min_2b_attempts` (`int`): Minimum second-base attempts.
+- `min_3b_attempts` (`int`): Minimum third-base attempts.
+
+Validation:
+
+- `season` must be between `2015` and the current year.
+- `team` must be `None` or a `StatcastLeaderboardsTeams` enum value.
+- `min_2b_attempts` and `min_3b_attempts` must be integers.
 
 ## Pitcher Leaderboards
 
@@ -364,6 +382,20 @@ df = sl.catcher_framing_leaderboard(
     pitcher_handedness="R",
     in_zone=True,
     min_results=25,
+)
+print(df)
+```
+
+### Catcher Pop Time leaderboard
+
+```python
+import pybaseballstats.statcast_leaderboards as sl
+
+df = sl.catcher_pop_time_leaderboard(
+    season=2025,
+    team=sl.StatcastLeaderboardsTeams.BLUE_JAYS,
+    min_2b_attempts=10,
+    min_3b_attempts=5,
 )
 print(df)
 ```

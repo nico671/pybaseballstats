@@ -21,6 +21,7 @@ from pybaseballstats.consts.statcast_leaderboard_consts import (
     PITCH_ARSENALS_LEADERBOARD_URL,
     PITCH_MOVEMENT_LEADERBOARD_URL,
     PITCHER_RUNNING_GAME_LEADERBOARD_URL,
+    POPTIME_LEADERBOARD_URL,
     SPIN_DIRECTION_LEADERBOARD_URL,
     TIMER_INFRACTIONS_LEADERBOARD_URL,
     StatcastLeaderboardsTeams,
@@ -37,6 +38,7 @@ __all__ = [
     "spin_direction_leaderboard",
     "catcher_blocking_leaderboard",
     "catcher_framing_leaderboard",
+    "catcher_pop_time_leaderboard",
     "active_spin_leaderboard",
     "arm_angle_leaderboard",
     "pitch_arsenals_leaderboard",
@@ -987,6 +989,49 @@ def catcher_framing_leaderboard(
     if group_by in ["catching-team", "batting-team"]:
         return df.rename({"id": "team_id", "name": "team_name"})
     return df.rename({"id": "league_id", "name": "league_name"})
+
+
+def catcher_pop_time_leaderboard(
+    season: int = 2026,
+    team: StatcastLeaderboardsTeams | None = None,
+    min_2b_attempts: int = 5,
+    min_3b_attempts: int = 0,
+) -> pl.DataFrame:
+    """Return Baseball Savant catcher Pop Time leaderboard data.
+
+    Args:
+        season (int, optional): Season year. Pop Time data is available from 2015
+            through the current year.
+        team (StatcastLeaderboardsTeams | None, optional): Optional team filter.
+        min_2b_attempts (int, optional): Minimum second-base attempts.
+        min_3b_attempts (int, optional): Minimum third-base attempts.
+
+    Raises:
+        ValueError: If a season, team, or attempt threshold is invalid.
+
+    Returns:
+        pl.DataFrame: Catcher Pop Time leaderboard data with catcher, team, and
+            throwing metrics.
+    """
+    current_year = datetime.now().year
+    if not isinstance(season, int) or not 2015 <= season <= current_year:
+        raise ValueError(f"season must be between 2015 and {current_year}")
+    if team is not None and not isinstance(team, StatcastLeaderboardsTeams):
+        raise ValueError("team must be an instance of StatcastLeaderboardsTeams or None")
+    if not isinstance(min_2b_attempts, int) or isinstance(min_2b_attempts, bool):
+        raise ValueError("min_2b_attempts must be an integer")
+    if not isinstance(min_3b_attempts, int) or isinstance(min_3b_attempts, bool):
+        raise ValueError("min_3b_attempts must be an integer")
+
+    team_param = str(team.value) if team is not None else ""
+    url = POPTIME_LEADERBOARD_URL.format(
+        season=season,
+        team=team_param,
+        min_2b_attempts=min_2b_attempts,
+        min_3b_attempts=min_3b_attempts,
+    )
+    resp = requests.get(url)
+    return pl.read_csv(io.StringIO(resp.text))
 
 
 # endregion

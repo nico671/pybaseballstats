@@ -404,6 +404,51 @@ def test_catcher_framing_leaderboard_builds_url(monkeypatch):
     assert "team_name" in team_df.columns
 
 
+def test_catcher_pop_time_leaderboard_badinputs():
+    with pytest.raises(ValueError):
+        sl.catcher_pop_time_leaderboard(season=2014)
+    with pytest.raises(ValueError):
+        sl.catcher_pop_time_leaderboard(season=9999)
+    with pytest.raises(ValueError):
+        sl.catcher_pop_time_leaderboard(team="Yankees")
+    with pytest.raises(ValueError):
+        sl.catcher_pop_time_leaderboard(min_2b_attempts="2")
+    with pytest.raises(ValueError):
+        sl.catcher_pop_time_leaderboard(min_3b_attempts="2")
+
+
+def test_catcher_pop_time_leaderboard_builds_url(monkeypatch):
+    requested_urls = []
+
+    class Response:
+        text = (
+            "entity_name,entity_id,team_id,age,maxeff_arm_2b_3b_sba,"
+            "exchange_2b_3b_sba,pop_2b_sba_count,pop_2b_sba,pop_2b_cs,"
+            "pop_2b_sb,pop_3b_sba_count,pop_3b_sba,pop_3b_cs,pop_3b_sb\n"
+            '"Kirk, Alejandro",672386,141,27,82.4,0.63,20,1.95,1.92,1.98,5,1.4,1.35,1.45\n'
+        )
+
+    def fake_get(url):
+        requested_urls.append(url)
+        return Response()
+
+    monkeypatch.setattr(sl.requests, "get", fake_get)
+
+    df = sl.catcher_pop_time_leaderboard(
+        season=2025,
+        team=sl.StatcastLeaderboardsTeams.BLUE_JAYS,
+        min_2b_attempts=7,
+        min_3b_attempts=3,
+    )
+
+    assert requested_urls == [
+        "https://baseballsavant.mlb.com/leaderboard/poptime?"
+        "year=2025&team=141&min2b=7&min3b=3&csv=true"
+    ]
+    assert df.select(pl.col("entity_name")).item() == "Kirk, Alejandro"
+    assert df.select(pl.col("pop_2b_sba")).item() == 1.95
+
+
 def test_abs_challenges_leaderboard_badinputs():
     with pytest.raises(ValueError):
         sl.abs_challenges_leaderboard(
