@@ -262,6 +262,15 @@ def test_statcast_gamefeed_endpoint(function, required_columns):
             ),
             {"player_id", "n_init"},
         ),
+        (
+            "baserunning-run-value",
+            lambda: leaderboards.baserunning_run_value_leaderboard(
+                start_season=2023,
+                end_season=2023,
+                min_opportunities=10,
+            ),
+            {"player_id", "player_name", "runner_runs_tot"},
+        ),
     ),
     ids=(
         "park-dimensions",
@@ -281,6 +290,7 @@ def test_statcast_gamefeed_endpoint(function, required_columns):
         "catcher-stance",
         "catcher-throwing",
         "pitcher-running-game",
+        "baserunning-run-value",
     ),
 )
 def test_statcast_leaderboard_endpoint(name, fetch, required_columns):

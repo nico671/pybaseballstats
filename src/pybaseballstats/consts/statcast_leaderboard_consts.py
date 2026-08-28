@@ -17,6 +17,7 @@ ARM_ANGLE_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/pitcher-
 PITCH_ARSENALS_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/pitch-arsenals?year={year}&min={min_pitches}&type={metric_type}&hand={pitcher_handedness}&csv=true"
 PITCH_MOVEMENT_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/pitch-movement?year={season}&min={min_pitches}&pitch_type={pitch_type}&hand={pitcher_handedness}&csv=true"
 PITCHER_RUNNING_GAME_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/pitcher-running-game?game_type={game_type}&n={min_sb_opportunities}&pitch_hand={pitcher_handedness}&runner_moved={runner_movement}&target_base={target_base}&prior_pk={num_prior_disengagements}&season_end={end_season}&season_start={start_season}&sortColumn=simple_prevented_on_running_attr&sortDirection=desc&split={split_years}&team={team}&type={group_by}&with_team_only=1&csv=true"
+BASERUNNING_RUN_VALUE_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/baserunning-run-value?game_type={game_type}&season_start={start_season}&season_end={end_season}&sortColumn=runner_runs_tot&sortDirection=desc&split={split_years}&n={min_opportunities}&team={team}&type={group_by}&with_team_only=1&csv=true"
 
 
 class StatcastLeaderboardsTeams(Enum):

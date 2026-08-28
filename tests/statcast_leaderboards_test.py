@@ -1074,3 +1074,92 @@ def test_pitcher_running_game_leaderboard():
     assert df.select(pl.col("end_year").max()).item() == 2023
     assert df.select(pl.col("key_target_base").unique()).item() == "All"
     assert df.select(pl.col("n_init").min()).item() >= 10
+
+
+def test_baserunning_run_value_leaderboard_badinputs():
+    with pytest.raises(ValueError):
+        sl.baserunning_run_value_leaderboard(start_season=2015, end_season=2025)
+    with pytest.raises(ValueError):
+        sl.baserunning_run_value_leaderboard(start_season=2025, end_season=2024)
+    with pytest.raises(ValueError):
+        sl.baserunning_run_value_leaderboard(
+            start_season=2025, end_season=2025, game_type="invalid"
+        )
+    with pytest.raises(ValueError):
+        sl.baserunning_run_value_leaderboard(
+            start_season=2025, end_season=2025, group_by="invalid"
+        )
+    with pytest.raises(ValueError):
+        sl.baserunning_run_value_leaderboard(
+            start_season=2025, end_season=2025, min_opportunities=0
+        )
+    with pytest.raises(ValueError):
+        sl.baserunning_run_value_leaderboard(
+            start_season=2025, end_season=2025, min_opportunities="100"
+        )
+    with pytest.raises(ValueError):
+        sl.baserunning_run_value_leaderboard(
+            start_season=2025, end_season=2025, team="Yankees"
+        )
+    with pytest.raises(ValueError):
+        sl.baserunning_run_value_leaderboard(
+            start_season=2025, end_season=2025, split_years="yes"
+        )
+
+
+def test_baserunning_run_value_leaderboard_builds_url(monkeypatch):
+    requested_urls = []
+
+    class Response:
+        text = (
+            "player_id,entity_name,team_name,start_year,end_year,runner_runs_tot\n"
+            '677951,"Witt Jr., Bobby",KC,2024,2025,12.5\n'
+        )
+
+    def fake_get(url):
+        requested_urls.append(url)
+        return Response()
+
+    monkeypatch.setattr(sl.requests, "get", fake_get)
+
+    df = sl.baserunning_run_value_leaderboard(
+        start_season=2024,
+        end_season=2025,
+        game_type="All",
+        group_by="Runners",
+        min_opportunities=20,
+        team=sl.StatcastLeaderboardsTeams.YANKEES,
+        split_years=True,
+    )
+
+    assert requested_urls == [
+        "https://baseballsavant.mlb.com/leaderboard/baserunning-run-value?"
+        "game_type=All&season_start=2024&season_end=2025&"
+        "sortColumn=runner_runs_tot&sortDirection=desc&split=yes&n=20&"
+        "team=147&type=Run&with_team_only=1&csv=true"
+    ]
+    assert df.select(pl.col("player_id")).item() == 677951
+    assert df.select(pl.col("player_name")).item() == "Witt Jr., Bobby"
+
+
+def test_baserunning_run_value_leaderboard_normalizes_group_identifiers(monkeypatch):
+    class Response:
+        text = (
+            "player_id,entity_name,team_name,start_year,end_year,runner_runs_tot\n"
+            '147,"Yankees",NYY,2024,2024,10.0\n'
+        )
+
+    monkeypatch.setattr(sl.requests, "get", lambda url: Response())
+
+    team_df = sl.baserunning_run_value_leaderboard(
+        start_season=2024, end_season=2024, group_by="Running Team"
+    )
+    assert team_df.select(pl.col("team_id")).item() == 147
+    assert team_df.select(pl.col("team_name")).item() == "Yankees"
+    assert team_df.select(pl.col("team_abbr")).item() == "NYY"
+
+    league_df = sl.baserunning_run_value_leaderboard(
+        start_season=2024, end_season=2024, group_by="League"
+    )
+    assert league_df.select(pl.col("league_id")).item() == 147
+    assert league_df.select(pl.col("league_name")).item() == "Yankees"
