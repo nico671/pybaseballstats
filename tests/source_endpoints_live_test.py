@@ -271,6 +271,15 @@ def test_statcast_gamefeed_endpoint(function, required_columns):
             ),
             {"player_id", "player_name", "runner_runs_tot"},
         ),
+        (
+            "basestealing-run-value",
+            lambda: leaderboards.basestealing_run_value_leaderboard(
+                start_season=2023,
+                end_season=2023,
+                min_sb_opportunities=10,
+            ),
+            {"player_id", "player_name", "runs_stolen_on_running_act"},
+        ),
     ),
     ids=(
         "park-dimensions",
@@ -291,6 +300,7 @@ def test_statcast_gamefeed_endpoint(function, required_columns):
         "catcher-throwing",
         "pitcher-running-game",
         "baserunning-run-value",
+        "basestealing-run-value",
     ),
 )
 def test_statcast_leaderboard_endpoint(name, fetch, required_columns):

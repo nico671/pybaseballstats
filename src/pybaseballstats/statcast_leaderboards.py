@@ -14,6 +14,7 @@ from pybaseballstats.consts.statcast_leaderboard_consts import (
     ARM_STRENGTH_LEADERBOARD_URL,
     ARM_STRENGTH_POS_INPUT_MAP,
     BASERUNNING_RUN_VALUE_LEADERBOARD_URL,
+    BASESTEALING_RUN_VALUE_LEADERBOARD_URL,
     CATCHER_BLOCKING_LEADERBOARD_URL,
     CATCHER_FRAMING_LEADERBOARD_URL,
     CATCHER_STANCE_LEADERBOARD_URL,
@@ -50,6 +51,7 @@ __all__ = [
     "pitch_movement_leaderboard",
     "pitcher_running_game_leaderboard",
     "baserunning_run_value_leaderboard",
+    "basestealing_run_value_leaderboard",
 ]
 
 
@@ -2145,6 +2147,138 @@ def baserunning_run_value_leaderboard(
             }
         )
     return df.rename({"player_id": "league_id", "entity_name": "league_name"})
+
+
+def basestealing_run_value_leaderboard(
+    start_season: int,
+    end_season: int,
+    game_type: Literal["Regular", "Playoff", "All"] = "Regular",
+    group_by: Literal["Runners", "Running Team", "League"] = "Runners",
+    pitcher_handedness: Literal["R", "L", "ALL"] = "ALL",
+    runner_movement: Literal["All", "Advance", "Out", "Hold"] = "All",
+    target_base: Literal["All", "2B", "3B"] = "All",
+    num_prior_disengagements: Literal["All", "0", "1", "2", "3+"] = "All",
+    min_sb_opportunities: int | str = "q",
+    team: StatcastLeaderboardsTeams | str = "All",
+    split_years: bool = False,
+) -> pl.DataFrame:
+    """Return Baseball Savant basestealing run-value leaderboard data.
+
+    Args:
+        start_season (int): First season to include. Must be 2016 or later.
+        end_season (int): Last season to include. Must not precede ``start_season``.
+        game_type (Literal["Regular", "Playoff", "All"], optional): Game-type
+            filter. Defaults to ``"Regular"``.
+        group_by (Literal["Runners", "Running Team", "League"], optional):
+            Leaderboard grouping. Defaults to ``"Runners"``.
+        pitcher_handedness (Literal["R", "L", "ALL"], optional): Pitcher-hand
+            filter. Defaults to ``"ALL"``.
+        runner_movement (Literal["All", "Advance", "Out", "Hold"], optional):
+            Runner-outcome filter. Defaults to ``"All"``.
+        target_base (Literal["All", "2B", "3B"], optional): Target-base filter.
+            Defaults to ``"All"``.
+        num_prior_disengagements (Literal["All", "0", "1", "2", "3+"], optional):
+            Number of prior pitcher disengagements. Defaults to ``"All"``.
+        min_sb_opportunities (int | str, optional): Minimum stolen-base opportunity
+            count, or ``"q"`` for Baseball Savant's qualifying threshold.
+            Defaults to ``"q"``.
+        team (StatcastLeaderboardsTeams | str, optional): Team filter. Use a team
+            enum, ``"All"`` for all teams, or ``"All-Split"`` for separate team
+            stints. Defaults to ``"All"``.
+        split_years (bool, optional): If ``True``, return one row per season.
+            Otherwise, aggregate across the requested season range. Defaults to
+            ``False``.
+
+    Raises:
+        ValueError: If a season, filter, threshold, team, or boolean value is invalid.
+
+    Returns:
+        pl.DataFrame: Basestealing run-value leaderboard data with ``player_id``,
+            ``player_name``, and ``team_name`` identifier columns.
+
+    Notes:
+        Basestealing run-value data is available from 2016 onwards. The website's
+        column-expansion control changes presentation only and is not a table-data
+        filter, so it is not exposed here.
+    """
+    current_year = datetime.now().year
+    if (
+        not isinstance(start_season, int)
+        or isinstance(start_season, bool)
+        or not 2016 <= start_season <= current_year
+    ):
+        raise ValueError(f"start_season must be between 2016 and {current_year}")
+    if (
+        not isinstance(end_season, int)
+        or isinstance(end_season, bool)
+        or not start_season <= end_season <= current_year
+    ):
+        raise ValueError(f"end_season must be between start_season and {current_year}")
+    if game_type not in ["Regular", "Playoff", "All"]:
+        raise ValueError("game_type must be 'Regular', 'Playoff', or 'All'")
+    if group_by not in ["Runners", "Running Team", "League"]:
+        raise ValueError("group_by must be 'Runners', 'Running Team', or 'League'")
+    group_by_params = {
+        "Runners": "Bat",
+        "Running Team": "Batting+Team",
+        "League": "League",
+    }
+    if pitcher_handedness not in ["R", "L", "ALL"]:
+        raise ValueError("pitcher_handedness must be 'R', 'L', or 'ALL'")
+    pitcher_handedness_param = (
+        pitcher_handedness if pitcher_handedness != "ALL" else "all"
+    )
+    if runner_movement not in ["All", "Advance", "Out", "Hold"]:
+        raise ValueError("runner_movement must be 'All', 'Advance', 'Out', or 'Hold'")
+    if target_base not in ["All", "2B", "3B"]:
+        raise ValueError("target_base must be 'All', '2B', or '3B'")
+    if num_prior_disengagements not in ["All", "0", "1", "2", "3+"]:
+        raise ValueError(
+            "num_prior_disengagements must be 'All', '0', '1', '2', or '3+'"
+        )
+    num_prior_disengagements_param = (
+        num_prior_disengagements if num_prior_disengagements != "3+" else "3"
+    )
+
+    if isinstance(min_sb_opportunities, int) and not isinstance(
+        min_sb_opportunities, bool
+    ):
+        if min_sb_opportunities < 1:
+            raise ValueError("min_sb_opportunities must be at least 1")
+        min_sb_opportunities_param = str(min_sb_opportunities)
+    elif isinstance(min_sb_opportunities, str) and min_sb_opportunities == "q":
+        min_sb_opportunities_param = min_sb_opportunities
+    else:
+        raise ValueError("min_sb_opportunities must be a positive integer or 'q'")
+
+    if isinstance(team, StatcastLeaderboardsTeams):
+        team_param = str(team.value)
+    elif team == "All":
+        team_param = ""
+    elif team == "All-Split":
+        team_param = "split"
+    else:
+        raise ValueError(
+            "team must be a StatcastLeaderboardsTeams enum, 'All', or 'All-Split'"
+        )
+    if not isinstance(split_years, bool):
+        raise ValueError("split_years must be a boolean")
+
+    url = BASESTEALING_RUN_VALUE_LEADERBOARD_URL.format(
+        game_type=game_type,
+        min_sb_opportunities=min_sb_opportunities_param,
+        pitcher_handedness=pitcher_handedness_param,
+        runner_movement=runner_movement,
+        target_base=target_base,
+        num_prior_disengagements=num_prior_disengagements_param,
+        end_season=end_season,
+        start_season=start_season,
+        split_years="yes" if split_years else "no",
+        team=team_param,
+        group_by=group_by_params[group_by],
+    )
+    resp = requests.get(url)
+    return pl.read_csv(io.StringIO(resp.text))
 
 
 # endregion

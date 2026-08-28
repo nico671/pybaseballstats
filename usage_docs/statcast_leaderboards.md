@@ -33,6 +33,7 @@ This module provides access to several Baseball Savant leaderboard endpoints.
 ### Running Functions
 
 - `baserunning_run_value_leaderboard(start_season, end_season, game_type="Regular", group_by="Runners", min_opportunities="q", team="All", split_years=False)`
+- `basestealing_run_value_leaderboard(start_season, end_season, game_type="Regular", group_by="Runners", pitcher_handedness="ALL", runner_movement="All", target_base="All", num_prior_disengagements="All", min_sb_opportunities="q", team="All", split_years=False)`
 
 ## Function Parameters
 
@@ -366,6 +367,39 @@ Validation:
 
 Runner results use `player_id` and `player_name`. Team results use `team_id`,
 `team_name`, and `team_abbr`; league results use `league_id` and `league_name`.
+
+### `basestealing_run_value_leaderboard`
+
+This function returns Baseball Savant's Basestealing Run Value leaderboard table.
+
+- `start_season` (int): First season. Valid from `2016` through the current year.
+- `end_season` (int): Last season. Must be at least `start_season`.
+- `game_type` (`"Regular" | "Playoff" | "All"`): Regular season, playoffs, or both.
+- `group_by` (`"Runners" | "Running Team" | "League"`): Entity type for the
+  returned rows.
+- `pitcher_handedness` (`"R" | "L" | "ALL"`): Pitcher-hand filter.
+- `runner_movement` (`"All" | "Advance" | "Out" | "Hold"`): Runner-outcome filter.
+- `target_base` (`"All" | "2B" | "3B"`): Target-base filter.
+- `num_prior_disengagements` (`"All" | "0" | "1" | "2" | "3+"`): Number of prior
+  pitcher disengagements. `"3+"` includes three or more.
+- `min_sb_opportunities` (int | `"q"`): Minimum stolen-base opportunity count, or
+  `"q"` for Baseball Savant's qualifying threshold.
+- `team` (`StatcastLeaderboardsTeams | "All" | "All-Split"`): Team filter.
+  `"All"` includes all teams, and `"All-Split"` returns separate team stints.
+- `split_years` (bool): Return one row per season when `True`; otherwise aggregate
+  across the requested season range.
+
+Validation:
+
+- `start_season` and `end_season` must be valid seasons from `2016` through the current year.
+- `end_season` must not precede `start_season`.
+- All enum parameters must use one of the listed values.
+- `min_sb_opportunities` must be a positive integer or `"q"`.
+- `team` must be a supported team enum, `"All"`, or `"All-Split"`.
+- `split_years` must be a boolean.
+
+The returned CSV already uses `player_id`, `player_name`, and `team_name` for
+runner, team, and league groupings.
 
 `StatcastLeaderboardsTeams.show_options()` returns all supported team options.
 
@@ -718,6 +752,27 @@ df = sl.baserunning_run_value_leaderboard(
     game_type="Regular",
     group_by="Runners",
     min_opportunities=10,
+    team="All",
+    split_years=True,
+)
+print(df)
+```
+
+### Basestealing Run Value leaderboard
+
+```python
+import pybaseballstats.statcast_leaderboards as sl
+
+df = sl.basestealing_run_value_leaderboard(
+    start_season=2023,
+    end_season=2024,
+    game_type="Regular",
+    group_by="Runners",
+    pitcher_handedness="ALL",
+    runner_movement="All",
+    target_base="All",
+    num_prior_disengagements="All",
+    min_sb_opportunities=10,
     team="All",
     split_years=True,
 )

@@ -1163,3 +1163,107 @@ def test_baserunning_run_value_leaderboard_normalizes_group_identifiers(monkeypa
     )
     assert league_df.select(pl.col("league_id")).item() == 147
     assert league_df.select(pl.col("league_name")).item() == "Yankees"
+
+
+def test_basestealing_run_value_leaderboard_badinputs():
+    with pytest.raises(ValueError):
+        sl.basestealing_run_value_leaderboard(start_season=2015, end_season=2025)
+    with pytest.raises(ValueError):
+        sl.basestealing_run_value_leaderboard(start_season=2025, end_season=2024)
+    with pytest.raises(ValueError):
+        sl.basestealing_run_value_leaderboard(
+            start_season=2025, end_season=2025, game_type="invalid"
+        )
+    with pytest.raises(ValueError):
+        sl.basestealing_run_value_leaderboard(
+            start_season=2025, end_season=2025, group_by="invalid"
+        )
+    with pytest.raises(ValueError):
+        sl.basestealing_run_value_leaderboard(
+            start_season=2025, end_season=2025, pitcher_handedness="invalid"
+        )
+    with pytest.raises(ValueError):
+        sl.basestealing_run_value_leaderboard(
+            start_season=2025, end_season=2025, runner_movement="invalid"
+        )
+    with pytest.raises(ValueError):
+        sl.basestealing_run_value_leaderboard(
+            start_season=2025, end_season=2025, target_base="invalid"
+        )
+    with pytest.raises(ValueError):
+        sl.basestealing_run_value_leaderboard(
+            start_season=2025, end_season=2025, num_prior_disengagements="4"
+        )
+    with pytest.raises(ValueError):
+        sl.basestealing_run_value_leaderboard(
+            start_season=2025, end_season=2025, min_sb_opportunities=0
+        )
+    with pytest.raises(ValueError):
+        sl.basestealing_run_value_leaderboard(
+            start_season=2025, end_season=2025, min_sb_opportunities="100"
+        )
+    with pytest.raises(ValueError):
+        sl.basestealing_run_value_leaderboard(
+            start_season=2025, end_season=2025, team="Yankees"
+        )
+    with pytest.raises(ValueError):
+        sl.basestealing_run_value_leaderboard(
+            start_season=2025, end_season=2025, split_years="yes"
+        )
+
+
+def test_basestealing_run_value_leaderboard_builds_url(monkeypatch):
+    requested_urls = []
+
+    class Response:
+        text = (
+            "player_id,player_name,team_name,start_year,end_year,key_target_base,"
+            "runs_stolen_on_running_act,n_init\n"
+            '677951,"Witt Jr., Bobby",KC,2024,2025,"2B",3.5,25\n'
+        )
+
+    def fake_get(url):
+        requested_urls.append(url)
+        return Response()
+
+    monkeypatch.setattr(sl.requests, "get", fake_get)
+
+    df = sl.basestealing_run_value_leaderboard(
+        start_season=2024,
+        end_season=2025,
+        game_type="All",
+        group_by="Running Team",
+        pitcher_handedness="L",
+        runner_movement="Advance",
+        target_base="2B",
+        num_prior_disengagements="3+",
+        min_sb_opportunities=50,
+        team=sl.StatcastLeaderboardsTeams.YANKEES,
+        split_years=True,
+    )
+
+    assert requested_urls == [
+        "https://baseballsavant.mlb.com/leaderboard/basestealing-run-value?"
+        "game_type=All&n=50&pitch_hand=L&runner_moved=Advance&target_base=2B&"
+        "prior_pk=3&season_end=2025&season_start=2024&"
+        "sortColumn=simple_stolen_on_running_act&sortDirection=desc&split=yes&"
+        "team=147&type=Batting+Team&with_team_only=1&csv=true"
+    ]
+    assert df.select(pl.col("player_id")).item() == 677951
+    assert df.select(pl.col("player_name")).item() == "Witt Jr., Bobby"
+
+
+def test_basestealing_run_value_leaderboard_keeps_identifier_columns(monkeypatch):
+    class Response:
+        text = (
+            "player_id,player_name,team_name,start_year,end_year,key_target_base,"
+            "runs_stolen_on_running_act,n_init\n"
+            '147,"Yankees",NYY,2024,2024,"All",-3.7,10\n'
+        )
+
+    monkeypatch.setattr(sl.requests, "get", lambda url: Response())
+
+    df = sl.basestealing_run_value_leaderboard(
+        start_season=2024, end_season=2024, group_by="Running Team"
+    )
+    assert df.columns[:3] == ["player_id", "player_name", "team_name"]
