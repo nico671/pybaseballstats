@@ -92,6 +92,22 @@ def test_statcast_single_player_endpoint():
     assert_frame(df, {"player_id", "player_name", "pitches"})
 
 
+def test_statcast_single_player_pitch_by_pitch_endpoint():
+    df = single_player.single_player_pitch_by_pitch(
+        player_id=808967,
+        season=2025,
+        player_type="pitcher",
+        force_collect=True,
+        chunk_size_days=30,
+        show_progress=False,
+        concurrency=4,
+    )
+    assert isinstance(df, pl.DataFrame)
+    assert_frame(df, {"pitcher", "batter", "plate_x", "plate_z"})
+    assert df.height > 1
+    assert df["pitcher"].unique().to_list() == [808967]
+
+
 def test_statcast_single_game_csv_endpoint():
     df = single_game.single_game_pitch_by_pitch(game_pk=776759)
     assert_frame(df, {"game_pk", "game_date", "player_name"})
