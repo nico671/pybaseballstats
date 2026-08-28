@@ -197,6 +197,47 @@ def test_statcast_gamefeed_endpoint(function, required_columns):
             {"pitcher_id", "pitches_thrown"},
         ),
         (
+            "catcher-blocking",
+            lambda: leaderboards.catcher_blocking_leaderboard(
+                start_season=2023,
+                end_season=2023,
+                min_pitches=100,
+            ),
+            {"player_id", "player_name", "pitches", "blocks_above_average"},
+        ),
+        (
+            "catcher-framing",
+            lambda: leaderboards.catcher_framing_leaderboard(
+                start_season=2023,
+                end_season=2023,
+                min_pitches=100,
+            ),
+            {"player_id", "player_name", "pitches", "rv_tot"},
+        ),
+        (
+            "catcher-pop-time",
+            lambda: leaderboards.catcher_pop_time_leaderboard(season=2023),
+            {"entity_name", "entity_id", "pop_2b_sba", "pop_3b_sba"},
+        ),
+        (
+            "catcher-stance",
+            lambda: leaderboards.catcher_stance_leaderboard(
+                start_season=2023,
+                end_season=2023,
+                min_pitches=100,
+            ),
+            {"player_id", "player_name", "pitches", "knee_down_pct"},
+        ),
+        (
+            "catcher-throwing",
+            lambda: leaderboards.catcher_throwing_leaderboard(
+                start_season=2023,
+                end_season=2023,
+                min_sb_attempts=10,
+            ),
+            {"player_id", "player_name", "sb_attempts", "pop_time"},
+        ),
+        (
             "pitcher-running-game",
             lambda: leaderboards.pitcher_running_game_leaderboard(
                 start_season=2023,
@@ -218,6 +259,11 @@ def test_statcast_gamefeed_endpoint(function, required_columns):
         "arm-angle",
         "pitch-arsenals",
         "pitch-movement",
+        "catcher-blocking",
+        "catcher-framing",
+        "catcher-pop-time",
+        "catcher-stance",
+        "catcher-throwing",
         "pitcher-running-game",
     ),
 )

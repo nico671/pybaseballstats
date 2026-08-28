@@ -234,6 +234,382 @@ def test_arm_strength_leaderboard_player_and_team_modes(monkeypatch):
     assert "player_id" not in df_team.columns
 
 
+def test_catcher_blocking_leaderboard_badinputs():
+    with pytest.raises(ValueError):
+        sl.catcher_blocking_leaderboard(start_season=2017, end_season=2025)
+    with pytest.raises(ValueError):
+        sl.catcher_blocking_leaderboard(start_season=2025, end_season=2024)
+    with pytest.raises(ValueError):
+        sl.catcher_blocking_leaderboard(
+            start_season=2025, end_season=2025, game_type="invalid"
+        )
+    with pytest.raises(ValueError):
+        sl.catcher_blocking_leaderboard(
+            start_season=2025, end_season=2025, group_by="invalid"
+        )
+    with pytest.raises(ValueError):
+        sl.catcher_blocking_leaderboard(
+            start_season=2025, end_season=2025, min_pitches=0
+        )
+    with pytest.raises(ValueError):
+        sl.catcher_blocking_leaderboard(
+            start_season=2025, end_season=2025, min_pitches="100"
+        )
+    with pytest.raises(ValueError):
+        sl.catcher_blocking_leaderboard(
+            start_season=2025, end_season=2025, team="Yankees"
+        )
+    with pytest.raises(ValueError):
+        sl.catcher_blocking_leaderboard(
+            start_season=2025, end_season=2025, split_years="yes"
+        )
+
+
+def test_catcher_blocking_leaderboard_builds_url(monkeypatch):
+    requested_urls = []
+
+    class Response:
+        text = (
+            "player_id,player_name,team_name,start_year,end_year,pitches,"
+            "catcher_blocking_runs,blocks_above_average\n"
+            "672386,\"Kirk, Alejandro\",TOR,2025,2025,2118,3,13\n"
+        )
+
+    def fake_get(url):
+        requested_urls.append(url)
+        return Response()
+
+    monkeypatch.setattr(sl.requests, "get", fake_get)
+
+    df = sl.catcher_blocking_leaderboard(
+        start_season=2020,
+        end_season=2025,
+        game_type="Playoff",
+        group_by="Cat",
+        min_pitches=100,
+        team=sl.StatcastLeaderboardsTeams.BLUE_JAYS,
+        split_years=True,
+    )
+
+    assert requested_urls == [
+        "https://baseballsavant.mlb.com/leaderboard/catcher-blocking?"
+        "game_type=Playoff&n=100&season_end=2025&season_start=2020&split=yes&"
+        "team=141&type=Cat&with_team_only=1&sortColumn=diff_runner_pbwp&"
+        "sortDirection=desc&csv=true"
+    ]
+    assert df.select(pl.col("player_name")).item() == "Kirk, Alejandro"
+
+    sl.catcher_blocking_leaderboard(
+        start_season=2020,
+        end_season=2025,
+        group_by="Catching Team",
+        min_pitches=100,
+        team=sl.StatcastLeaderboardsTeams.BLUE_JAYS,
+    )
+    assert requested_urls[-1] == (
+        "https://baseballsavant.mlb.com/leaderboard/catcher-blocking?"
+        "game_type=Regular&n=&season_end=2025&season_start=2020&split=no&"
+        "team=&type=Pitching+Team&with_team_only=1&sortColumn=diff_runner_pbwp&"
+        "sortDirection=desc&csv=true"
+    )
+
+
+def test_catcher_framing_leaderboard_badinputs():
+    with pytest.raises(ValueError):
+        sl.catcher_framing_leaderboard(start_season=2017, end_season=2025)
+    with pytest.raises(ValueError):
+        sl.catcher_framing_leaderboard(start_season=2025, end_season=2024)
+    with pytest.raises(ValueError):
+        sl.catcher_framing_leaderboard(
+            start_season=2025, end_season=2025, group_by="invalid"
+        )
+    with pytest.raises(ValueError):
+        sl.catcher_framing_leaderboard(
+            start_season=2025, end_season=2025, game_type="invalid"
+        )
+    with pytest.raises(ValueError):
+        sl.catcher_framing_leaderboard(
+            start_season=2025, end_season=2025, min_pitches=0
+        )
+    with pytest.raises(ValueError):
+        sl.catcher_framing_leaderboard(
+            start_season=2025, end_season=2025, teams=["NYY"]
+        )
+    with pytest.raises(ValueError):
+        sl.catcher_framing_leaderboard(
+            start_season=2025, end_season=2025, batter_handedness="B"
+        )
+    with pytest.raises(ValueError):
+        sl.catcher_framing_leaderboard(
+            start_season=2025, end_season=2025, pitcher_handedness="B"
+        )
+    with pytest.raises(ValueError):
+        sl.catcher_framing_leaderboard(
+            start_season=2025, end_season=2025, in_zone="in"
+        )
+    with pytest.raises(ValueError):
+        sl.catcher_framing_leaderboard(
+            start_season=2025, end_season=2025, min_results=0
+        )
+
+
+def test_catcher_framing_leaderboard_builds_url(monkeypatch):
+    requested_urls = []
+
+    class Response:
+        text = (
+            "id,name,pitches,rv_tot,pct_tot,rv_11,pct_11\n"
+            "672386,\"Kirk, Alejandro\",878,0.46,0.84,0,0.60\n"
+        )
+
+    def fake_get(url):
+        requested_urls.append(url)
+        return Response()
+
+    monkeypatch.setattr(sl.requests, "get", fake_get)
+
+    df = sl.catcher_framing_leaderboard(
+        start_season=2020,
+        end_season=2025,
+        group_by="catcher",
+        game_type="Playoff",
+        min_pitches=250,
+        teams=[
+            sl.StatcastLeaderboardsTeams.BLUE_JAYS,
+            sl.StatcastLeaderboardsTeams.ORIOLES,
+        ],
+        batter_handedness="L",
+        pitcher_handedness="R",
+        in_zone=True,
+        min_results=50,
+    )
+
+    assert requested_urls == [
+        "https://baseballsavant.mlb.com/leaderboard/catcher-framing?"
+        "gameType=Playoff&seasonStart=2020&seasonEnd=2025&team=141|110&"
+        "type=catcher&minPitches=250&minResults=50&batSide=L&pitchHand=R&"
+        "ballStrike=in&csv=true"
+    ]
+    assert df.select(pl.col("player_id")).item() == 672386
+    assert df.select(pl.col("player_name")).item() == "Kirk, Alejandro"
+
+    team_df = sl.catcher_framing_leaderboard(
+        start_season=2020, end_season=2025, group_by="catching-team"
+    )
+    assert requested_urls[-1].endswith(
+        "type=catching-team&minPitches=q&minResults=1&"
+        "batSide=&pitchHand=&ballStrike=&csv=true"
+    )
+    assert "team_id" in team_df.columns
+    assert "team_name" in team_df.columns
+
+
+def test_catcher_pop_time_leaderboard_badinputs():
+    with pytest.raises(ValueError):
+        sl.catcher_pop_time_leaderboard(season=2014)
+    with pytest.raises(ValueError):
+        sl.catcher_pop_time_leaderboard(season=9999)
+    with pytest.raises(ValueError):
+        sl.catcher_pop_time_leaderboard(team="Yankees")
+    with pytest.raises(ValueError):
+        sl.catcher_pop_time_leaderboard(min_2b_attempts="2")
+    with pytest.raises(ValueError):
+        sl.catcher_pop_time_leaderboard(min_3b_attempts="2")
+
+
+def test_catcher_pop_time_leaderboard_builds_url(monkeypatch):
+    requested_urls = []
+
+    class Response:
+        text = (
+            "entity_name,entity_id,team_id,age,maxeff_arm_2b_3b_sba,"
+            "exchange_2b_3b_sba,pop_2b_sba_count,pop_2b_sba,pop_2b_cs,"
+            "pop_2b_sb,pop_3b_sba_count,pop_3b_sba,pop_3b_cs,pop_3b_sb\n"
+            '"Kirk, Alejandro",672386,141,27,82.4,0.63,20,1.95,1.92,1.98,5,1.4,1.35,1.45\n'
+        )
+
+    def fake_get(url):
+        requested_urls.append(url)
+        return Response()
+
+    monkeypatch.setattr(sl.requests, "get", fake_get)
+
+    df = sl.catcher_pop_time_leaderboard(
+        season=2025,
+        team=sl.StatcastLeaderboardsTeams.BLUE_JAYS,
+        min_2b_attempts=7,
+        min_3b_attempts=3,
+    )
+
+    assert requested_urls == [
+        "https://baseballsavant.mlb.com/leaderboard/poptime?"
+        "year=2025&team=141&min2b=7&min3b=3&csv=true"
+    ]
+    assert df.select(pl.col("entity_name")).item() == "Kirk, Alejandro"
+    assert df.select(pl.col("pop_2b_sba")).item() == 1.95
+
+
+def test_catcher_stance_leaderboard_badinputs():
+    with pytest.raises(ValueError):
+        sl.catcher_stance_leaderboard(start_season=2019, end_season=2025)
+    with pytest.raises(ValueError):
+        sl.catcher_stance_leaderboard(start_season=2025, end_season=2024)
+    with pytest.raises(ValueError):
+        sl.catcher_stance_leaderboard(start_season=2025, end_season=2025, group_by="invalid")
+    with pytest.raises(ValueError):
+        sl.catcher_stance_leaderboard(start_season=2025, end_season=2025, game_type="invalid")
+    with pytest.raises(ValueError):
+        sl.catcher_stance_leaderboard(start_season=2025, end_season=2025, min_pitches=0)
+    with pytest.raises(ValueError):
+        sl.catcher_stance_leaderboard(start_season=2025, end_season=2025, teams=["NYY"])
+    with pytest.raises(ValueError):
+        sl.catcher_stance_leaderboard(
+            start_season=2025, end_season=2025, batter_handedness="B"
+        )
+    with pytest.raises(ValueError):
+        sl.catcher_stance_leaderboard(
+            start_season=2025, end_season=2025, pitcher_handedness="B"
+        )
+    with pytest.raises(ValueError):
+        sl.catcher_stance_leaderboard(
+            start_season=2025, end_season=2025, knee_position="invalid"
+        )
+    with pytest.raises(ValueError):
+        sl.catcher_stance_leaderboard(start_season=2025, end_season=2025, min_results=0)
+    with pytest.raises(ValueError):
+        sl.catcher_stance_leaderboard(
+            start_season=2025, end_season=2025, start_date="2020/07/23"
+        )
+    with pytest.raises(ValueError):
+        sl.catcher_stance_leaderboard(
+            start_season=2025,
+            end_season=2025,
+            start_date="2024-10-01",
+            end_date="2024-09-01",
+        )
+
+
+def test_catcher_stance_leaderboard_builds_url(monkeypatch):
+    requested_urls = []
+
+    class Response:
+        text = (
+            "id,name,year,pitches,knee_down_pct,l_down_r_up_pct,r_down_l_up_pct,"
+            "both_down_pct,both_up_pct,catching_rv\n"
+            '672386,"Kirk, Alejandro",2024,2500,0.5,0.2,0.1,0.1,0.1,1.2\n'
+        )
+
+    def fake_get(url):
+        requested_urls.append(url)
+        return Response()
+
+    monkeypatch.setattr(sl.requests, "get", fake_get)
+
+    df = sl.catcher_stance_leaderboard(
+        start_season=2023,
+        end_season=2024,
+        group_by="catcher",
+        game_type="Playoff",
+        min_pitches=250,
+        teams=[
+            sl.StatcastLeaderboardsTeams.BLUE_JAYS,
+            sl.StatcastLeaderboardsTeams.ORIOLES,
+        ],
+        batter_handedness="L",
+        pitcher_handedness="R",
+        knee_position="Knee(s) Down",
+        min_results=25,
+        start_date="2023-04-01",
+        end_date="2024-10-01",
+    )
+
+    assert requested_urls == [
+        "https://baseballsavant.mlb.com/leaderboard/catcher-stance?"
+        "gameType=Playoff&seasonStart=2023&seasonEnd=2024&team=141|110&"
+        "type=catcher&minPitches=250&minResults=25&batSide=L&pitchHand=R&"
+        "kneeCode=9999&dateStart=2023-04-01&dateEnd=2024-10-01&csv=true"
+    ]
+    assert df.select(pl.col("player_id")).item() == 672386
+    assert df.select(pl.col("player_name")).item() == "Kirk, Alejandro"
+
+
+def test_catcher_throwing_leaderboard_badinputs():
+    with pytest.raises(ValueError):
+        sl.catcher_throwing_leaderboard(start_season=2015, end_season=2025)
+    with pytest.raises(ValueError):
+        sl.catcher_throwing_leaderboard(start_season=2025, end_season=2024)
+    with pytest.raises(ValueError):
+        sl.catcher_throwing_leaderboard(
+            start_season=2025, end_season=2025, game_type="invalid"
+        )
+    with pytest.raises(ValueError):
+        sl.catcher_throwing_leaderboard(
+            start_season=2025, end_season=2025, group_by="invalid"
+        )
+    with pytest.raises(ValueError):
+        sl.catcher_throwing_leaderboard(
+            start_season=2025, end_season=2025, min_sb_attempts=0
+        )
+    with pytest.raises(ValueError):
+        sl.catcher_throwing_leaderboard(
+            start_season=2025, end_season=2025, min_sb_attempts="100"
+        )
+    with pytest.raises(ValueError):
+        sl.catcher_throwing_leaderboard(
+            start_season=2025, end_season=2025, target_base="1B"
+        )
+    with pytest.raises(ValueError):
+        sl.catcher_throwing_leaderboard(
+            start_season=2025, end_season=2025, team="Yankees"
+        )
+    with pytest.raises(ValueError):
+        sl.catcher_throwing_leaderboard(
+            start_season=2025, end_season=2025, split_years="yes"
+        )
+    with pytest.raises(ValueError):
+        sl.catcher_throwing_leaderboard(
+            start_season=2025, end_season=2025, with_team_only=1
+        )
+
+
+def test_catcher_throwing_leaderboard_builds_url(monkeypatch):
+    requested_urls = []
+
+    class Response:
+        text = (
+            "player_id,player_name,team_name,start_year,end_year,sb_attempts,"
+            "catcher_stealing_runs,caught_stealing_above_average,n_cs,rate_cs,"
+            "est_cs_pct,cs_aa_per_throw,pop_time,exchange_time,arm_strength\n"
+            '672386,"Kirk, Alejandro",TOR,2024,2024,75,1.2,2.1,15,0.2,0.25,0.03,1.9,0.6,80\n'
+        )
+
+    def fake_get(url):
+        requested_urls.append(url)
+        return Response()
+
+    monkeypatch.setattr(sl.requests, "get", fake_get)
+
+    df = sl.catcher_throwing_leaderboard(
+        start_season=2023,
+        end_season=2024,
+        game_type="Playoff",
+        group_by="Pitching Team",
+        min_sb_attempts=50,
+        target_base="2B",
+        team=sl.StatcastLeaderboardsTeams.BLUE_JAYS,
+        split_years=True,
+        with_team_only=False,
+    )
+
+    assert requested_urls == [
+        "https://baseballsavant.mlb.com/leaderboard/catcher-throwing?"
+        "game_type=Playoff&n=50&season_end=2024&season_start=2023&split=yes&"
+        "team=141&type=Pitching Team&with_team_only=0&target_base=2B&csv=true"
+    ]
+    assert df.select(pl.col("player_id")).item() == 672386
+    assert df.select(pl.col("sb_attempts")).item() == 75
+
+
 def test_abs_challenges_leaderboard_badinputs():
     with pytest.raises(ValueError):
         sl.abs_challenges_leaderboard(
