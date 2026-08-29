@@ -280,6 +280,15 @@ def test_statcast_gamefeed_endpoint(function, required_columns):
             ),
             {"player_id", "player_name", "runs_stolen_on_running_act"},
         ),
+        (
+            "extra-bases-taken-run-value",
+            lambda: leaderboards.extra_bases_taken_run_value_leaderboard(
+                start_season=2023,
+                end_season=2023,
+                min_opportunities=10,
+            ),
+            {"player_id", "player_name", "runner_runs", "n_opp_xb"},
+        ),
     ),
     ids=(
         "park-dimensions",
@@ -301,6 +310,7 @@ def test_statcast_gamefeed_endpoint(function, required_columns):
         "pitcher-running-game",
         "baserunning-run-value",
         "basestealing-run-value",
+        "extra-bases-taken-run-value",
     ),
 )
 def test_statcast_leaderboard_endpoint(name, fetch, required_columns):

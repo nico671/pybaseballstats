@@ -15,6 +15,7 @@ from pybaseballstats.consts.statcast_leaderboard_consts import (
     ARM_STRENGTH_POS_INPUT_MAP,
     BASERUNNING_RUN_VALUE_LEADERBOARD_URL,
     BASESTEALING_RUN_VALUE_LEADERBOARD_URL,
+    EXTRA_BASES_TAKEN_RUN_VALUE_LEADERBOARD_URL,
     CATCHER_BLOCKING_LEADERBOARD_URL,
     CATCHER_FRAMING_LEADERBOARD_URL,
     CATCHER_STANCE_LEADERBOARD_URL,
@@ -52,6 +53,7 @@ __all__ = [
     "pitcher_running_game_leaderboard",
     "baserunning_run_value_leaderboard",
     "basestealing_run_value_leaderboard",
+    "extra_bases_taken_run_value_leaderboard",
 ]
 
 
@@ -2281,7 +2283,175 @@ def basestealing_run_value_leaderboard(
     return pl.read_csv(io.StringIO(resp.text))
 
 
-# TODO: Extra Bases Taken Run Value Leaderboard -> https://baseballsavant.mlb.com/leaderboard/baserunning
+def extra_bases_taken_run_value_leaderboard(
+    start_season: int,
+    end_season: int,
+    game_type: Literal["Regular", "Playoff", "All"] = "Regular",
+    group_by: Literal[
+        "Runners",
+        "Fielders",
+        "Pitchers",
+        "Batting Team",
+        "Fielding Team",
+        "League",
+    ] = "Runners",
+    situation: Literal[
+        "all",
+        "batter_1b_to_2b",
+        "batter_2b_to_3b",
+        "runner_1b_to_3b_lt_2_outs",
+        "runner_1b_to_3b_2_outs",
+        "runner_1b_to_home_lt_2_outs",
+        "runner_1b_to_home_2_outs",
+        "runner_2b_to_home_lt_2_outs",
+        "runner_2b_to_home_2_outs",
+        "runner_3b_to_home_first_out",
+        "runner_3b_to_home_second_out",
+    ] = "all",
+    min_opportunities: int | str = "q",
+    team: StatcastLeaderboardsTeams | str = "All",
+    split_years: bool = False,
+) -> pl.DataFrame:
+    """Return Baseball Savant Extra Bases Taken run-value leaderboard data.
+
+    Args:
+        start_season (int): First season to include. Must be 2016 or later.
+        end_season (int): Last season to include. Must not precede ``start_season``.
+        game_type (Literal["Regular", "Playoff", "All"], optional): Game-type
+            filter. Defaults to ``"Regular"``.
+        group_by (Literal[...], optional): Leaderboard grouping. Options are
+            ``"Runners"``, ``"Fielders"``, ``"Pitchers"``, ``"Batting Team"``,
+            ``"Fielding Team"``, and ``"League"``. Defaults to ``"Runners"``.
+        situation (Literal[...], optional): Short base/out situation key. Supported
+            keys are ``"all"``, ``"batter_1b_to_2b"``, ``"batter_2b_to_3b"``,
+            ``"runner_1b_to_3b_lt_2_outs"``, ``"runner_1b_to_3b_2_outs"``,
+            ``"runner_1b_to_home_lt_2_outs"``, ``"runner_1b_to_home_2_outs"``,
+            ``"runner_2b_to_home_lt_2_outs"``, ``"runner_2b_to_home_2_outs"``,
+            ``"runner_3b_to_home_first_out"``, and
+            ``"runner_3b_to_home_second_out"``. Defaults to ``"all"``.
+        min_opportunities (int | str, optional): Minimum advance opportunities, or
+            ``"q"`` for Baseball Savant's qualifying threshold. Defaults to ``"q"``.
+        team (StatcastLeaderboardsTeams | str, optional): Team filter. Use a team
+            enum, ``"All"`` for all teams, or ``"All-Split"`` for separate team
+            stints. Defaults to ``"All"``.
+        split_years (bool, optional): If ``True``, return one row per season.
+            Otherwise, aggregate across the requested season range. Defaults to
+            ``False``.
+
+    Raises:
+        ValueError: If a season, filter, threshold, team, or boolean value is invalid.
+
+    Returns:
+        pl.DataFrame: Extra Bases Taken run-value leaderboard data. Player groupings
+            use ``player_id`` and ``player_name``; team groupings use ``team_id``,
+            ``team_name``, and ``team_abbr``; league groupings use ``league_id``
+            and ``league_name``.
+
+    Notes:
+        Extra Bases Taken data is available from 2016 onwards. The website's
+        presentation controls are not exposed because they do not change the CSV
+        table request.
+    """
+    current_year = datetime.now().year
+    if (
+        not isinstance(start_season, int)
+        or isinstance(start_season, bool)
+        or not 2016 <= start_season <= current_year
+    ):
+        raise ValueError(f"start_season must be between 2016 and {current_year}")
+    if (
+        not isinstance(end_season, int)
+        or isinstance(end_season, bool)
+        or not start_season <= end_season <= current_year
+    ):
+        raise ValueError(f"end_season must be between start_season and {current_year}")
+    if game_type not in ["Regular", "Playoff", "All"]:
+        raise ValueError("game_type must be 'Regular', 'Playoff', or 'All'")
+
+    situation_params = {
+        "all": "All",
+        "batter_1b_to_2b": "r10_to_2b_210",
+        "batter_2b_to_3b": "r10_to_3b_210",
+        "runner_1b_to_3b_lt_2_outs": "r11_to_3b_10",
+        "runner_1b_to_3b_2_outs": "r11_to_3b_2",
+        "runner_1b_to_home_lt_2_outs": "r11_to_hp_10",
+        "runner_1b_to_home_2_outs": "r11_to_hp_2",
+        "runner_2b_to_home_lt_2_outs": "r12_to_hp_10",
+        "runner_2b_to_home_2_outs": "r12_to_hp_2",
+        "runner_3b_to_home_first_out": "r13_to_hp_0",
+        "runner_3b_to_home_second_out": "r13_to_hp_1",
+    }
+    if not isinstance(situation, str) or situation not in situation_params:
+        raise ValueError("situation must be one of the documented situation keys")
+
+    group_by_params = {
+        "Runners": "Run",
+        "Fielders": "Fld",
+        "Pitchers": "Pit",
+        "Batting Team": "Batting+Team",
+        "Fielding Team": "Pitching+Team",
+        "League": "League",
+    }
+    if group_by not in [
+        "Runners",
+        "Fielders",
+        "Pitchers",
+        "Batting Team",
+        "Fielding Team",
+        "League",
+    ]:
+        raise ValueError(
+            "group_by must be 'Runners', 'Fielders', 'Pitchers', 'Batting Team', "
+            "'Fielding Team', or 'League'"
+        )
+
+    if isinstance(min_opportunities, int) and not isinstance(min_opportunities, bool):
+        if min_opportunities < 1:
+            raise ValueError("min_opportunities must be at least 1")
+        min_opportunities_param = str(min_opportunities)
+    elif isinstance(min_opportunities, str) and min_opportunities == "q":
+        min_opportunities_param = "top"
+    else:
+        raise ValueError("min_opportunities must be a positive integer or 'q'")
+
+    if isinstance(team, StatcastLeaderboardsTeams):
+        team_param = str(team.value)
+    elif team == "All":
+        team_param = ""
+    elif team == "All-Split":
+        team_param = "split"
+    else:
+        raise ValueError(
+            "team must be a StatcastLeaderboardsTeams enum, 'All', or 'All-Split'"
+        )
+    if not isinstance(split_years, bool):
+        raise ValueError("split_years must be a boolean")
+
+    url = EXTRA_BASES_TAKEN_RUN_VALUE_LEADERBOARD_URL.format(
+        game_type=game_type,
+        min_opportunities=min_opportunities_param,
+        situation=situation_params[situation],
+        end_season=end_season,
+        start_season=start_season,
+        split_years="yes" if split_years else "no",
+        team=team_param,
+        group_by=group_by_params[group_by],
+    )
+    resp = requests.get(url)
+    df = pl.read_csv(io.StringIO(resp.text))
+    if group_by in ["Runners", "Fielders", "Pitchers"]:
+        return df.rename({"entity_id": "player_id", "entity_name": "player_name"})
+    if group_by in ["Batting Team", "Fielding Team"]:
+        return df.rename(
+            {
+                "entity_id": "team_id",
+                "entity_name": "team_name",
+                "team_name": "team_abbr",
+            }
+        )
+    return df.rename({"entity_id": "league_id", "entity_name": "league_name"})
+
+
 # TODO: Sprint Speed Leaderboard -> https://baseballsavant.mlb.com/leaderboard/sprint_speed
 
 # TODO: 90ft Running Splits Leaderboard -> https://baseballsavant.mlb.com/leaderboard/running_splits

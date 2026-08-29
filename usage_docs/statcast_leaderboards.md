@@ -34,6 +34,7 @@ This module provides access to several Baseball Savant leaderboard endpoints.
 
 - `baserunning_run_value_leaderboard(start_season, end_season, game_type="Regular", group_by="Runners", min_opportunities="q", team="All", split_years=False)`
 - `basestealing_run_value_leaderboard(start_season, end_season, game_type="Regular", group_by="Runners", pitcher_handedness="ALL", runner_movement="All", target_base="All", num_prior_disengagements="All", min_sb_opportunities="q", team="All", split_years=False)`
+- `extra_bases_taken_run_value_leaderboard(start_season, end_season, game_type="Regular", group_by="Runners", situation="all", min_opportunities="q", team="All", split_years=False)`
 
 ## Function Parameters
 
@@ -400,6 +401,41 @@ Validation:
 
 The returned CSV already uses `player_id`, `player_name`, and `team_name` for
 runner, team, and league groupings.
+
+### `extra_bases_taken_run_value_leaderboard`
+
+This function returns Baseball Savant's Extra Bases Taken Run Value leaderboard.
+
+- `start_season` (int): First season. Valid from `2016` through the current year.
+- `end_season` (int): Last season. Must be at least `start_season`.
+- `game_type` (`"Regular" | "Playoff" | "All"`): Regular season, playoffs, or both.
+- `group_by` (`"Runners" | "Fielders" | "Pitchers" | "Batting Team" | "Fielding Team" | "League"`): Entity type for the returned rows.
+- `situation` (str): Short base/out situation key. Accepted values are:
+  `"all"` (all situations), `"batter_1b_to_2b"` (batter from first to second),
+  `"batter_2b_to_3b"` (batter from second to third),
+  `"runner_1b_to_3b_lt_2_outs"` (runner from first to third with fewer than two outs),
+  `"runner_1b_to_3b_2_outs"` (runner from first to third with two outs),
+  `"runner_1b_to_home_lt_2_outs"` (runner from first to home with fewer than two outs),
+  `"runner_1b_to_home_2_outs"` (runner from first to home with two outs),
+  `"runner_2b_to_home_lt_2_outs"` (runner from second to home with fewer than two outs),
+  `"runner_2b_to_home_2_outs"` (runner from second to home with two outs),
+  `"runner_3b_to_home_first_out"` (runner from third to home on the first out),
+  and `"runner_3b_to_home_second_out"` (runner from third to home on the second out).
+- `min_opportunities` (int | `"q"`): Minimum advance-opportunity count, or `"q"` for Baseball Savant's qualifying threshold.
+- `team` (`StatcastLeaderboardsTeams | "All" | "All-Split"`): Team filter. `"All"` includes all teams, and `"All-Split"` returns separate team stints.
+- `split_years` (bool): Return one row per season when `True`; otherwise aggregate across the requested season range.
+
+Validation:
+
+- `start_season` and `end_season` must be valid seasons from `2016` through the current year.
+- `end_season` must not precede `start_season`.
+- `game_type`, `group_by`, and `situation` must use one of the listed values.
+- `min_opportunities` must be a positive integer or `"q"`.
+- `team` must be a supported team enum, `"All"`, or `"All-Split"`.
+- `split_years` must be a boolean.
+
+Player results use `player_id` and `player_name`. Team results use `team_id`,
+`team_name`, and `team_abbr`; league results use `league_id` and `league_name`.
 
 `StatcastLeaderboardsTeams.show_options()` returns all supported team options.
 
@@ -773,6 +809,23 @@ df = sl.basestealing_run_value_leaderboard(
     target_base="All",
     num_prior_disengagements="All",
     min_sb_opportunities=10,
+    team="All",
+    split_years=True,
+)
+print(df)
+```
+
+### Extra Bases Taken Run Value leaderboard
+
+```python
+import pybaseballstats.statcast_leaderboards as sl
+
+df = sl.extra_bases_taken_run_value_leaderboard(
+    start_season=2023,
+    end_season=2024,
+    group_by="Runners",
+    situation="all",
+    min_opportunities=10,
     team="All",
     split_years=True,
 )

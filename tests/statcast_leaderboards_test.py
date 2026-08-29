@@ -1267,3 +1267,99 @@ def test_basestealing_run_value_leaderboard_keeps_identifier_columns(monkeypatch
         start_season=2024, end_season=2024, group_by="Running Team"
     )
     assert df.columns[:3] == ["player_id", "player_name", "team_name"]
+
+
+def test_extra_bases_taken_run_value_leaderboard_badinputs():
+    with pytest.raises(ValueError):
+        sl.extra_bases_taken_run_value_leaderboard(start_season=2015, end_season=2025)
+    with pytest.raises(ValueError):
+        sl.extra_bases_taken_run_value_leaderboard(start_season=2025, end_season=2024)
+    with pytest.raises(ValueError):
+        sl.extra_bases_taken_run_value_leaderboard(
+            start_season=2025, end_season=2025, game_type="invalid"
+        )
+    with pytest.raises(ValueError):
+        sl.extra_bases_taken_run_value_leaderboard(
+            start_season=2025, end_season=2025, group_by="invalid"
+        )
+    with pytest.raises(ValueError):
+        sl.extra_bases_taken_run_value_leaderboard(
+            start_season=2025, end_season=2025, situation="invalid"
+        )
+    with pytest.raises(ValueError):
+        sl.extra_bases_taken_run_value_leaderboard(
+            start_season=2025, end_season=2025, min_opportunities=0
+        )
+    with pytest.raises(ValueError):
+        sl.extra_bases_taken_run_value_leaderboard(
+            start_season=2025, end_season=2025, min_opportunities="100"
+        )
+    with pytest.raises(ValueError):
+        sl.extra_bases_taken_run_value_leaderboard(
+            start_season=2025, end_season=2025, team="Yankees"
+        )
+    with pytest.raises(ValueError):
+        sl.extra_bases_taken_run_value_leaderboard(
+            start_season=2025, end_season=2025, split_years="yes"
+        )
+
+
+def test_extra_bases_taken_run_value_leaderboard_builds_url(monkeypatch):
+    requested_urls = []
+
+    class Response:
+        text = (
+            "entity_name,entity_id,team_name,year,runner_runs,"
+            "runner_runs_advances\n"
+            '"Rojas, Miguel",500743,LAD,2024,1.5,2.0\n'
+        )
+
+    def fake_get(url):
+        requested_urls.append(url)
+        return Response()
+
+    monkeypatch.setattr(sl.requests, "get", fake_get)
+
+    df = sl.extra_bases_taken_run_value_leaderboard(
+        start_season=2024,
+        end_season=2025,
+        game_type="Playoff",
+        group_by="Fielders",
+        situation="runner_1b_to_3b_2_outs",
+        min_opportunities=20,
+        team=sl.StatcastLeaderboardsTeams.YANKEES,
+        split_years=True,
+    )
+
+    assert requested_urls == [
+        "https://baseballsavant.mlb.com/leaderboard/baserunning?"
+        "game_type=Playoff&n=20&key_base_out=r11_to_3b_2&season_end=2025&"
+        "season_start=2024&split=yes&team=147&type=Fld&with_team_only=1&csv=true"
+    ]
+    assert df.select(pl.col("player_id")).item() == 500743
+    assert df.select(pl.col("player_name")).item() == "Rojas, Miguel"
+
+
+def test_extra_bases_taken_run_value_leaderboard_normalizes_group_identifiers(
+    monkeypatch,
+):
+    class Response:
+        text = (
+            "entity_name,entity_id,team_name,year,runner_runs\n"
+            '"Yankees",147,NYY,2024,1.0\n'
+        )
+
+    monkeypatch.setattr(sl.requests, "get", lambda url: Response())
+
+    team_df = sl.extra_bases_taken_run_value_leaderboard(
+        start_season=2024, end_season=2024, group_by="Batting Team"
+    )
+    assert team_df.select(pl.col("team_id")).item() == 147
+    assert team_df.select(pl.col("team_name")).item() == "Yankees"
+    assert team_df.select(pl.col("team_abbr")).item() == "NYY"
+
+    league_df = sl.extra_bases_taken_run_value_leaderboard(
+        start_season=2024, end_season=2024, group_by="League"
+    )
+    assert league_df.select(pl.col("league_id")).item() == 147
+    assert league_df.select(pl.col("league_name")).item() == "Yankees"
