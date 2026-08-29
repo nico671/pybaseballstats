@@ -40,6 +40,23 @@ or:
 pip install pybaseballstats
 ```
 
+Some functions use Playwright and require its Chromium browser. Install it
+after installing `pybaseballstats`:
+
+```bash
+# uv
+uv run playwright install chromium
+
+# pip or another Python environment
+python -m playwright install chromium
+```
+
+On Linux, use `--with-deps` if the required system dependencies are missing:
+
+```bash
+python -m playwright install --with-deps chromium
+```
+
 ## Documentation
 
 Usage documentation can be found in this [folder](usage_docs/). This documentation is a work in progress and will be updated as I add more functionality to the package.
@@ -82,6 +99,19 @@ websites:
 
 ```bash
 just test
+```
+
+Live smoke tests require Playwright's Chromium browser. Install it once after
+setting up the development environment:
+
+```bash
+uv run playwright install chromium
+```
+
+On Linux, use the following command if system dependencies are also missing:
+
+```bash
+uv run playwright install --with-deps chromium
 ```
 
 Live smoke tests use the `live` pytest mark. They fetch one representative
