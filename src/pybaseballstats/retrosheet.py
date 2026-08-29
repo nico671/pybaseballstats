@@ -3,13 +3,12 @@ from typing import Optional
 
 import polars as pl
 import requests
-from unidecode import unidecode
 
 from pybaseballstats.consts.retrosheet_consts import (
     EJECTIONS_URL,
     RETROSHEET_KEEP_COLS,
 )
-from pybaseballstats.utils.retrosheet_utils import _get_people_data
+from pybaseballstats.utils.retrosheet_utils import _get_people_data, _strip_accents
 
 __all__ = ["player_lookup", "ejections_data"]
 
@@ -53,41 +52,41 @@ def player_lookup(
     # Apply accent stripping if requested
     if strip_accents:
         if first_name:
-            first_name = unidecode(first_name)
+            first_name = _strip_accents(first_name)
         if last_name:
-            last_name = unidecode(last_name)
+            last_name = _strip_accents(last_name)
 
         # Strip accents from all name columns in the dataframe
         full_df = full_df.with_columns(
             [
                 pl.col("name_last_lower")
                 .map_elements(
-                    lambda s: unidecode(s) if s else s, return_dtype=pl.String
+                    lambda s: _strip_accents(s) if s else s, return_dtype=pl.String
                 )
                 .alias("name_last_lower"),
                 pl.col("name_first_lower")
                 .map_elements(
-                    lambda s: unidecode(s) if s else s, return_dtype=pl.String
+                    lambda s: _strip_accents(s) if s else s, return_dtype=pl.String
                 )
                 .alias("name_first_lower"),
                 pl.col("name_given_lower")
                 .map_elements(
-                    lambda s: unidecode(s) if s else s, return_dtype=pl.String
+                    lambda s: _strip_accents(s) if s else s, return_dtype=pl.String
                 )
                 .alias("name_given_lower"),
                 pl.col("name_nick_lower")
                 .map_elements(
-                    lambda s: unidecode(s) if s else s, return_dtype=pl.String
+                    lambda s: _strip_accents(s) if s else s, return_dtype=pl.String
                 )
                 .alias("name_nick_lower"),
                 pl.col("name_matrilineal_lower")
                 .map_elements(
-                    lambda s: unidecode(s) if s else s, return_dtype=pl.String
+                    lambda s: _strip_accents(s) if s else s, return_dtype=pl.String
                 )
                 .alias("name_matrilineal_lower"),
                 pl.col("name_suffix_lower")
                 .map_elements(
-                    lambda s: unidecode(s) if s else s, return_dtype=pl.String
+                    lambda s: _strip_accents(s) if s else s, return_dtype=pl.String
                 )
                 .alias("name_suffix_lower"),
             ]

@@ -146,3 +146,7 @@ def test_ejection_data_inning():
     )
     assert df.select(pl.col("INNING").n_unique()).item() == 1
     assert df.select(pl.col("INNING").unique()).item() == 7
+
+
+def test_strip_accents():
+    assert rs._strip_accents("Bábé Rúth") == "Babe Ruth"

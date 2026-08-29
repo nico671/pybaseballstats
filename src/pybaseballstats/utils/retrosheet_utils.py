@@ -1,4 +1,5 @@
 from functools import lru_cache
+from unicodedata import combining, normalize
 
 import polars as pl
 import requests
@@ -59,3 +60,10 @@ def _get_people_data() -> pl.DataFrame:
 def _clear_people_cache():
     """Clear the cached people data to force a refresh from Retrosheet."""
     _get_people_data.cache_clear()
+
+
+def _strip_accents(value: str) -> str:
+    """Remove combining accent marks from a Unicode string."""
+    return "".join(
+        character for character in normalize("NFD", value) if not combining(character)
+    )
