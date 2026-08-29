@@ -289,6 +289,24 @@ def test_statcast_gamefeed_endpoint(function, required_columns):
             ),
             {"player_id", "player_name", "runner_runs", "n_opp_xb"},
         ),
+        (
+            "sprint-speed-player",
+            lambda: leaderboards.sprint_speed_leaderboard(
+                start_season=2023,
+                end_season=2023,
+                min_opportunities=10,
+            ),
+            {"player_id", "player_name", "team_abbr", "competitive_runs", "sprint_speed"},
+        ),
+        (
+            "sprint-speed-team",
+            lambda: leaderboards.sprint_speed_leaderboard(
+                start_season=2023,
+                end_season=2023,
+                group_by="Team",
+            ),
+            {"team_id", "team_name", "year", "competitive_runs", "avg_sprint_speed"},
+        ),
     ),
     ids=(
         "park-dimensions",
@@ -311,6 +329,8 @@ def test_statcast_gamefeed_endpoint(function, required_columns):
         "baserunning-run-value",
         "basestealing-run-value",
         "extra-bases-taken-run-value",
+        "sprint-speed-player",
+        "sprint-speed-team",
     ),
 )
 def test_statcast_leaderboard_endpoint(name, fetch, required_columns):

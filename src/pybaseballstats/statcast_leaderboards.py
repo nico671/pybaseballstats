@@ -28,6 +28,8 @@ from pybaseballstats.consts.statcast_leaderboard_consts import (
     PITCHER_RUNNING_GAME_LEADERBOARD_URL,
     POPTIME_LEADERBOARD_URL,
     SPIN_DIRECTION_LEADERBOARD_URL,
+    SPRINT_SPEED_PLAYER_LEADERBOARD_URL,
+    SPRINT_SPEED_TEAM_LEADERBOARD_URL,
     TIMER_INFRACTIONS_LEADERBOARD_URL,
     StatcastLeaderboardsTeams,
 )
@@ -54,6 +56,7 @@ __all__ = [
     "baserunning_run_value_leaderboard",
     "basestealing_run_value_leaderboard",
     "extra_bases_taken_run_value_leaderboard",
+    "sprint_speed_leaderboard",
 ]
 
 
@@ -2452,7 +2455,139 @@ def extra_bases_taken_run_value_leaderboard(
     return df.rename({"entity_id": "league_id", "entity_name": "league_name"})
 
 
-# TODO: Sprint Speed Leaderboard -> https://baseballsavant.mlb.com/leaderboard/sprint_speed
+def sprint_speed_leaderboard(
+    start_season: int,
+    end_season: int,
+    group_by: Literal["Player", "Team"] = "Player",
+    position: Literal[
+        "Position Players",
+        "All",
+        "C",
+        "1B",
+        "2B",
+        "SS",
+        "3B",
+        "LF",
+        "CF",
+        "RF",
+        "DH",
+        "P",
+    ] = "Position Players",
+    min_opportunities: int = 10,
+    team: StatcastLeaderboardsTeams | str = "All",
+    split_years: bool = False,
+) -> pl.DataFrame:
+    """Return Baseball Savant Sprint Speed leaderboard data.
+
+    Args:
+        start_season (int): First season to include. Must be 2015 or later.
+        end_season (int): Last season to include. Must not precede ``start_season``.
+        group_by (Literal["Player", "Team"], optional): Leaderboard row type.
+            ``"Player"`` supports a season range; ``"Team"`` supports one season
+            or Baseball Savant's split-years view. Defaults to ``"Player"``.
+        position (Literal[...], optional): Player-position filter. Defaults to
+            ``"Position Players"``. Use ``"All"`` to include pitchers. This filter
+            is used only for player results.
+        min_opportunities (int, optional): Minimum competitive-run count. The
+            endpoint accepts zero or any non-negative integer. Defaults to ``10``.
+        team (StatcastLeaderboardsTeams | str, optional): Team filter. Use a team
+            enum or ``"All"``. Defaults to ``"All"``.
+        split_years (bool, optional): For team results, use Baseball Savant's
+            ``"All - Split Years"`` option when ``True``. For player results, this
+            parameter has no effect. Defaults to ``False``.
+
+    Raises:
+        ValueError: If a season, grouping, position, threshold, team, or boolean
+            value is invalid, or if team results request a season range without
+            ``split_years=True``.
+
+    Returns:
+        pl.DataFrame: Sprint Speed leaderboard data. Player results use
+            ``player_id``, ``player_name``, and ``team_abbr``. Team results use
+            ``team_id`` and ``team_name``.
+
+    Notes:
+        Sprint Speed data is available from 2015 onwards. Baseball Savant's team
+        split-years view returns all available team seasons, so the requested
+        season bounds are not applied in that mode.
+    """
+    current_year = datetime.now().year
+    if (
+        not isinstance(start_season, int)
+        or isinstance(start_season, bool)
+        or not 2015 <= start_season <= current_year
+    ):
+        raise ValueError(f"start_season must be between 2015 and {current_year}")
+    if (
+        not isinstance(end_season, int)
+        or isinstance(end_season, bool)
+        or not start_season <= end_season <= current_year
+    ):
+        raise ValueError(f"end_season must be between start_season and {current_year}")
+    if group_by not in ["Player", "Team"]:
+        raise ValueError("group_by must be 'Player' or 'Team'")
+
+    position_params = {
+        "Position Players": "",
+        "All": "all",
+        "C": "2",
+        "1B": "3",
+        "2B": "4",
+        "SS": "6",
+        "3B": "5",
+        "LF": "7",
+        "CF": "8",
+        "RF": "9",
+        "DH": "10",
+        "P": "1",
+    }
+    if not isinstance(position, str) or position not in position_params:
+        raise ValueError("position must be one of the documented position values")
+    if (
+        not isinstance(min_opportunities, int)
+        or isinstance(min_opportunities, bool)
+        or min_opportunities < 0
+    ):
+        raise ValueError("min_opportunities must be a non-negative integer")
+
+    if isinstance(team, StatcastLeaderboardsTeams):
+        team_param = str(team.value)
+    elif team == "All":
+        team_param = ""
+    else:
+        raise ValueError("team must be a StatcastLeaderboardsTeams enum or 'All'")
+    if not isinstance(split_years, bool):
+        raise ValueError("split_years must be a boolean")
+
+    if group_by == "Player":
+        url = SPRINT_SPEED_PLAYER_LEADERBOARD_URL.format(
+            start_season=start_season,
+            end_season=end_season,
+            position=position_params[position],
+            team=team_param,
+            min_opportunities=min_opportunities,
+        )
+    else:
+        if not split_years and start_season != end_season:
+            raise ValueError(
+                "Team results require matching seasons unless split_years is True"
+            )
+        url = SPRINT_SPEED_TEAM_LEADERBOARD_URL.format(
+            season="all" if split_years else start_season,
+            team=team_param,
+        )
+
+    resp = requests.get(url)
+    df = pl.read_csv(io.StringIO(resp.text))
+    if group_by == "Player":
+        return df.rename(
+            {
+                "last_name, first_name": "player_name",
+                "team": "team_abbr",
+            }
+        )
+    return df.rename({"team": "team_name", "home_to_first": "hp_to_1b"})
+
 
 # TODO: 90ft Running Splits Leaderboard -> https://baseballsavant.mlb.com/leaderboard/running_splits
 

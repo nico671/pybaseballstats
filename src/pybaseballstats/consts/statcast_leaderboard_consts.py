@@ -20,6 +20,8 @@ PITCHER_RUNNING_GAME_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboa
 BASERUNNING_RUN_VALUE_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/baserunning-run-value?game_type={game_type}&season_start={start_season}&season_end={end_season}&sortColumn=runner_runs_tot&sortDirection=desc&split={split_years}&n={min_opportunities}&team={team}&type={group_by}&with_team_only=1&csv=true"
 BASESTEALING_RUN_VALUE_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/basestealing-run-value?game_type={game_type}&n={min_sb_opportunities}&pitch_hand={pitcher_handedness}&runner_moved={runner_movement}&target_base={target_base}&prior_pk={num_prior_disengagements}&season_end={end_season}&season_start={start_season}&sortColumn=simple_stolen_on_running_act&sortDirection=desc&split={split_years}&team={team}&type={group_by}&with_team_only=1&csv=true"
 EXTRA_BASES_TAKEN_RUN_VALUE_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/baserunning?game_type={game_type}&n={min_opportunities}&key_base_out={situation}&season_end={end_season}&season_start={start_season}&split={split_years}&team={team}&type={group_by}&with_team_only=1&csv=true"
+SPRINT_SPEED_PLAYER_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/sprint_speed?min_season={start_season}&max_season={end_season}&position={position}&team={team}&min={min_opportunities}&csv=true"
+SPRINT_SPEED_TEAM_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/sprint-speed-team?season={season}&team={team}&csv=true"
 
 
 class StatcastLeaderboardsTeams(Enum):

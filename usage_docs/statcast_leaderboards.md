@@ -35,6 +35,7 @@ This module provides access to several Baseball Savant leaderboard endpoints.
 - `baserunning_run_value_leaderboard(start_season, end_season, game_type="Regular", group_by="Runners", min_opportunities="q", team="All", split_years=False)`
 - `basestealing_run_value_leaderboard(start_season, end_season, game_type="Regular", group_by="Runners", pitcher_handedness="ALL", runner_movement="All", target_base="All", num_prior_disengagements="All", min_sb_opportunities="q", team="All", split_years=False)`
 - `extra_bases_taken_run_value_leaderboard(start_season, end_season, game_type="Regular", group_by="Runners", situation="all", min_opportunities="q", team="All", split_years=False)`
+- `sprint_speed_leaderboard(start_season, end_season, group_by="Player", position="Position Players", min_opportunities=10, team="All", split_years=False)`
 
 ## Function Parameters
 
@@ -439,6 +440,31 @@ Player results use `player_id` and `player_name`. Team results use `team_id`,
 
 `StatcastLeaderboardsTeams.show_options()` returns all supported team options.
 
+### `sprint_speed_leaderboard`
+
+This function returns Baseball Savant's Sprint Speed leaderboard.
+
+- `start_season` (int): First season. Valid from `2015` through the current year.
+- `end_season` (int): Last season. Must be at least `start_season`.
+- `group_by` (`"Player" | "Team"`): Row type. Player results support a season range. Team results support one season or the split-years view.
+- `position` (`"Position Players" | "All" | "C" | "1B" | "2B" | "SS" | "3B" | "LF" | "CF" | "RF" | "DH" | "P"`): Player-position filter. `"Position Players"` excludes pitchers; `"All"` includes pitchers. Used only for player results.
+- `min_opportunities` (int): Minimum competitive-run count. Must be non-negative. Used only for player results.
+- `team` (`StatcastLeaderboardsTeams | "All"`): Team filter.
+- `split_years` (bool): For team results, use Baseball Savant's `"All - Split Years"` view when `True`. Player results ignore this parameter.
+
+Validation:
+
+- `start_season` and `end_season` must be valid seasons from `2015` through the current year.
+- `end_season` must not precede `start_season`.
+- `group_by` and `position` must use one of the listed values.
+- `min_opportunities` must be a non-negative integer.
+- Team results require matching seasons unless `split_years=True`.
+- `team` must be a supported team enum or `"All"`.
+- `split_years` must be a boolean.
+
+Player results use `player_id`, `player_name`, and `team_abbr`. Team results use
+`team_id` and `team_name`.
+
 ```python
 import pybaseballstats.statcast_leaderboards as sl
 print(sl.StatcastLeaderboardsTeams.show_options())
@@ -828,6 +854,22 @@ df = sl.extra_bases_taken_run_value_leaderboard(
     min_opportunities=10,
     team="All",
     split_years=True,
+)
+print(df)
+```
+
+### Sprint Speed leaderboard
+
+```python
+import pybaseballstats.statcast_leaderboards as sl
+
+df = sl.sprint_speed_leaderboard(
+    start_season=2023,
+    end_season=2024,
+    group_by="Player",
+    position="CF",
+    min_opportunities=10,
+    team="All",
 )
 print(df)
 ```

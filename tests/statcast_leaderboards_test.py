@@ -1363,3 +1363,126 @@ def test_extra_bases_taken_run_value_leaderboard_normalizes_group_identifiers(
     )
     assert league_df.select(pl.col("league_id")).item() == 147
     assert league_df.select(pl.col("league_name")).item() == "Yankees"
+
+
+def test_sprint_speed_leaderboard_badinputs():
+    with pytest.raises(ValueError):
+        sl.sprint_speed_leaderboard(start_season=2014, end_season=2025)
+    with pytest.raises(ValueError):
+        sl.sprint_speed_leaderboard(start_season=2025, end_season=2024)
+    with pytest.raises(ValueError):
+        sl.sprint_speed_leaderboard(
+            start_season=2025, end_season=2025, group_by="invalid"
+        )
+    with pytest.raises(ValueError):
+        sl.sprint_speed_leaderboard(
+            start_season=2025, end_season=2025, position="invalid"
+        )
+    with pytest.raises(ValueError):
+        sl.sprint_speed_leaderboard(
+            start_season=2025, end_season=2025, min_opportunities=-1
+        )
+    with pytest.raises(ValueError):
+        sl.sprint_speed_leaderboard(
+            start_season=2025, end_season=2025, min_opportunities=True
+        )
+    with pytest.raises(ValueError):
+        sl.sprint_speed_leaderboard(
+            start_season=2025, end_season=2025, team="Yankees"
+        )
+    with pytest.raises(ValueError):
+        sl.sprint_speed_leaderboard(
+            start_season=2025, end_season=2025, split_years="yes"
+        )
+    with pytest.raises(ValueError):
+        sl.sprint_speed_leaderboard(
+            start_season=2024, end_season=2025, group_by="Team"
+        )
+
+
+def test_sprint_speed_leaderboard_builds_player_url(monkeypatch):
+    requested_urls = []
+
+    class Response:
+        text = (
+            '"last_name, first_name",player_id,team_id,team,position,age,'
+            "competitive_runs,bolts,hp_to_1b,sprint_speed\n"
+            '"Witt Jr., Bobby",677951,118,KC,SS,25,543,257,4.12,30.4\n'
+        )
+
+    def fake_get(url):
+        requested_urls.append(url)
+        return Response()
+
+    monkeypatch.setattr(sl.requests, "get", fake_get)
+
+    df = sl.sprint_speed_leaderboard(
+        start_season=2024,
+        end_season=2025,
+        position="SS",
+        min_opportunities=25,
+        team=sl.StatcastLeaderboardsTeams.YANKEES,
+    )
+
+    assert requested_urls == [
+        "https://baseballsavant.mlb.com/leaderboard/sprint_speed?"
+        "min_season=2024&max_season=2025&position=6&team=147&min=25&csv=true"
+    ]
+    assert df.select(pl.col("player_id")).item() == 677951
+    assert df.select(pl.col("player_name")).item() == "Witt Jr., Bobby"
+    assert df.select(pl.col("team_abbr")).item() == "KC"
+
+    sl.sprint_speed_leaderboard(
+        start_season=2024, end_season=2024, position="Position Players"
+    )
+    assert requested_urls[-1] == (
+        "https://baseballsavant.mlb.com/leaderboard/sprint_speed?"
+        "min_season=2024&max_season=2024&position=&team=&min=10&csv=true"
+    )
+
+    sl.sprint_speed_leaderboard(start_season=2024, end_season=2024, position="All")
+    assert requested_urls[-1] == (
+        "https://baseballsavant.mlb.com/leaderboard/sprint_speed?"
+        "min_season=2024&max_season=2024&position=all&team=&min=10&csv=true"
+    )
+
+
+def test_sprint_speed_leaderboard_builds_team_urls(monkeypatch):
+    requested_urls = []
+
+    class Response:
+        text = (
+            "team,team_id,year,n,competitive_runs,bolts,home_to_first,"
+            "avg_sprint_speed,fastest_sprint_speed\n"
+            '"Yankees",147,2024,18,1543,29,4.52,26.8,"29.0"\n'
+        )
+
+    def fake_get(url):
+        requested_urls.append(url)
+        return Response()
+
+    monkeypatch.setattr(sl.requests, "get", fake_get)
+
+    df = sl.sprint_speed_leaderboard(
+        start_season=2024,
+        end_season=2024,
+        group_by="Team",
+        team=sl.StatcastLeaderboardsTeams.YANKEES,
+    )
+
+    assert requested_urls == [
+        "https://baseballsavant.mlb.com/leaderboard/sprint-speed-team?"
+        "season=2024&team=147&csv=true"
+    ]
+    assert df.select(pl.col("team_id")).item() == 147
+    assert df.select(pl.col("team_name")).item() == "Yankees"
+    assert df.select(pl.col("hp_to_1b")).item() == 4.52
+
+    split_df = sl.sprint_speed_leaderboard(
+        start_season=2024, end_season=2025, group_by="Team", split_years=True
+    )
+    assert requested_urls[-1] == (
+        "https://baseballsavant.mlb.com/leaderboard/sprint-speed-team?"
+        "season=all&team=&csv=true"
+    )
+    assert split_df.select(pl.col("team_name")).item() == "Yankees"
