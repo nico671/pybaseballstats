@@ -1529,7 +1529,7 @@ def test_running_splits_leaderboard_builds_url(monkeypatch):
         team=sl.StatcastLeaderboardsTeams.YANKEES,
         bat_side="Right",
         min_opportunities=25,
-        split_type="Percentile Rankings",
+        split_type="percentile",
     )
 
     assert requested_urls == [
