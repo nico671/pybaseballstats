@@ -49,9 +49,7 @@ async def _async_single_player_pitch_by_pitch(
         print("Splitting the season into smaller chunks.")
 
     player_lookup_param = (
-        "batters_lookup%5B%5D"
-        if player_type == "batter"
-        else "pitchers_lookup%5B%5D"
+        "batters_lookup%5B%5D" if player_type == "batter" else "pitchers_lookup%5B%5D"
     )
     date_ranges = list(
         _create_date_ranges(
