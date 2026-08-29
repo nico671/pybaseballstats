@@ -307,6 +307,14 @@ def test_statcast_gamefeed_endpoint(function, required_columns):
             ),
             {"team_id", "team_name", "year", "competitive_runs", "avg_sprint_speed"},
         ),
+        (
+            "running-splits",
+            lambda: leaderboards.running_splits_leaderboard(
+                season=2023,
+                min_opportunities=5,
+            ),
+            {"player_id", "player_name", "team_abbr", "position", "seconds_since_hit_090"},
+        ),
     ),
     ids=(
         "park-dimensions",
@@ -331,6 +339,7 @@ def test_statcast_gamefeed_endpoint(function, required_columns):
         "extra-bases-taken-run-value",
         "sprint-speed-player",
         "sprint-speed-team",
+        "running-splits",
     ),
 )
 def test_statcast_leaderboard_endpoint(name, fetch, required_columns):

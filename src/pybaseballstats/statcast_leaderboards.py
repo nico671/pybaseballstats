@@ -30,6 +30,7 @@ from pybaseballstats.consts.statcast_leaderboard_consts import (
     SPIN_DIRECTION_LEADERBOARD_URL,
     SPRINT_SPEED_PLAYER_LEADERBOARD_URL,
     SPRINT_SPEED_TEAM_LEADERBOARD_URL,
+    RUNNING_SPLITS_LEADERBOARD_URL,
     TIMER_INFRACTIONS_LEADERBOARD_URL,
     StatcastLeaderboardsTeams,
 )
@@ -57,6 +58,7 @@ __all__ = [
     "basestealing_run_value_leaderboard",
     "extra_bases_taken_run_value_leaderboard",
     "sprint_speed_leaderboard",
+    "running_splits_leaderboard",
 ]
 
 
@@ -2589,6 +2591,119 @@ def sprint_speed_leaderboard(
     return df.rename({"team": "team_name", "home_to_first": "hp_to_1b"})
 
 
-# TODO: 90ft Running Splits Leaderboard -> https://baseballsavant.mlb.com/leaderboard/running_splits
+def running_splits_leaderboard(
+    season: int,
+    position: Literal[
+        "All",
+        "C",
+        "1B",
+        "2B",
+        "SS",
+        "3B",
+        "LF",
+        "CF",
+        "RF",
+        "DH",
+    ] = "All",
+    team: StatcastLeaderboardsTeams | str = "All",
+    bat_side: Literal["All", "Right", "Left"] = "All",
+    min_opportunities: int = 5,
+    split_type: Literal["Raw Split Times", "Percentile Rankings"] = "Raw Split Times",
+) -> pl.DataFrame:
+    """Return Baseball Savant 90ft Running Splits leaderboard data.
+
+    Args:
+        season (int): Season year. Must be 2015 or later.
+        position (Literal[...], optional): Position filter. Defaults to ``"All"``.
+        team (StatcastLeaderboardsTeams | str, optional): Team filter. Use a team
+            enum or ``"All"``. Defaults to ``"All"``.
+        bat_side (Literal["All", "Right", "Left"], optional): Batter-side filter.
+            Defaults to ``"All"``.
+        min_opportunities (int, optional): Minimum running-split opportunities.
+            The endpoint accepts any positive integer. Defaults to ``5``.
+        split_type (Literal["Raw Split Times", "Percentile Rankings"], optional):
+            Return raw split times or percentile rankings. Defaults to
+            ``"Raw Split Times"``.
+
+    Raises:
+        ValueError: If a season, position, team, batter side, threshold, or split
+            type is invalid.
+
+    Returns:
+        pl.DataFrame: Running Splits leaderboard data with ``player_id``,
+            ``player_name``, ``team_abbr``, and ``position`` identifier columns.
+
+    Notes:
+        Running Splits data is available from 2015 onwards. The page's four player
+        comparison selectors are visualization controls and are not table filters,
+        so they are not exposed here.
+    """
+    current_year = datetime.now().year
+    if (
+        not isinstance(season, int)
+        or isinstance(season, bool)
+        or not 2015 <= season <= current_year
+    ):
+        raise ValueError(f"season must be between 2015 and {current_year}")
+
+    position_params = {
+        "All": "",
+        "C": "2",
+        "1B": "3",
+        "2B": "4",
+        "SS": "6",
+        "3B": "5",
+        "LF": "7",
+        "CF": "8",
+        "RF": "9",
+        "DH": "10",
+    }
+    if not isinstance(position, str) or position not in position_params:
+        raise ValueError("position must be one of the documented position values")
+
+    bat_side_params = {"All": "", "Right": "R", "Left": "L"}
+    if not isinstance(bat_side, str) or bat_side not in bat_side_params:
+        raise ValueError("bat_side must be 'All', 'Right', or 'Left'")
+
+    split_type_params = {
+        "Raw Split Times": "raw",
+        "Percentile Rankings": "percent",
+    }
+    if not isinstance(split_type, str) or split_type not in split_type_params:
+        raise ValueError(
+            "split_type must be 'Raw Split Times' or 'Percentile Rankings'"
+        )
+
+    if (
+        not isinstance(min_opportunities, int)
+        or isinstance(min_opportunities, bool)
+        or min_opportunities < 1
+    ):
+        raise ValueError("min_opportunities must be a positive integer")
+
+    if isinstance(team, StatcastLeaderboardsTeams):
+        team_param = str(team.value)
+    elif team == "All":
+        team_param = ""
+    else:
+        raise ValueError("team must be a StatcastLeaderboardsTeams enum or 'All'")
+
+    url = RUNNING_SPLITS_LEADERBOARD_URL.format(
+        split_type=split_type_params[split_type],
+        bat_side=bat_side_params[bat_side],
+        season=season,
+        position=position_params[position],
+        team=team_param,
+        min_opportunities=min_opportunities,
+    )
+    resp = requests.get(url)
+    df = pl.read_csv(io.StringIO(resp.text))
+    return df.rename(
+        {
+            "last_name, first_name": "player_name",
+            "name_abbrev": "team_abbr",
+            "position_name": "position",
+        }
+    )
 
 # endregion

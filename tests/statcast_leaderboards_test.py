@@ -1486,3 +1486,57 @@ def test_sprint_speed_leaderboard_builds_team_urls(monkeypatch):
         "season=all&team=&csv=true"
     )
     assert split_df.select(pl.col("team_name")).item() == "Yankees"
+
+
+def test_running_splits_leaderboard_badinputs():
+    with pytest.raises(ValueError):
+        sl.running_splits_leaderboard(season=2014)
+    with pytest.raises(ValueError):
+        sl.running_splits_leaderboard(season=2027)
+    with pytest.raises(ValueError):
+        sl.running_splits_leaderboard(season=2025, position="P")
+    with pytest.raises(ValueError):
+        sl.running_splits_leaderboard(season=2025, team="Yankees")
+    with pytest.raises(ValueError):
+        sl.running_splits_leaderboard(season=2025, bat_side="R")
+    with pytest.raises(ValueError):
+        sl.running_splits_leaderboard(season=2025, min_opportunities=0)
+    with pytest.raises(ValueError):
+        sl.running_splits_leaderboard(season=2025, min_opportunities=True)
+    with pytest.raises(ValueError):
+        sl.running_splits_leaderboard(season=2025, split_type="raw")
+
+
+def test_running_splits_leaderboard_builds_url(monkeypatch):
+    requested_urls = []
+
+    class Response:
+        text = (
+            '"last_name, first_name",player_id,name_abbrev,team_id,position_name,'
+            "age,bat_side,seconds_since_hit_000,seconds_since_hit_005\n"
+            '"Volpe, Anthony",683011,NYY,147,SS,23,R,0.00,0.56\n'
+        )
+
+    def fake_get(url):
+        requested_urls.append(url)
+        return Response()
+
+    monkeypatch.setattr(sl.requests, "get", fake_get)
+
+    df = sl.running_splits_leaderboard(
+        season=2024,
+        position="SS",
+        team=sl.StatcastLeaderboardsTeams.YANKEES,
+        bat_side="Right",
+        min_opportunities=25,
+        split_type="Percentile Rankings",
+    )
+
+    assert requested_urls == [
+        "https://baseballsavant.mlb.com/running_splits?"
+        "type=percent&bats=R&year=2024&position=6&team=147&min=25&csv=true"
+    ]
+    assert df.select(pl.col("player_id")).item() == 683011
+    assert df.select(pl.col("player_name")).item() == "Volpe, Anthony"
+    assert df.select(pl.col("team_abbr")).item() == "NYY"
+    assert df.select(pl.col("position")).item() == "SS"

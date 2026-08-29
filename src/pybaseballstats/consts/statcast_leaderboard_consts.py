@@ -22,6 +22,7 @@ BASESTEALING_RUN_VALUE_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderb
 EXTRA_BASES_TAKEN_RUN_VALUE_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/baserunning?game_type={game_type}&n={min_opportunities}&key_base_out={situation}&season_end={end_season}&season_start={start_season}&split={split_years}&team={team}&type={group_by}&with_team_only=1&csv=true"
 SPRINT_SPEED_PLAYER_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/sprint_speed?min_season={start_season}&max_season={end_season}&position={position}&team={team}&min={min_opportunities}&csv=true"
 SPRINT_SPEED_TEAM_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/sprint-speed-team?season={season}&team={team}&csv=true"
+RUNNING_SPLITS_LEADERBOARD_URL = "https://baseballsavant.mlb.com/running_splits?type={split_type}&bats={bat_side}&year={season}&position={position}&team={team}&min={min_opportunities}&csv=true"
 
 
 class StatcastLeaderboardsTeams(Enum):

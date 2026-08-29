@@ -36,6 +36,7 @@ This module provides access to several Baseball Savant leaderboard endpoints.
 - `basestealing_run_value_leaderboard(start_season, end_season, game_type="Regular", group_by="Runners", pitcher_handedness="ALL", runner_movement="All", target_base="All", num_prior_disengagements="All", min_sb_opportunities="q", team="All", split_years=False)`
 - `extra_bases_taken_run_value_leaderboard(start_season, end_season, game_type="Regular", group_by="Runners", situation="all", min_opportunities="q", team="All", split_years=False)`
 - `sprint_speed_leaderboard(start_season, end_season, group_by="Player", position="Position Players", min_opportunities=10, team="All", split_years=False)`
+- `running_splits_leaderboard(season, position="All", team="All", bat_side="All", min_opportunities=5, split_type="Raw Split Times")`
 
 ## Function Parameters
 
@@ -465,6 +466,29 @@ Validation:
 Player results use `player_id`, `player_name`, and `team_abbr`. Team results use
 `team_id` and `team_name`.
 
+### `running_splits_leaderboard`
+
+This function returns Baseball Savant's 90ft Running Splits leaderboard.
+
+- `season` (int): Season year. Valid from `2015` through the current year.
+- `position` (`"All" | "C" | "1B" | "2B" | "SS" | "3B" | "LF" | "CF" | "RF" | "DH"`): Position filter.
+- `team` (`StatcastLeaderboardsTeams | "All"`): Team filter.
+- `bat_side` (`"All" | "Right" | "Left"`): Batter-side filter.
+- `min_opportunities` (int): Minimum running-split opportunities. Must be a positive integer.
+- `split_type` (`"Raw Split Times" | "Percentile Rankings"`): Output format for the split-time columns.
+
+Validation:
+
+- `season` must be between `2015` and the current year.
+- `position`, `bat_side`, and `split_type` must use one of the listed values.
+- `min_opportunities` must be a positive integer.
+- `team` must be a supported team enum or `"All"`.
+
+Player comparison selectors on the Baseball Savant page affect only the
+visualization and are not included in this function.
+
+Results use `player_id`, `player_name`, `team_abbr`, and `position`.
+
 ```python
 import pybaseballstats.statcast_leaderboards as sl
 print(sl.StatcastLeaderboardsTeams.show_options())
@@ -478,6 +502,21 @@ print(sl.StatcastLeaderboardsTeams.show_options())
 import pybaseballstats.statcast_leaderboards as sl
 
 df = sl.park_factor_dimensions_leaderboard(season=2025, metric="distance")
+print(df)
+```
+
+### 90ft Running Splits leaderboard
+
+```python
+import pybaseballstats.statcast_leaderboards as sl
+
+df = sl.running_splits_leaderboard(
+    season=2023,
+    position="SS",
+    bat_side="Right",
+    min_opportunities=5,
+    split_type="Raw Split Times",
+)
 print(df)
 ```
 
