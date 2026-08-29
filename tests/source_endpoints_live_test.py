@@ -262,6 +262,59 @@ def test_statcast_gamefeed_endpoint(function, required_columns):
             ),
             {"player_id", "n_init"},
         ),
+        (
+            "baserunning-run-value",
+            lambda: leaderboards.baserunning_run_value_leaderboard(
+                start_season=2023,
+                end_season=2023,
+                min_opportunities=10,
+            ),
+            {"player_id", "player_name", "runner_runs_tot"},
+        ),
+        (
+            "basestealing-run-value",
+            lambda: leaderboards.basestealing_run_value_leaderboard(
+                start_season=2023,
+                end_season=2023,
+                min_sb_opportunities=10,
+            ),
+            {"player_id", "player_name", "runs_stolen_on_running_act"},
+        ),
+        (
+            "extra-bases-taken-run-value",
+            lambda: leaderboards.extra_bases_taken_run_value_leaderboard(
+                start_season=2023,
+                end_season=2023,
+                min_opportunities=10,
+            ),
+            {"player_id", "player_name", "runner_runs", "n_opp_xb"},
+        ),
+        (
+            "sprint-speed-player",
+            lambda: leaderboards.sprint_speed_leaderboard(
+                start_season=2023,
+                end_season=2023,
+                min_opportunities=10,
+            ),
+            {"player_id", "player_name", "team_abbr", "competitive_runs", "sprint_speed"},
+        ),
+        (
+            "sprint-speed-team",
+            lambda: leaderboards.sprint_speed_leaderboard(
+                start_season=2023,
+                end_season=2023,
+                group_by="Team",
+            ),
+            {"team_id", "team_name", "year", "competitive_runs", "avg_sprint_speed"},
+        ),
+        (
+            "running-splits",
+            lambda: leaderboards.running_splits_leaderboard(
+                season=2023,
+                min_opportunities=5,
+            ),
+            {"player_id", "player_name", "team_abbr", "position", "seconds_since_hit_090"},
+        ),
     ),
     ids=(
         "park-dimensions",
@@ -281,6 +334,12 @@ def test_statcast_gamefeed_endpoint(function, required_columns):
         "catcher-stance",
         "catcher-throwing",
         "pitcher-running-game",
+        "baserunning-run-value",
+        "basestealing-run-value",
+        "extra-bases-taken-run-value",
+        "sprint-speed-player",
+        "sprint-speed-team",
+        "running-splits",
     ),
 )
 def test_statcast_leaderboard_endpoint(name, fetch, required_columns):

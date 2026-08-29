@@ -1074,3 +1074,469 @@ def test_pitcher_running_game_leaderboard():
     assert df.select(pl.col("end_year").max()).item() == 2023
     assert df.select(pl.col("key_target_base").unique()).item() == "All"
     assert df.select(pl.col("n_init").min()).item() >= 10
+
+
+def test_baserunning_run_value_leaderboard_badinputs():
+    with pytest.raises(ValueError):
+        sl.baserunning_run_value_leaderboard(start_season=2015, end_season=2025)
+    with pytest.raises(ValueError):
+        sl.baserunning_run_value_leaderboard(start_season=2025, end_season=2024)
+    with pytest.raises(ValueError):
+        sl.baserunning_run_value_leaderboard(
+            start_season=2025, end_season=2025, game_type="invalid"
+        )
+    with pytest.raises(ValueError):
+        sl.baserunning_run_value_leaderboard(
+            start_season=2025, end_season=2025, group_by="invalid"
+        )
+    with pytest.raises(ValueError):
+        sl.baserunning_run_value_leaderboard(
+            start_season=2025, end_season=2025, min_opportunities=0
+        )
+    with pytest.raises(ValueError):
+        sl.baserunning_run_value_leaderboard(
+            start_season=2025, end_season=2025, min_opportunities="100"
+        )
+    with pytest.raises(ValueError):
+        sl.baserunning_run_value_leaderboard(
+            start_season=2025, end_season=2025, team="Yankees"
+        )
+    with pytest.raises(ValueError):
+        sl.baserunning_run_value_leaderboard(
+            start_season=2025, end_season=2025, split_years="yes"
+        )
+
+
+def test_baserunning_run_value_leaderboard_builds_url(monkeypatch):
+    requested_urls = []
+
+    class Response:
+        text = (
+            "player_id,entity_name,team_name,start_year,end_year,runner_runs_tot\n"
+            '677951,"Witt Jr., Bobby",KC,2024,2025,12.5\n'
+        )
+
+    def fake_get(url):
+        requested_urls.append(url)
+        return Response()
+
+    monkeypatch.setattr(sl.requests, "get", fake_get)
+
+    df = sl.baserunning_run_value_leaderboard(
+        start_season=2024,
+        end_season=2025,
+        game_type="All",
+        group_by="Runners",
+        min_opportunities=20,
+        team=sl.StatcastLeaderboardsTeams.YANKEES,
+        split_years=True,
+    )
+
+    assert requested_urls == [
+        "https://baseballsavant.mlb.com/leaderboard/baserunning-run-value?"
+        "game_type=All&season_start=2024&season_end=2025&"
+        "sortColumn=runner_runs_tot&sortDirection=desc&split=yes&n=20&"
+        "team=147&type=Run&with_team_only=1&csv=true"
+    ]
+    assert df.select(pl.col("player_id")).item() == 677951
+    assert df.select(pl.col("player_name")).item() == "Witt Jr., Bobby"
+
+
+def test_baserunning_run_value_leaderboard_normalizes_group_identifiers(monkeypatch):
+    class Response:
+        text = (
+            "player_id,entity_name,team_name,start_year,end_year,runner_runs_tot\n"
+            '147,"Yankees",NYY,2024,2024,10.0\n'
+        )
+
+    monkeypatch.setattr(sl.requests, "get", lambda url: Response())
+
+    team_df = sl.baserunning_run_value_leaderboard(
+        start_season=2024, end_season=2024, group_by="Running Team"
+    )
+    assert team_df.select(pl.col("team_id")).item() == 147
+    assert team_df.select(pl.col("team_name")).item() == "Yankees"
+    assert team_df.select(pl.col("team_abbr")).item() == "NYY"
+
+    league_df = sl.baserunning_run_value_leaderboard(
+        start_season=2024, end_season=2024, group_by="League"
+    )
+    assert league_df.select(pl.col("league_id")).item() == 147
+    assert league_df.select(pl.col("league_name")).item() == "Yankees"
+
+
+def test_basestealing_run_value_leaderboard_badinputs():
+    with pytest.raises(ValueError):
+        sl.basestealing_run_value_leaderboard(start_season=2015, end_season=2025)
+    with pytest.raises(ValueError):
+        sl.basestealing_run_value_leaderboard(start_season=2025, end_season=2024)
+    with pytest.raises(ValueError):
+        sl.basestealing_run_value_leaderboard(
+            start_season=2025, end_season=2025, game_type="invalid"
+        )
+    with pytest.raises(ValueError):
+        sl.basestealing_run_value_leaderboard(
+            start_season=2025, end_season=2025, group_by="invalid"
+        )
+    with pytest.raises(ValueError):
+        sl.basestealing_run_value_leaderboard(
+            start_season=2025, end_season=2025, pitcher_handedness="invalid"
+        )
+    with pytest.raises(ValueError):
+        sl.basestealing_run_value_leaderboard(
+            start_season=2025, end_season=2025, runner_movement="invalid"
+        )
+    with pytest.raises(ValueError):
+        sl.basestealing_run_value_leaderboard(
+            start_season=2025, end_season=2025, target_base="invalid"
+        )
+    with pytest.raises(ValueError):
+        sl.basestealing_run_value_leaderboard(
+            start_season=2025, end_season=2025, num_prior_disengagements="4"
+        )
+    with pytest.raises(ValueError):
+        sl.basestealing_run_value_leaderboard(
+            start_season=2025, end_season=2025, min_sb_opportunities=0
+        )
+    with pytest.raises(ValueError):
+        sl.basestealing_run_value_leaderboard(
+            start_season=2025, end_season=2025, min_sb_opportunities="100"
+        )
+    with pytest.raises(ValueError):
+        sl.basestealing_run_value_leaderboard(
+            start_season=2025, end_season=2025, team="Yankees"
+        )
+    with pytest.raises(ValueError):
+        sl.basestealing_run_value_leaderboard(
+            start_season=2025, end_season=2025, split_years="yes"
+        )
+
+
+def test_basestealing_run_value_leaderboard_builds_url(monkeypatch):
+    requested_urls = []
+
+    class Response:
+        text = (
+            "player_id,player_name,team_name,start_year,end_year,key_target_base,"
+            "runs_stolen_on_running_act,n_init\n"
+            '677951,"Witt Jr., Bobby",KC,2024,2025,"2B",3.5,25\n'
+        )
+
+    def fake_get(url):
+        requested_urls.append(url)
+        return Response()
+
+    monkeypatch.setattr(sl.requests, "get", fake_get)
+
+    df = sl.basestealing_run_value_leaderboard(
+        start_season=2024,
+        end_season=2025,
+        game_type="All",
+        group_by="Running Team",
+        pitcher_handedness="L",
+        runner_movement="Advance",
+        target_base="2B",
+        num_prior_disengagements="3+",
+        min_sb_opportunities=50,
+        team=sl.StatcastLeaderboardsTeams.YANKEES,
+        split_years=True,
+    )
+
+    assert requested_urls == [
+        "https://baseballsavant.mlb.com/leaderboard/basestealing-run-value?"
+        "game_type=All&n=50&pitch_hand=L&runner_moved=Advance&target_base=2B&"
+        "prior_pk=3&season_end=2025&season_start=2024&"
+        "sortColumn=simple_stolen_on_running_act&sortDirection=desc&split=yes&"
+        "team=147&type=Batting+Team&with_team_only=1&csv=true"
+    ]
+    assert df.select(pl.col("player_id")).item() == 677951
+    assert df.select(pl.col("player_name")).item() == "Witt Jr., Bobby"
+
+
+def test_basestealing_run_value_leaderboard_keeps_identifier_columns(monkeypatch):
+    class Response:
+        text = (
+            "player_id,player_name,team_name,start_year,end_year,key_target_base,"
+            "runs_stolen_on_running_act,n_init\n"
+            '147,"Yankees",NYY,2024,2024,"All",-3.7,10\n'
+        )
+
+    monkeypatch.setattr(sl.requests, "get", lambda url: Response())
+
+    df = sl.basestealing_run_value_leaderboard(
+        start_season=2024, end_season=2024, group_by="Running Team"
+    )
+    assert df.columns[:3] == ["player_id", "player_name", "team_name"]
+
+
+def test_extra_bases_taken_run_value_leaderboard_badinputs():
+    with pytest.raises(ValueError):
+        sl.extra_bases_taken_run_value_leaderboard(start_season=2015, end_season=2025)
+    with pytest.raises(ValueError):
+        sl.extra_bases_taken_run_value_leaderboard(start_season=2025, end_season=2024)
+    with pytest.raises(ValueError):
+        sl.extra_bases_taken_run_value_leaderboard(
+            start_season=2025, end_season=2025, game_type="invalid"
+        )
+    with pytest.raises(ValueError):
+        sl.extra_bases_taken_run_value_leaderboard(
+            start_season=2025, end_season=2025, group_by="invalid"
+        )
+    with pytest.raises(ValueError):
+        sl.extra_bases_taken_run_value_leaderboard(
+            start_season=2025, end_season=2025, situation="invalid"
+        )
+    with pytest.raises(ValueError):
+        sl.extra_bases_taken_run_value_leaderboard(
+            start_season=2025, end_season=2025, min_opportunities=0
+        )
+    with pytest.raises(ValueError):
+        sl.extra_bases_taken_run_value_leaderboard(
+            start_season=2025, end_season=2025, min_opportunities="100"
+        )
+    with pytest.raises(ValueError):
+        sl.extra_bases_taken_run_value_leaderboard(
+            start_season=2025, end_season=2025, team="Yankees"
+        )
+    with pytest.raises(ValueError):
+        sl.extra_bases_taken_run_value_leaderboard(
+            start_season=2025, end_season=2025, split_years="yes"
+        )
+
+
+def test_extra_bases_taken_run_value_leaderboard_builds_url(monkeypatch):
+    requested_urls = []
+
+    class Response:
+        text = (
+            "entity_name,entity_id,team_name,year,runner_runs,"
+            "runner_runs_advances\n"
+            '"Rojas, Miguel",500743,LAD,2024,1.5,2.0\n'
+        )
+
+    def fake_get(url):
+        requested_urls.append(url)
+        return Response()
+
+    monkeypatch.setattr(sl.requests, "get", fake_get)
+
+    df = sl.extra_bases_taken_run_value_leaderboard(
+        start_season=2024,
+        end_season=2025,
+        game_type="Playoff",
+        group_by="Fielders",
+        situation="runner_1b_to_3b_2_outs",
+        min_opportunities=20,
+        team=sl.StatcastLeaderboardsTeams.YANKEES,
+        split_years=True,
+    )
+
+    assert requested_urls == [
+        "https://baseballsavant.mlb.com/leaderboard/baserunning?"
+        "game_type=Playoff&n=20&key_base_out=r11_to_3b_2&season_end=2025&"
+        "season_start=2024&split=yes&team=147&type=Fld&with_team_only=1&csv=true"
+    ]
+    assert df.select(pl.col("player_id")).item() == 500743
+    assert df.select(pl.col("player_name")).item() == "Rojas, Miguel"
+
+
+def test_extra_bases_taken_run_value_leaderboard_normalizes_group_identifiers(
+    monkeypatch,
+):
+    class Response:
+        text = (
+            "entity_name,entity_id,team_name,year,runner_runs\n"
+            '"Yankees",147,NYY,2024,1.0\n'
+        )
+
+    monkeypatch.setattr(sl.requests, "get", lambda url: Response())
+
+    team_df = sl.extra_bases_taken_run_value_leaderboard(
+        start_season=2024, end_season=2024, group_by="Batting Team"
+    )
+    assert team_df.select(pl.col("team_id")).item() == 147
+    assert team_df.select(pl.col("team_name")).item() == "Yankees"
+    assert team_df.select(pl.col("team_abbr")).item() == "NYY"
+
+    league_df = sl.extra_bases_taken_run_value_leaderboard(
+        start_season=2024, end_season=2024, group_by="League"
+    )
+    assert league_df.select(pl.col("league_id")).item() == 147
+    assert league_df.select(pl.col("league_name")).item() == "Yankees"
+
+
+def test_sprint_speed_leaderboard_badinputs():
+    with pytest.raises(ValueError):
+        sl.sprint_speed_leaderboard(start_season=2014, end_season=2025)
+    with pytest.raises(ValueError):
+        sl.sprint_speed_leaderboard(start_season=2025, end_season=2024)
+    with pytest.raises(ValueError):
+        sl.sprint_speed_leaderboard(
+            start_season=2025, end_season=2025, group_by="invalid"
+        )
+    with pytest.raises(ValueError):
+        sl.sprint_speed_leaderboard(
+            start_season=2025, end_season=2025, position="invalid"
+        )
+    with pytest.raises(ValueError):
+        sl.sprint_speed_leaderboard(
+            start_season=2025, end_season=2025, min_opportunities=-1
+        )
+    with pytest.raises(ValueError):
+        sl.sprint_speed_leaderboard(
+            start_season=2025, end_season=2025, min_opportunities=True
+        )
+    with pytest.raises(ValueError):
+        sl.sprint_speed_leaderboard(
+            start_season=2025, end_season=2025, team="Yankees"
+        )
+    with pytest.raises(ValueError):
+        sl.sprint_speed_leaderboard(
+            start_season=2025, end_season=2025, split_years="yes"
+        )
+    with pytest.raises(ValueError):
+        sl.sprint_speed_leaderboard(
+            start_season=2024, end_season=2025, group_by="Team"
+        )
+
+
+def test_sprint_speed_leaderboard_builds_player_url(monkeypatch):
+    requested_urls = []
+
+    class Response:
+        text = (
+            '"last_name, first_name",player_id,team_id,team,position,age,'
+            "competitive_runs,bolts,hp_to_1b,sprint_speed\n"
+            '"Witt Jr., Bobby",677951,118,KC,SS,25,543,257,4.12,30.4\n'
+        )
+
+    def fake_get(url):
+        requested_urls.append(url)
+        return Response()
+
+    monkeypatch.setattr(sl.requests, "get", fake_get)
+
+    df = sl.sprint_speed_leaderboard(
+        start_season=2024,
+        end_season=2025,
+        position="SS",
+        min_opportunities=25,
+        team=sl.StatcastLeaderboardsTeams.YANKEES,
+    )
+
+    assert requested_urls == [
+        "https://baseballsavant.mlb.com/leaderboard/sprint_speed?"
+        "min_season=2024&max_season=2025&position=6&team=147&min=25&csv=true"
+    ]
+    assert df.select(pl.col("player_id")).item() == 677951
+    assert df.select(pl.col("player_name")).item() == "Witt Jr., Bobby"
+    assert df.select(pl.col("team_abbr")).item() == "KC"
+
+    sl.sprint_speed_leaderboard(
+        start_season=2024, end_season=2024, position="Position Players"
+    )
+    assert requested_urls[-1] == (
+        "https://baseballsavant.mlb.com/leaderboard/sprint_speed?"
+        "min_season=2024&max_season=2024&position=&team=&min=10&csv=true"
+    )
+
+    sl.sprint_speed_leaderboard(start_season=2024, end_season=2024, position="All")
+    assert requested_urls[-1] == (
+        "https://baseballsavant.mlb.com/leaderboard/sprint_speed?"
+        "min_season=2024&max_season=2024&position=all&team=&min=10&csv=true"
+    )
+
+
+def test_sprint_speed_leaderboard_builds_team_urls(monkeypatch):
+    requested_urls = []
+
+    class Response:
+        text = (
+            "team,team_id,year,n,competitive_runs,bolts,home_to_first,"
+            "avg_sprint_speed,fastest_sprint_speed\n"
+            '"Yankees",147,2024,18,1543,29,4.52,26.8,"29.0"\n'
+        )
+
+    def fake_get(url):
+        requested_urls.append(url)
+        return Response()
+
+    monkeypatch.setattr(sl.requests, "get", fake_get)
+
+    df = sl.sprint_speed_leaderboard(
+        start_season=2024,
+        end_season=2024,
+        group_by="Team",
+        team=sl.StatcastLeaderboardsTeams.YANKEES,
+    )
+
+    assert requested_urls == [
+        "https://baseballsavant.mlb.com/leaderboard/sprint-speed-team?"
+        "season=2024&team=147&csv=true"
+    ]
+    assert df.select(pl.col("team_id")).item() == 147
+    assert df.select(pl.col("team_name")).item() == "Yankees"
+    assert df.select(pl.col("hp_to_1b")).item() == 4.52
+
+    split_df = sl.sprint_speed_leaderboard(
+        start_season=2024, end_season=2025, group_by="Team", split_years=True
+    )
+    assert requested_urls[-1] == (
+        "https://baseballsavant.mlb.com/leaderboard/sprint-speed-team?"
+        "season=all&team=&csv=true"
+    )
+    assert split_df.select(pl.col("team_name")).item() == "Yankees"
+
+
+def test_running_splits_leaderboard_badinputs():
+    with pytest.raises(ValueError):
+        sl.running_splits_leaderboard(season=2014)
+    with pytest.raises(ValueError):
+        sl.running_splits_leaderboard(season=2027)
+    with pytest.raises(ValueError):
+        sl.running_splits_leaderboard(season=2025, position="P")
+    with pytest.raises(ValueError):
+        sl.running_splits_leaderboard(season=2025, team="Yankees")
+    with pytest.raises(ValueError):
+        sl.running_splits_leaderboard(season=2025, bat_side="R")
+    with pytest.raises(ValueError):
+        sl.running_splits_leaderboard(season=2025, min_opportunities=0)
+    with pytest.raises(ValueError):
+        sl.running_splits_leaderboard(season=2025, min_opportunities=True)
+    with pytest.raises(ValueError):
+        sl.running_splits_leaderboard(season=2025, split_type="raw")
+
+
+def test_running_splits_leaderboard_builds_url(monkeypatch):
+    requested_urls = []
+
+    class Response:
+        text = (
+            '"last_name, first_name",player_id,name_abbrev,team_id,position_name,'
+            "age,bat_side,seconds_since_hit_000,seconds_since_hit_005\n"
+            '"Volpe, Anthony",683011,NYY,147,SS,23,R,0.00,0.56\n'
+        )
+
+    def fake_get(url):
+        requested_urls.append(url)
+        return Response()
+
+    monkeypatch.setattr(sl.requests, "get", fake_get)
+
+    df = sl.running_splits_leaderboard(
+        season=2024,
+        position="SS",
+        team=sl.StatcastLeaderboardsTeams.YANKEES,
+        bat_side="Right",
+        min_opportunities=25,
+        split_type="Percentile Rankings",
+    )
+
+    assert requested_urls == [
+        "https://baseballsavant.mlb.com/running_splits?"
+        "type=percent&bats=R&year=2024&position=6&team=147&min=25&csv=true"
+    ]
+    assert df.select(pl.col("player_id")).item() == 683011
+    assert df.select(pl.col("player_name")).item() == "Volpe, Anthony"
+    assert df.select(pl.col("team_abbr")).item() == "NYY"
+    assert df.select(pl.col("position")).item() == "SS"
