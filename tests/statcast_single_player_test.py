@@ -3,6 +3,19 @@ import pytest
 
 import pybaseballstats.statcast_single_player as ssp
 
+@pytest.fixture
+def run_async_inline(monkeypatch):
+    """Run coroutines whose mocked awaitables complete without an event loop."""
+
+    def _run(coro):
+        try:
+            coro.send(None)
+        except StopIteration as exc:
+            return exc.value
+        raise AssertionError("Mocked coroutine did not complete immediately")
+
+    monkeypatch.setattr(ssp.asyncio, "run", _run)
+
 
 def assert_single_player_row_matches(
     df: pl.DataFrame, expected_row: dict[str, object]
@@ -15,6 +28,191 @@ def assert_single_player_row_matches(
             assert row[col_name] == pytest.approx(expected_value, abs=0.1)
         else:
             assert row[col_name] == expected_value
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "error_type"),
+    (
+        ({"player_id": "660271"}, TypeError),
+        ({"season": "2025"}, TypeError),
+        ({"season": 2014}, ValueError),
+        ({"player_type": "fielder"}, ValueError),
+        ({"chunk_size_days": "7"}, TypeError),
+        ({"chunk_size_days": 0}, ValueError),
+        ({"concurrency": "4"}, TypeError),
+        ({"concurrency": 0}, ValueError),
+    ),
+)
+def test_single_player_pitch_by_pitch_bad_inputs(kwargs, error_type):
+    arguments = {
+        "player_id": 660271,
+        "season": 2025,
+        "player_type": "batter",
+        "show_progress": False,
+    }
+    arguments.update(kwargs)
+
+    with pytest.raises(error_type):
+        ssp.single_player_pitch_by_pitch(**arguments)
+
+
+@pytest.mark.parametrize(
+    ("player_type", "player_id", "lookup_param", "role_column"),
+    (
+        ("batter", 660271, "batters_lookup%5B%5D", "batter"),
+        ("pitcher", 808967, "pitchers_lookup%5B%5D", "pitcher"),
+    ),
+)
+def test_single_player_pitch_by_pitch_query_and_return_type(
+    monkeypatch,
+    run_async_inline,
+    player_type,
+    player_id,
+    lookup_param,
+    role_column,
+):
+    captured = {}
+
+    async def _mock_fetch_all_data(
+        urls,
+        date_range_total_days,
+        *,
+        concurrency=None,
+        show_progress=True,
+    ):
+        captured["urls"] = urls
+        captured["date_range_total_days"] = date_range_total_days
+        captured["concurrency"] = concurrency
+        captured["show_progress"] = show_progress
+        return [
+            pl.DataFrame(),
+            pl.DataFrame(
+                {
+                    "game_date": ["2025-04-01"],
+                    "pitcher": [808967],
+                    "batter": [660271],
+                    "plate_x": [0.25],
+                    "plate_z": [2.75],
+                }
+            ),
+        ]
+
+    monkeypatch.setattr(ssp, "_fetch_all_data", _mock_fetch_all_data)
+
+    result = ssp.single_player_pitch_by_pitch(
+        player_id=player_id,
+        season=2025,
+        player_type=player_type,
+        chunk_size_days=1000,
+        show_progress=False,
+        concurrency=3,
+    )
+
+    assert isinstance(result, pl.LazyFrame)
+    assert result.collect()[role_column].to_list() == [player_id]
+    assert captured["date_range_total_days"] == 229
+    assert captured["concurrency"] == 3
+    assert captured["show_progress"] is False
+    assert len(captured["urls"]) == 1
+    url = captured["urls"][0]
+    assert "type=details" in url
+    assert "hfGT=R%7C" in url
+    assert "hfSea=2025%7C" in url
+    assert f"player_type={player_type}" in url
+    assert f"{lookup_param}={player_id}" in url
+    assert "game_date_gt=2025-03-18" in url
+    assert "game_date_lt=2025-11-01" in url
+    assert "group_by=name" not in url
+
+
+def test_single_player_pitch_by_pitch_force_collect(monkeypatch, run_async_inline):
+    async def _mock_fetch_all_data(*args, **kwargs):
+        return [pl.DataFrame({"pitcher": [808967], "plate_x": [-0.1]})]
+
+    monkeypatch.setattr(ssp, "_fetch_all_data", _mock_fetch_all_data)
+
+    result = ssp.single_player_pitch_by_pitch(
+        player_id=808967,
+        season=2025,
+        player_type="pitcher",
+        force_collect=True,
+        chunk_size_days=1000,
+        show_progress=False,
+    )
+
+    assert isinstance(result, pl.DataFrame)
+    assert result.height == 1
+
+
+def test_single_player_pitch_by_pitch_current_season_stops_today(
+    monkeypatch, run_async_inline
+):
+    class FixedDate(ssp.date):
+        @classmethod
+        def today(cls):
+            return cls(2026, 4, 1)
+
+    captured_urls = []
+
+    async def _mock_fetch_all_data(urls, *args, **kwargs):
+        captured_urls.extend(urls)
+        return [pl.DataFrame({"batter": [660271]})]
+
+    monkeypatch.setattr(ssp, "date", FixedDate)
+    monkeypatch.setattr(ssp, "_fetch_all_data", _mock_fetch_all_data)
+
+    ssp.single_player_pitch_by_pitch(
+        player_id=660271,
+        season=2026,
+        player_type="batter",
+        chunk_size_days=7,
+        show_progress=False,
+    )
+
+    assert len(captured_urls) == 2
+    assert "game_date_lt=2026-04-01" in captured_urls[-1]
+
+
+def test_single_player_pitch_by_pitch_no_data(monkeypatch, run_async_inline):
+    async def _mock_fetch_all_data(*args, **kwargs):
+        return [pl.DataFrame(), pl.DataFrame()]
+
+    monkeypatch.setattr(ssp, "_fetch_all_data", _mock_fetch_all_data)
+
+    with pytest.raises(
+        RuntimeError,
+        match=(
+            "No Statcast single-player pitch-by-pitch data found for "
+            "batter 999999999 in 2025"
+        ),
+    ):
+        ssp.single_player_pitch_by_pitch(
+            player_id=999999999,
+            season=2025,
+            player_type="batter",
+            show_progress=False,
+        )
+
+
+def test_single_player_pitch_by_pitch_download_failure(monkeypatch, run_async_inline):
+    async def _mock_fetch_all_data(*args, **kwargs):
+        raise RuntimeError("chunk failed")
+
+    monkeypatch.setattr(ssp, "_fetch_all_data", _mock_fetch_all_data)
+
+    with pytest.raises(
+        RuntimeError,
+        match=(
+            "Unable to complete Statcast single-player pitch-by-pitch download "
+            "for pitcher 808967 in 2025. chunk failed"
+        ),
+    ):
+        ssp.single_player_pitch_by_pitch(
+            player_id=808967,
+            season=2025,
+            player_type="pitcher",
+            show_progress=False,
+        )
 
 
 def test_single_player_season_stats_bad_inputs():
