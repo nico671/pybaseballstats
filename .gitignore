@@ -5,7 +5,9 @@ dist/
 .venv/
 src/pybaseballstats.egg-info/
 htmlcov/
-.vscode/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
 tests/rand_results/
 .idea/
 *.egg-info/

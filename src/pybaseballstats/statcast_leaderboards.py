@@ -15,11 +15,11 @@ from pybaseballstats.consts.statcast_leaderboard_consts import (
     ARM_STRENGTH_POS_INPUT_MAP,
     BASERUNNING_RUN_VALUE_LEADERBOARD_URL,
     BASESTEALING_RUN_VALUE_LEADERBOARD_URL,
-    EXTRA_BASES_TAKEN_RUN_VALUE_LEADERBOARD_URL,
     CATCHER_BLOCKING_LEADERBOARD_URL,
     CATCHER_FRAMING_LEADERBOARD_URL,
     CATCHER_STANCE_LEADERBOARD_URL,
     CATCHER_THROWING_LEADERBOARD_URL,
+    EXTRA_BASES_TAKEN_RUN_VALUE_LEADERBOARD_URL,
     PARK_FACTOR_DIMENSIONS_URL,
     PARK_FACTOR_DISTANCE_URL,
     PARK_FACTOR_YEARLY_URL,
@@ -27,10 +27,10 @@ from pybaseballstats.consts.statcast_leaderboard_consts import (
     PITCH_MOVEMENT_LEADERBOARD_URL,
     PITCHER_RUNNING_GAME_LEADERBOARD_URL,
     POPTIME_LEADERBOARD_URL,
+    RUNNING_SPLITS_LEADERBOARD_URL,
     SPIN_DIRECTION_LEADERBOARD_URL,
     SPRINT_SPEED_PLAYER_LEADERBOARD_URL,
     SPRINT_SPEED_TEAM_LEADERBOARD_URL,
-    RUNNING_SPLITS_LEADERBOARD_URL,
     TIMER_INFRACTIONS_LEADERBOARD_URL,
     StatcastLeaderboardsTeams,
 )
@@ -2608,7 +2608,7 @@ def running_splits_leaderboard(
     team: StatcastLeaderboardsTeams | str = "All",
     bat_side: Literal["All", "Right", "Left"] = "All",
     min_opportunities: int = 5,
-    split_type: Literal["Raw Split Times", "Percentile Rankings"] = "Raw Split Times",
+    split_type: Literal["raw_times", "percentile"] = "raw_times",
 ) -> pl.DataFrame:
     """Return Baseball Savant 90ft Running Splits leaderboard data.
 
@@ -2621,9 +2621,9 @@ def running_splits_leaderboard(
             Defaults to ``"All"``.
         min_opportunities (int, optional): Minimum running-split opportunities.
             The endpoint accepts any positive integer. Defaults to ``5``.
-        split_type (Literal["Raw Split Times", "Percentile Rankings"], optional):
-            Return raw split times or percentile rankings. Defaults to
-            ``"Raw Split Times"``.
+        split_type (Literal["raw_times", "percentile"], optional):
+            Return raw_times or percentile. Defaults to
+            ``"raw_times"``.
 
     Raises:
         ValueError: If a season, position, team, batter side, threshold, or split
@@ -2666,13 +2666,11 @@ def running_splits_leaderboard(
         raise ValueError("bat_side must be 'All', 'Right', or 'Left'")
 
     split_type_params = {
-        "Raw Split Times": "raw",
-        "Percentile Rankings": "percent",
+        "raw_times": "raw",
+        "percentile": "percent",
     }
     if not isinstance(split_type, str) or split_type not in split_type_params:
-        raise ValueError(
-            "split_type must be 'Raw Split Times' or 'Percentile Rankings'"
-        )
+        raise ValueError("split_type must be 'raw_times' or 'percentile'")
 
     if (
         not isinstance(min_opportunities, int)
@@ -2705,5 +2703,6 @@ def running_splits_leaderboard(
             "position_name": "position",
         }
     )
+
 
 # endregion
