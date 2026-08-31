@@ -164,6 +164,20 @@ def test_statcast_gamefeed_endpoint(function, required_columns):
             {"year", "all_violations"},
         ),
         (
+            "percentile-batter",
+            lambda: leaderboards.percentile_rankings_leaderboard(
+                season=2025, player_type="batter"
+            ),
+            {"player_name", "player_id", "year", "xwoba", "bat_speed"},
+        ),
+        (
+            "percentile-pitcher",
+            lambda: leaderboards.percentile_rankings_leaderboard(
+                season=2025, player_type="pitcher"
+            ),
+            {"player_name", "player_id", "year", "xera", "fb_velocity"},
+        ),
+        (
             "abs-challenges",
             lambda: leaderboards.abs_challenges_leaderboard(season=2026),
             {"level", "team_abbr"},
@@ -321,6 +335,8 @@ def test_statcast_gamefeed_endpoint(function, required_columns):
         "park-yearly",
         "park-distance",
         "timer-infractions",
+        "percentile-batter",
+        "percentile-pitcher",
         "abs-challenges",
         "arm-strength",
         "spin-direction",
