@@ -13,6 +13,7 @@ This module provides access to several Baseball Savant leaderboard endpoints.
 ### General Functions
 
 - `timer_infractions_leaderboard(season, perspective="Pit", min_pitches=1)`
+- `percentile_rankings_leaderboard(season, player_type="batter", position="All", team="All")`
 - `abs_challenges_leaderboard(season, challenge_type="batter", game_type="regular", challenging_teams=None, opposing_teams=None, pitch_types=None, attack_zone=None, in_zone=None, min_challenges=0, min_opp_challenges=0)`
 - `arm_strength_leaderboard(stat_type="player", year=2025, min_throws=50, pos="All", team=None)`
 - `catcher_blocking_leaderboard(start_season, end_season, game_type="Regular", group_by="Cat", min_pitches="q", team="All", split_years=False)`
@@ -80,6 +81,28 @@ Validation:
 
 - `season` must be between `2023` and the current in-season year.
 - `min_pitches` must be at least `1`.
+
+### `percentile_rankings_leaderboard`
+This function returns the table data from Baseball Savant's Percentile Rankings
+leaderboard.
+
+- `season` (int): Season year.
+- `player_type` (`"batter" | "pitcher"`): Player type for leaderboard rows.
+- `position` (`"All" | "P" | "C" | "1B" | "2B" | "3B" | "SS" | "LF" | "CF" | "RF" | "DH"`): Position filter.
+- `team` (`StatcastLeaderboardsTeams | "All"`): Team filter.
+
+Validation:
+
+- `season` must be between `2015` and the current year.
+- `player_type` must be `"batter"` or `"pitcher"`.
+- `position` must be one of the listed values.
+- Pitcher requests must use `position="All"`.
+- `team` must be a supported team enum or `"All"`.
+
+Metric columns contain percentile ranks rather than raw statistics. Batter and pitcher
+results have different schemas, and sparse rows with null percentile values are expected.
+The CSV may not include every metric displayed on an individual player's Baseball Savant
+page. Results use `player_id` and `player_name`.
 
 ### `abs_challenges_leaderboard`
 
@@ -552,6 +575,20 @@ df = sl.timer_infractions_leaderboard(
     season=2025,
     perspective="Pit",
     min_pitches=50,
+)
+print(df)
+```
+
+### Percentile rankings leaderboard
+
+```python
+import pybaseballstats.statcast_leaderboards as sl
+
+df = sl.percentile_rankings_leaderboard(
+    season=2025,
+    player_type="batter",
+    position="1B",
+    team=sl.StatcastLeaderboardsTeams.DODGERS,
 )
 print(df)
 ```

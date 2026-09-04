@@ -188,6 +188,119 @@ def test_timer_infractions_leaderboard():
     run_in_thread(_test)
 
 
+def test_percentile_rankings_leaderboard_badinputs():
+    with pytest.raises(ValueError):
+        sl.percentile_rankings_leaderboard(season=2014)
+    with pytest.raises(ValueError):
+        sl.percentile_rankings_leaderboard(season=9999)
+    with pytest.raises(ValueError):
+        sl.percentile_rankings_leaderboard(season=True)
+    with pytest.raises(ValueError):
+        sl.percentile_rankings_leaderboard(season=False)
+    with pytest.raises(ValueError):
+        sl.percentile_rankings_leaderboard(season=2025, player_type="fielder")
+    with pytest.raises(ValueError):
+        sl.percentile_rankings_leaderboard(season=2025, player_type="Batter")
+    with pytest.raises(ValueError):
+        sl.percentile_rankings_leaderboard(season=2025, player_type=None)
+    with pytest.raises(ValueError):
+        sl.percentile_rankings_leaderboard(season=2025, position="all")
+    with pytest.raises(ValueError):
+        sl.percentile_rankings_leaderboard(season=2025, position="OF")
+    with pytest.raises(ValueError):
+        sl.percentile_rankings_leaderboard(season=2025, position=6)
+    with pytest.raises(ValueError):
+        sl.percentile_rankings_leaderboard(season=2025, position=None)
+    with pytest.raises(ValueError):
+        sl.percentile_rankings_leaderboard(
+            season=2025, player_type="pitcher", position="P"
+        )
+    with pytest.raises(ValueError):
+        sl.percentile_rankings_leaderboard(
+            season=2025, player_type="pitcher", position="C"
+        )
+    with pytest.raises(ValueError):
+        sl.percentile_rankings_leaderboard(
+            season=2025, player_type="pitcher", position="SS"
+        )
+    with pytest.raises(ValueError):
+        sl.percentile_rankings_leaderboard(
+            season=2025, player_type="pitcher", position="DH"
+        )
+    with pytest.raises(ValueError):
+        sl.percentile_rankings_leaderboard(season=2025, team="NYY")
+    with pytest.raises(ValueError):
+        sl.percentile_rankings_leaderboard(season=2025, team=147)
+    with pytest.raises(ValueError):
+        sl.percentile_rankings_leaderboard(season=2025, team=None)
+
+
+def test_percentile_rankings_leaderboard_builds_batter_urls(monkeypatch):
+    requested_urls = []
+
+    class Response:
+        text = (
+            'player_name,player_id,year,xwoba,xba,hard_hit_percent,bat_speed\n'
+            '"Judge, Aaron",592450,2025,100,,99,98\n'
+        )
+
+    def fake_get(url):
+        requested_urls.append(url)
+        return Response()
+
+    monkeypatch.setattr(sl.requests, "get", fake_get)
+
+    df = sl.percentile_rankings_leaderboard(
+        season=2025,
+        position="SS",
+        team=sl.StatcastLeaderboardsTeams.YANKEES,
+    )
+
+    assert requested_urls == [
+        "https://baseballsavant.mlb.com/leaderboard/percentile-rankings?"
+        "type=batter&year=2025&position=6&team=147&csv=true"
+    ]
+    assert df.select(pl.col("player_name")).item() == "Judge, Aaron"
+    assert df.select(pl.col("player_id")).item() == 592450
+    assert df.select(pl.col("year")).item() == 2025
+    assert df.select(pl.col("xba")).item() is None
+    assert {"hard_hit_percent", "bat_speed"} <= set(df.columns)
+
+    sl.percentile_rankings_leaderboard(season=2025)
+    assert requested_urls[-1] == (
+        "https://baseballsavant.mlb.com/leaderboard/percentile-rankings?"
+        "type=batter&year=2025&position=&team=&csv=true"
+    )
+
+
+def test_percentile_rankings_leaderboard_builds_pitcher_url(monkeypatch):
+    requested_urls = []
+
+    class Response:
+        text = (
+            "player_name,player_id,year,xwoba,xera,fb_velocity,curve_spin\n"
+            '"Sale, Chris",519242,2025,92,92,58,\n'
+        )
+
+    def fake_get(url):
+        requested_urls.append(url)
+        return Response()
+
+    monkeypatch.setattr(sl.requests, "get", fake_get)
+
+    df = sl.percentile_rankings_leaderboard(season=2025, player_type="pitcher")
+
+    assert requested_urls == [
+        "https://baseballsavant.mlb.com/leaderboard/percentile-rankings?"
+        "type=pitcher&year=2025&position=&team=&csv=true"
+    ]
+    assert df.select(pl.col("player_name")).item() == "Sale, Chris"
+    assert df.select(pl.col("player_id")).item() == 519242
+    assert df.select(pl.col("curve_spin")).item() is None
+    assert {"xera", "fb_velocity", "curve_spin"} <= set(df.columns)
+    assert "bat_speed" not in df.columns
+
+
 def test_arm_strength_leaderboard_badinputs():
     with pytest.raises(ValueError):
         sl.arm_strength_leaderboard(stat_type="invalid")
