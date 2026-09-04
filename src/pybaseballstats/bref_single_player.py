@@ -4,16 +4,16 @@ import polars as pl
 from bs4 import BeautifulSoup
 
 # TODO: same range of tables as bref_teams, but for this module
-from pybaseballstats.consts.bref_consts import (
+from pybaseballstats._consts.bref_consts import (
     BREF_SINGLE_PLAYER_BATTING_URL,
     BREF_SINGLE_PLAYER_FIELDING_URL,
     BREF_SINGLE_PLAYER_PITCHING_URL,
 )
-from pybaseballstats.utils.bref_utils import (
+from pybaseballstats._utils.bref_utils import (
     _extract_table,
     get_bref_table_html,
 )
-from pybaseballstats.utils.session_utils import PBSSessionManager
+from pybaseballstats._utils.session_utils import PBSSessionManager
 
 session = PBSSessionManager.instance(max_req_per_minute=5)  # type: ignore[attr-defined]
 __all__ = [

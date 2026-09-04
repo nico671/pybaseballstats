@@ -4,7 +4,7 @@ import polars as pl
 import pytest
 
 import pybaseballstats.retrosheet as rs
-from pybaseballstats.utils.retrosheet_utils import _clear_people_cache
+from pybaseballstats._utils.retrosheet_utils import _clear_people_cache
 
 
 def setup_module():

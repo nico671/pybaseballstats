@@ -6,8 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from pybaseballstats.utils.session_utils import PBSSessionManager
-
+from pybaseballstats._utils.session_utils import PBSSessionManager
 
 FIXTURE_ROOT = Path(__file__).parent / "fixtures" / "bref"
 

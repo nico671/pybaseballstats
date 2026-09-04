@@ -5,7 +5,7 @@ from typing import Literal
 import polars as pl
 import requests
 
-from pybaseballstats.consts.umpire_scorecard_consts import (
+from pybaseballstats._consts.umpire_scorecard_consts import (
     UMPIRE_SCORECARD_GAMES_URL,
     UMPIRE_SCORECARD_TEAMS_URL,
     UMPIRE_SCORECARD_UMPIRES_URL,

@@ -5,7 +5,7 @@ import polars as pl
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
 
-from pybaseballstats.consts.statcast_leaderboard_consts import (
+from pybaseballstats._consts.statcast_leaderboard_consts import (
     PARK_FACTOR_DIMENSIONS_URL,
     PARK_FACTOR_DISTANCE_URL,
     PARK_FACTOR_YEARLY_URL,

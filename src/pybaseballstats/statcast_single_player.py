@@ -6,12 +6,12 @@ from typing import Literal
 import polars as pl
 import requests
 
-from pybaseballstats.consts.statcast_consts import (
+from pybaseballstats._consts.statcast_consts import (
     STATCAST_SINGLE_PLAYER_PITCH_BY_PITCH_URL,
     STATCAST_SINGLE_PLAYER_STATS_URL,
     STATCAST_YEAR_RANGES,
 )
-from pybaseballstats.utils.statcast_utils import (
+from pybaseballstats._utils.statcast_utils import (
     _create_date_ranges,
     _fetch_all_data,
     _load_all_data,
@@ -85,7 +85,9 @@ async def _async_single_player_pitch_by_pitch(
             f"for {player_type} {player_id} in {season}. {e}"
         ) from e
 
-    non_empty_responses = [response for response in responses if not response.is_empty()]
+    non_empty_responses = [
+        response for response in responses if not response.is_empty()
+    ]
     if not non_empty_responses:
         raise RuntimeError(
             "No Statcast single-player pitch-by-pitch data found for "

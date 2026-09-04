@@ -2,8 +2,8 @@ import polars as pl
 import pytest
 from bs4 import BeautifulSoup
 
-from pybaseballstats.consts.bref_consts import BREFTeams
-from pybaseballstats.utils.bref_utils import _extract_table, resolve_bref_team_code
+from pybaseballstats._consts.bref_consts import BREFTeams
+from pybaseballstats._utils.bref_utils import _extract_table, resolve_bref_team_code
 
 
 def test_extract_table_parses_numeric_types_and_percentages():

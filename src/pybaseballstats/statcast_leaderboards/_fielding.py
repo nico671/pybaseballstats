@@ -5,7 +5,7 @@ from typing import Literal
 import polars as pl
 import requests
 
-from pybaseballstats.consts.statcast_leaderboard_consts import (
+from pybaseballstats._consts.statcast_leaderboard_consts import (
     ARM_STRENGTH_LEADERBOARD_URL,
     ARM_STRENGTH_POS_INPUT_MAP,
     StatcastLeaderboardsTeams,

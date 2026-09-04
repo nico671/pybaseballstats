@@ -3,11 +3,11 @@ from typing import Optional
 
 import polars as pl
 
-from pybaseballstats.consts.statcast_consts import (
+from pybaseballstats._consts.statcast_consts import (
     STATCAST_DATE_RANGE_URL,
     StatcastTeams,
 )
-from pybaseballstats.utils.statcast_utils import (
+from pybaseballstats._utils.statcast_utils import (
     _create_date_ranges,
     _fetch_all_data,
     _handle_dates,

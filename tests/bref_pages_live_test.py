@@ -5,7 +5,7 @@ from dataclasses import dataclass
 import pytest
 from bs4 import BeautifulSoup
 
-from pybaseballstats.consts.bref_consts import (
+from pybaseballstats._consts.bref_consts import (
     BREF_DRAFT_YEAR_ROUND_URL,
     BREF_MANAGER_TENDENCIES_URL,
     BREF_SINGLE_PLAYER_BATTING_URL,
@@ -18,9 +18,8 @@ from pybaseballstats.consts.bref_consts import (
     BREF_TEAMS_SCHEDULE_RESULTS_URL,
     TEAM_YEAR_DRAFT_URL,
 )
-from pybaseballstats.utils.bref_utils import _extract_table, get_bref_table_html
-from pybaseballstats.utils.session_utils import PBSSessionManager
-
+from pybaseballstats._utils.bref_utils import _extract_table, get_bref_table_html
+from pybaseballstats._utils.session_utils import PBSSessionManager
 
 pytestmark = [pytest.mark.live, pytest.mark.xdist_group("bref")]
 
@@ -50,9 +49,7 @@ PAGE_CONTRACTS = (
     ),
     PageContract(
         "player-batting",
-        BREF_SINGLE_PLAYER_BATTING_URL.format(
-            initial="s", player_code="suzukse01"
-        ),
+        BREF_SINGLE_PLAYER_BATTING_URL.format(initial="s", player_code="suzukse01"),
         (
             "players_standard_batting",
             "players_value_batting",
@@ -68,9 +65,7 @@ PAGE_CONTRACTS = (
     ),
     PageContract(
         "player-pitching",
-        BREF_SINGLE_PLAYER_PITCHING_URL.format(
-            initial="i", player_code="imanash01"
-        ),
+        BREF_SINGLE_PLAYER_PITCHING_URL.format(initial="i", player_code="imanash01"),
         (
             "players_standard_pitching",
             "players_value_pitching",
@@ -85,9 +80,7 @@ PAGE_CONTRACTS = (
     ),
     PageContract(
         "player-fielding",
-        BREF_SINGLE_PLAYER_FIELDING_URL.format(
-            initial="s", player_code="sheldsc01"
-        ),
+        BREF_SINGLE_PLAYER_FIELDING_URL.format(initial="s", player_code="sheldsc01"),
         (
             "players_standard_fielding",
             "advanced_fielding",

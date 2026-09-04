@@ -5,7 +5,7 @@ from typing import Literal
 import polars as pl
 import requests
 
-from pybaseballstats.consts.statcast_leaderboard_consts import (
+from pybaseballstats._consts.statcast_leaderboard_consts import (
     BASERUNNING_RUN_VALUE_LEADERBOARD_URL,
     BASESTEALING_RUN_VALUE_LEADERBOARD_URL,
     EXTRA_BASES_TAKEN_RUN_VALUE_LEADERBOARD_URL,

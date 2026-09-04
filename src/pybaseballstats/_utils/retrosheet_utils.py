@@ -4,7 +4,7 @@ from unicodedata import combining, normalize
 import polars as pl
 import requests
 
-from pybaseballstats.consts.retrosheet_consts import (
+from pybaseballstats._consts.retrosheet_consts import (
     PEOPLES_URL,
     RETROSHEET_KEEP_COLS,
 )

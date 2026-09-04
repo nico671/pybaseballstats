@@ -1,15 +1,15 @@
 import polars as pl
 from bs4 import BeautifulSoup
 
-from pybaseballstats.consts.bref_consts import (
+from pybaseballstats._consts.bref_consts import (
     BREF_MANAGER_TENDENCIES_URL,
     BREF_MANAGERS_GENERAL_URL,
 )
-from pybaseballstats.utils.bref_utils import (
+from pybaseballstats._utils.bref_utils import (
     _extract_table,
     get_bref_table_html,
 )
-from pybaseballstats.utils.session_utils import PBSSessionManager
+from pybaseballstats._utils.session_utils import PBSSessionManager
 
 session = PBSSessionManager.instance(max_req_per_minute=5)  # type: ignore[attr-defined]
 __all__ = ["managers_basic_data", "managers_tendencies_data"]

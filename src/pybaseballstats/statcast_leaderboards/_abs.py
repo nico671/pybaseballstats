@@ -4,7 +4,7 @@ from typing import List, Literal
 import polars as pl
 import requests
 
-from pybaseballstats.consts.statcast_leaderboard_consts import (
+from pybaseballstats._consts.statcast_leaderboard_consts import (
     ABS_CHALLENGES_LEADERBOARD_URL,
     StatcastLeaderboardsTeams,
 )

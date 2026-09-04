@@ -1,17 +1,17 @@
 import polars as pl
 from bs4 import BeautifulSoup
 
-from pybaseballstats.consts.bref_consts import (
+from pybaseballstats._consts.bref_consts import (
     BREF_DRAFT_YEAR_ROUND_URL,
     TEAM_YEAR_DRAFT_URL,
     BREFTeams,
 )
-from pybaseballstats.utils.bref_utils import (
+from pybaseballstats._utils.bref_utils import (
     _extract_table,
     get_bref_table_html,
     resolve_bref_team_code,
 )
-from pybaseballstats.utils.session_utils import PBSSessionManager
+from pybaseballstats._utils.session_utils import PBSSessionManager
 
 session = PBSSessionManager.instance(max_req_per_minute=5)  # type: ignore[attr-defined]
 

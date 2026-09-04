@@ -4,7 +4,7 @@ from typing import Any
 import polars as pl
 from bs4 import BeautifulSoup, Comment
 
-from pybaseballstats.consts.bref_consts import BREF_TEAM_CODE_SWITCHES, BREFTeams
+from pybaseballstats._consts.bref_consts import BREF_TEAM_CODE_SWITCHES, BREFTeams
 
 
 def get_bref_table_html(html_content: str, table_id: str) -> str | None:

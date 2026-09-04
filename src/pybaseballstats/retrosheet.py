@@ -4,11 +4,11 @@ from typing import Optional
 import polars as pl
 import requests
 
-from pybaseballstats.consts.retrosheet_consts import (
+from pybaseballstats._consts.retrosheet_consts import (
     EJECTIONS_URL,
     RETROSHEET_KEEP_COLS,
 )
-from pybaseballstats.utils.retrosheet_utils import _get_people_data, _strip_accents
+from pybaseballstats._utils.retrosheet_utils import _get_people_data, _strip_accents
 
 __all__ = ["player_lookup", "ejections_data"]
 

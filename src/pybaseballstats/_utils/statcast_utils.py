@@ -8,7 +8,7 @@ import aiohttp
 import polars as pl
 from rich.progress import MofNCompleteColumn, Progress, SpinnerColumn, TimeElapsedColumn
 
-from pybaseballstats.consts.statcast_consts import (
+from pybaseballstats._consts.statcast_consts import (
     STATCAST_YEAR_RANGES,
 )
 

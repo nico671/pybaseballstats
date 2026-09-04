@@ -5,7 +5,7 @@ from typing import Literal
 import polars as pl
 from bs4 import BeautifulSoup
 
-from pybaseballstats.consts.bref_consts import (
+from pybaseballstats._consts.bref_consts import (
     BREF_TEAMS_BATTING_BASE_URL,
     BREF_TEAMS_FIELDING_BASE_URL,
     BREF_TEAMS_PITCHING_BASE_URL,
@@ -13,12 +13,12 @@ from pybaseballstats.consts.bref_consts import (
     BREF_TEAMS_SCHEDULE_RESULTS_URL,
     BREFTeams,
 )
-from pybaseballstats.utils.bref_utils import (
+from pybaseballstats._utils.bref_utils import (
     _extract_table,
     get_bref_table_html,
     resolve_bref_team_code,
 )
-from pybaseballstats.utils.session_utils import PBSSessionManager
+from pybaseballstats._utils.session_utils import PBSSessionManager
 
 session = PBSSessionManager.instance(max_req_per_minute=5)  # type: ignore[attr-defined]
 
