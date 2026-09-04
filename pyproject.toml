@@ -72,6 +72,9 @@ dev = [
 [tool.setuptools]
 packages = { find = { where = ["src/"] } }
 
+[tool.setuptools.package-data]
+pybaseballstats = ["py.typed"]
+
 [tool.pytest.ini_options]
 addopts = "-ra --strict-markers -m 'not live'"
 markers = [
