@@ -5,14 +5,12 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-
 from bref_pages_live_test import (
     PAGE_CONTRACTS,
     PageContract,
     assert_batting_orders_page,
     assert_page_contract,
 )
-
 
 FIXTURE_ROOT = Path(__file__).parent / "fixtures" / "bref"
 FIXTURE_INDEX: dict[str, dict[str, str]] = json.loads(

@@ -3,6 +3,7 @@ import pytest
 
 import pybaseballstats.statcast_single_player as ssp
 
+
 @pytest.fixture
 def run_async_inline(monkeypatch):
     """Run coroutines whose mocked awaitables complete without an event loop."""

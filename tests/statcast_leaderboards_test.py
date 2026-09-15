@@ -240,7 +240,7 @@ def test_percentile_rankings_leaderboard_builds_batter_urls(monkeypatch):
 
     class Response:
         text = (
-            'player_name,player_id,year,xwoba,xba,hard_hit_percent,bat_speed\n'
+            "player_name,player_id,year,xwoba,xba,hard_hit_percent,bat_speed\n"
             '"Judge, Aaron",592450,2025,100,,99,98\n'
         )
 
@@ -347,6 +347,103 @@ def test_arm_strength_leaderboard_player_and_team_modes(monkeypatch):
     assert "player_id" not in df_team.columns
 
 
+def test_fielding_run_value_leaderboard_badinputs():
+    with pytest.raises(ValueError):
+        sl.fielding_run_value_leaderboard(start_season=2014, end_season=2025)
+    with pytest.raises(ValueError):
+        sl.fielding_run_value_leaderboard(start_season=2025, end_season=2024)
+    with pytest.raises(ValueError):
+        sl.fielding_run_value_leaderboard(
+            start_season=2025, end_season=2025, stat_type="invalid"
+        )
+    with pytest.raises(ValueError):
+        sl.fielding_run_value_leaderboard(
+            start_season=2025, end_season=2025, group_by=["invalid"]
+        )
+    with pytest.raises(ValueError):
+        sl.fielding_run_value_leaderboard(
+            start_season=2025, end_season=2025, group_by=["season", "season"]
+        )
+    with pytest.raises(ValueError):
+        sl.fielding_run_value_leaderboard(
+            start_season=2025, end_season=2025, min_innings=0
+        )
+    with pytest.raises(ValueError):
+        sl.fielding_run_value_leaderboard(
+            start_season=2025, end_season=2025, min_innings="100"
+        )
+    with pytest.raises(ValueError):
+        sl.fielding_run_value_leaderboard(
+            start_season=2025, end_season=2025, min_results=0
+        )
+    with pytest.raises(ValueError):
+        sl.fielding_run_value_leaderboard(
+            start_season=2025, end_season=2025, game_type="invalid"
+        )
+    with pytest.raises(ValueError):
+        sl.fielding_run_value_leaderboard(
+            start_season=2025, end_season=2025, teams=["NYY"]
+        )
+    with pytest.raises(ValueError):
+        sl.fielding_run_value_leaderboard(
+            start_season=2025, end_season=2025, position="invalid"
+        )
+    with pytest.raises(ValueError):
+        sl.fielding_run_value_leaderboard(
+            start_season=2025, end_season=2025, start_date="2018-03-28"
+        )
+    with pytest.raises(ValueError):
+        sl.fielding_run_value_leaderboard(
+            start_season=2025,
+            end_season=2025,
+            start_date="2024-10-01",
+            end_date="2024-09-01",
+        )
+
+
+def test_fielding_run_value_leaderboard_builds_url(monkeypatch):
+    requested_urls = []
+
+    class Response:
+        text = (
+            "name,id,year,api_game_date_month_text,total_runs\n"
+            '"Blue Jays",141,2024,April,12.5\n'
+        )
+
+    def fake_get(url):
+        requested_urls.append(url)
+        return Response()
+
+    monkeypatch.setattr(sl.requests, "get", fake_get)
+
+    df = sl.fielding_run_value_leaderboard(
+        start_season=2023,
+        end_season=2024,
+        stat_type="Fielders - Team",
+        group_by=["season", "month"],
+        min_innings=25,
+        min_results=10,
+        game_type="Playoff",
+        teams=[
+            sl.StatcastLeaderboardsTeams.BLUE_JAYS,
+            sl.StatcastLeaderboardsTeams.ORIOLES,
+        ],
+        position="2B",
+        start_date="2023-04-01",
+        end_date="2024-10-01",
+    )
+
+    assert requested_urls == [
+        "https://baseballsavant.mlb.com/leaderboard/fielding-run-value?"
+        "dateStart=2023-04-01&dateEnd=2024-10-01&gameType=Playoff&"
+        "groupBy=year|api_game_date_month_text&seasonStart=2023&seasonEnd=2024&"
+        "team=141|110&type=fielding-team&position=4&minInnings=25&"
+        "minResults=10&csv=true"
+    ]
+    assert df.select(pl.col("team_id")).item() == 141
+    assert df.select(pl.col("team_name")).item() == "Blue Jays"
+
+
 def test_catcher_blocking_leaderboard_badinputs():
     with pytest.raises(ValueError):
         sl.catcher_blocking_leaderboard(start_season=2017, end_season=2025)
@@ -385,7 +482,7 @@ def test_catcher_blocking_leaderboard_builds_url(monkeypatch):
         text = (
             "player_id,player_name,team_name,start_year,end_year,pitches,"
             "catcher_blocking_runs,blocks_above_average\n"
-            "672386,\"Kirk, Alejandro\",TOR,2025,2025,2118,3,13\n"
+            '672386,"Kirk, Alejandro",TOR,2025,2025,2118,3,13\n'
         )
 
     def fake_get(url):
@@ -457,9 +554,7 @@ def test_catcher_framing_leaderboard_badinputs():
             start_season=2025, end_season=2025, pitcher_handedness="B"
         )
     with pytest.raises(ValueError):
-        sl.catcher_framing_leaderboard(
-            start_season=2025, end_season=2025, in_zone="in"
-        )
+        sl.catcher_framing_leaderboard(start_season=2025, end_season=2025, in_zone="in")
     with pytest.raises(ValueError):
         sl.catcher_framing_leaderboard(
             start_season=2025, end_season=2025, min_results=0
@@ -472,7 +567,7 @@ def test_catcher_framing_leaderboard_builds_url(monkeypatch):
     class Response:
         text = (
             "id,name,pitches,rv_tot,pct_tot,rv_11,pct_11\n"
-            "672386,\"Kirk, Alejandro\",878,0.46,0.84,0,0.60\n"
+            '672386,"Kirk, Alejandro",878,0.46,0.84,0,0.60\n'
         )
 
     def fake_get(url):
@@ -568,9 +663,13 @@ def test_catcher_stance_leaderboard_badinputs():
     with pytest.raises(ValueError):
         sl.catcher_stance_leaderboard(start_season=2025, end_season=2024)
     with pytest.raises(ValueError):
-        sl.catcher_stance_leaderboard(start_season=2025, end_season=2025, group_by="invalid")
+        sl.catcher_stance_leaderboard(
+            start_season=2025, end_season=2025, group_by="invalid"
+        )
     with pytest.raises(ValueError):
-        sl.catcher_stance_leaderboard(start_season=2025, end_season=2025, game_type="invalid")
+        sl.catcher_stance_leaderboard(
+            start_season=2025, end_season=2025, game_type="invalid"
+        )
     with pytest.raises(ValueError):
         sl.catcher_stance_leaderboard(start_season=2025, end_season=2025, min_pitches=0)
     with pytest.raises(ValueError):
@@ -1500,17 +1599,13 @@ def test_sprint_speed_leaderboard_badinputs():
             start_season=2025, end_season=2025, min_opportunities=True
         )
     with pytest.raises(ValueError):
-        sl.sprint_speed_leaderboard(
-            start_season=2025, end_season=2025, team="Yankees"
-        )
+        sl.sprint_speed_leaderboard(start_season=2025, end_season=2025, team="Yankees")
     with pytest.raises(ValueError):
         sl.sprint_speed_leaderboard(
             start_season=2025, end_season=2025, split_years="yes"
         )
     with pytest.raises(ValueError):
-        sl.sprint_speed_leaderboard(
-            start_season=2024, end_season=2025, group_by="Team"
-        )
+        sl.sprint_speed_leaderboard(start_season=2024, end_season=2025, group_by="Team")
 
 
 def test_sprint_speed_leaderboard_builds_player_url(monkeypatch):

@@ -26,6 +26,12 @@ lint:
         exit 1
     end
 
+format:
+    uv run ruff format .
+
+format-check:
+    uv run ruff format --check .
+
 set dotenv-load := true
 
 build:
@@ -46,44 +52,6 @@ smoke:
     #!/usr/bin/env fish
     echo "Running live unique-page smoke tests..."
     uv run pytest tests/ -m live -n auto --dist loadgroup -q
-
-commit message:
-    #!/usr/bin/env fish
-    echo "Running lint checks before commit..."
-    just lint
-    if test $status -ne 0
-        echo "Commit aborted: lint checks failed."
-        exit 1
-    end
-
-    echo "Running mypy checks before commit..."
-    just mypy
-    if test $status -ne 0
-        echo "Commit aborted: mypy checks failed."
-        exit 1
-    end
-
-    echo "Running unit tests before commit..."
-    just test
-    if test $status -ne 0
-        echo "Commit aborted: tests failed."
-        exit 1
-    end
-
-    echo "Committing and pushing changes..."
-    git add .
-    git commit -m "{{ message }}"
-    if test $status -ne 0
-        echo "Commit aborted: no changes to commit or commit failed."
-        exit 1
-    end
-
-    git push origin HEAD
-    if test $status -ne 0
-        echo "Commit failed: push was unsuccessful."
-        exit 1
-    end
-    echo "Commit and push complete!"
 
 release version commit_message:
     #!/usr/bin/env fish
@@ -125,32 +93,39 @@ release version commit_message:
         exit 1
     end
 
-    echo "Step 4: Running tests..."
+    echo "Step 4: Checking formatting..."
+    just format-check
+    if test $status -ne 0
+        echo "Release aborted: formatting checks failed!"
+        exit 1
+    end
+
+    echo "Step 5: Running tests..."
     just test
     if test $status -ne 0
         echo "Release aborted: tests failed!"
         exit 1
     end
     
-    echo "Step 5: Running required live smoke tests..."
+    echo "Step 6: Running required live smoke tests..."
     just smoke
     if test $status -ne 0
         echo "Release aborted: live smoke tests failed!"
         exit 1
     end
 
-    echo "Step 6: Building package..."
+    echo "Step 7: Building package..."
     just build
     if test $status -ne 0
         echo "Release aborted: package build failed!"
         exit 1
     end
 
-    echo "Step 7: Committing version bump..."
+    echo "Step 8: Committing version bump..."
     git add pyproject.toml
     git commit -m "Bump version to {{ version }}; Message: {{ commit_message }}"
     
-    echo "Step 8: Creating and pushing tag..."
+    echo "Step 9: Creating and pushing tag..."
     git tag -a v{{ version }} -m "Release version {{ version }}"
     
     git push origin main

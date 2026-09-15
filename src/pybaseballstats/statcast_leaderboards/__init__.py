@@ -21,7 +21,7 @@ from ._catching import (
     catcher_stance_leaderboard,
     catcher_throwing_leaderboard,
 )
-from ._fielding import arm_strength_leaderboard
+from ._fielding import arm_strength_leaderboard, fielding_run_value_leaderboard
 from ._park import (
     park_factor_dimensions_leaderboard,
     park_factor_distance_leaderboard,
@@ -49,6 +49,7 @@ __all__ = [
     "timer_infractions_leaderboard",
     "percentile_rankings_leaderboard",
     "arm_strength_leaderboard",
+    "fielding_run_value_leaderboard",
     "abs_challenges_leaderboard",
     "spin_direction_leaderboard",
     "catcher_blocking_leaderboard",

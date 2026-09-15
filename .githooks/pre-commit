@@ -1,0 +1,8 @@
+#!/usr/bin/env sh
+
+set -eu
+
+just format-check
+just lint
+just mypy
+just test

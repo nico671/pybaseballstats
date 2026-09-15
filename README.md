@@ -93,6 +93,15 @@ We use a standard two-branch workflow:
 
 ### 2. Local Development & Committing
 
+Create the locked project environment before opening the repository in an editor:
+
+```bash
+uv sync --locked
+```
+
+VS Code discovers the workspace `.venv` automatically. If it does not, run
+**Python: Select Interpreter** and select the workspace environment.
+
 The default test suite is offline. Network responses are replayed from committed
 fixtures, so local development and pull-request checks do not depend on external
 websites:
@@ -128,8 +137,16 @@ The smoke suite uses pytest-xdist to run independent live endpoint tests in para
 Run static checks before a commit with:
 
 ```bash
+just format
 just lint
 just mypy
+```
+
+Git runs these checks and the offline test suite before every commit. Enable
+the versioned hook once in each clone:
+
+```bash
+git config core.hooksPath .githooks
 ```
 
 Baseball Reference fixtures can be refreshed explicitly with
@@ -138,7 +155,7 @@ normal pytest execution.
 
 Once the relevant offline tests pass, commit your changes with a descriptive message:
 
-```bashbash
+```bash
 git add .
 git commit -m "Add new feature/fix bug in bref module"
 ```

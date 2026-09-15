@@ -13,7 +13,6 @@ import pybaseballstats.statcast_single_game as single_game
 import pybaseballstats.statcast_single_player as single_player
 import pybaseballstats.umpire_scorecards as umpire_scorecards
 
-
 pytestmark = pytest.mark.live
 
 
@@ -22,7 +21,9 @@ def assert_frame(df: pl.DataFrame, required_columns: set[str]) -> None:
     assert required_columns <= set(df.columns)
 
 
-def run_in_thread(function: Callable[..., pl.DataFrame], **kwargs: object) -> pl.DataFrame:
+def run_in_thread(
+    function: Callable[..., pl.DataFrame], **kwargs: object
+) -> pl.DataFrame:
     """Keep Playwright's sync API outside pytest's asyncio-aware main thread."""
     with ThreadPoolExecutor(max_workers=1) as executor:
         return executor.submit(function, **kwargs).result()
@@ -190,6 +191,13 @@ def test_statcast_gamefeed_endpoint(function, required_columns):
             {"team_name"},
         ),
         (
+            "fielding-run-value",
+            lambda: leaderboards.fielding_run_value_leaderboard(
+                start_season=2023, end_season=2023, min_innings=10
+            ),
+            {"player_id", "player_name", "total_runs"},
+        ),
+        (
             "spin-direction",
             lambda: leaderboards.spin_direction_leaderboard(
                 season=2025, min_pitches=100
@@ -198,9 +206,7 @@ def test_statcast_gamefeed_endpoint(function, required_columns):
         ),
         (
             "active-spin",
-            lambda: leaderboards.active_spin_leaderboard(
-                season=2023, min_pitches=100
-            ),
+            lambda: leaderboards.active_spin_leaderboard(season=2023, min_pitches=100),
             {"player_id"},
         ),
         (
@@ -310,7 +316,13 @@ def test_statcast_gamefeed_endpoint(function, required_columns):
                 end_season=2023,
                 min_opportunities=10,
             ),
-            {"player_id", "player_name", "team_abbr", "competitive_runs", "sprint_speed"},
+            {
+                "player_id",
+                "player_name",
+                "team_abbr",
+                "competitive_runs",
+                "sprint_speed",
+            },
         ),
         (
             "sprint-speed-team",
@@ -327,7 +339,13 @@ def test_statcast_gamefeed_endpoint(function, required_columns):
                 season=2023,
                 min_opportunities=5,
             ),
-            {"player_id", "player_name", "team_abbr", "position", "seconds_since_hit_090"},
+            {
+                "player_id",
+                "player_name",
+                "team_abbr",
+                "position",
+                "seconds_since_hit_090",
+            },
         ),
     ),
     ids=(
@@ -339,6 +357,7 @@ def test_statcast_gamefeed_endpoint(function, required_columns):
         "percentile-pitcher",
         "abs-challenges",
         "arm-strength",
+        "fielding-run-value",
         "spin-direction",
         "active-spin",
         "arm-angle",

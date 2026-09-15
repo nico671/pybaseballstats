@@ -12,6 +12,8 @@ This module provides access to several Baseball Savant leaderboard endpoints.
 
 ### General Functions
 
+- `fielding_run_value_leaderboard(start_season, end_season, stat_type="Fielders", group_by=None, min_innings="q", min_results=1, game_type="Regular", teams=None, position="All", start_date=None, end_date=None)`
+
 - `timer_infractions_leaderboard(season, perspective="Pit", min_pitches=1)`
 - `percentile_rankings_leaderboard(season, player_type="batter", position="All", team="All")`
 - `abs_challenges_leaderboard(season, challenge_type="batter", game_type="regular", challenging_teams=None, opposing_teams=None, pitch_types=None, attack_zone=None, in_zone=None, min_challenges=0, min_opp_challenges=0)`
@@ -135,6 +137,30 @@ Validation:
 
 - `min_throws` must be at least `1`.
 - `team` must be `None` or a `StatcastLeaderboardsTeams` enum value.
+
+## Fielding Run Value Leaderboard
+
+### `fielding_run_value_leaderboard`
+
+This function returns Baseball Savant's Fielding Run Value leaderboard table.
+
+- `start_season` and `end_season` (`int`): Seasons from `2015` through the current year.
+- `stat_type` (`"Fielders" | "Fielders - Team" | "Batters" | "Batters - Team" | "Pitchers"`): Type of row to return.
+- `group_by` (`list["season" | "month" | "position" | "game_type"] | None`): Optional split dimensions. `None` returns no split.
+- `min_innings` (`int | float | "q"`): Minimum total innings, or `q` for the qualifying threshold.
+- `min_results` (`int | float`): Minimum innings within each split.
+- `game_type` (`"Any" | "Regular" | "Playoff"`): Game-type filter.
+- `teams` (`list[StatcastLeaderboardsTeams] | None`): Teams to include. `None` includes all teams.
+- `position` (`"All" | "Infield" | "Outfield" | "Corner Infield" | "Middle Infield" | "Corner Outfield" | "Up The Middle" | "C" | "1B" | "2B" | "3B" | "SS" | "LF" | "CF" | "RF"`): Position filter.
+- `start_date` and `end_date` (`str | None`): Optional dates in `YYYY-MM-DD` format. Dates must be from `2018-03-29` through today.
+
+Validation:
+
+- `start_season` and `end_season` must be valid, and `end_season` must not precede `start_season`.
+- Numeric innings thresholds must be positive.
+- `group_by` values must be unique and use the listed split dimensions.
+- `teams` must be a list of `StatcastLeaderboardsTeams` values or `None`.
+- `start_date` and `end_date` must be valid dates, and `end_date` must not precede `start_date`.
 
 ## Catcher-Blocking Leaderboard
 
@@ -604,6 +630,21 @@ df = sl.arm_strength_leaderboard(
     min_throws=100,
     pos="rf",
     team=sl.StatcastLeaderboardsTeams.YANKEES,
+)
+print(df)
+```
+
+### Fielding Run Value leaderboard
+
+```python
+import pybaseballstats.statcast_leaderboards as sl
+
+df = sl.fielding_run_value_leaderboard(
+    start_season=2024,
+    end_season=2024,
+    stat_type="Fielders",
+    min_innings=100,
+    position="Infield",
 )
 print(df)
 ```

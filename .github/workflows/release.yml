@@ -36,6 +36,9 @@ jobs:
       - name: Run Ruff lint checks
         run: uv run ruff check .
 
+      - name: Check Ruff formatting
+        run: uv run ruff format --check .
+
       - name: Install Playwright browser
         run: uv run playwright install --with-deps chromium
 

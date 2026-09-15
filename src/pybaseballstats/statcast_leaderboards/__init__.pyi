@@ -34,6 +34,9 @@ from ._catching import (
     catcher_throwing_leaderboard as catcher_throwing_leaderboard,
 )
 from ._fielding import arm_strength_leaderboard as arm_strength_leaderboard
+from ._fielding import (
+    fielding_run_value_leaderboard as fielding_run_value_leaderboard,
+)
 from ._park import (
     park_factor_dimensions_leaderboard as park_factor_dimensions_leaderboard,
 )
