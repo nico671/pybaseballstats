@@ -299,16 +299,15 @@ class PBSSessionManager:
 
                     page.wait_for_timeout(1500)
 
-                if page.locator("table, #footer").count() == 0:
-                    if self.verbose:
-                        if num_clicks >= max_clicks:
-                            print(
-                                f"\n[WARNING] Maximum click attempts ({max_clicks}) reached without success."
-                            )
-                        else:
-                            print(
-                                "\n[WARNING] Bypass attempts exhausted without detecting success. Proceeding to extract cookies anyway."
-                            )
+                page_ready = page.locator("table, #footer").count() > 0
+                if not page_ready:
+                    print(
+                        "Cloudflare bypass did not reach a Baseball Reference page: "
+                        f"url={url}, final_url={page.url}, "
+                        f"navigation_statuses={page_statuses}, clicks={num_clicks}, "
+                        f"challenge_iframes={iframe_count}, "
+                        f"turnstile_inputs={shadow_count}"
+                    )
                 else:
                     if self.verbose:
                         print("[DEBUG] Extracting cookies...")
@@ -345,6 +344,10 @@ class PBSSessionManager:
 
             # Check for block
             if self._is_cloudflare_challenge(resp):
+                print(
+                    "Cloudflare challenge detected: "
+                    f"url={url}, status={resp.status_code}, response_url={resp.url}"
+                )
                 # ATTEMPT 2: The Waterfall Escalation
                 self._rate_limit()
                 with self._lock:
