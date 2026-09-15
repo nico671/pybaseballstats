@@ -21,3 +21,4 @@ todolist.txt
 deprecated_or_broken/
 *.md
 !README.md
+!contributing.md
