@@ -1,0 +1,58 @@
+{
+  "https://www.baseball-reference.com/draft/index.fcgi?team_ID=ANA&year_ID=2023&draft_type=junreg&query_type=franch_year&from_type_hs=0&from_type_4y=0&from_type_unk=0&from_type_jc=0": {
+    "captured_at": "2026-07-19T15:38:12.346595+00:00",
+    "path": "draft/ana-2023.html"
+  },
+  "https://www.baseball-reference.com/draft/index.fcgi?team_ID=LAA&year_ID=2023&draft_type=junreg&query_type=franch_year&from_type_hs=0&from_type_4y=0&from_type_unk=0&from_type_jc=0": {
+    "captured_at": "2026-07-19T15:37:59.680269+00:00",
+    "path": "draft/laa-2023.html"
+  },
+  "https://www.baseball-reference.com/draft/index.fcgi?year_ID=2023&draft_round=1&draft_type=junreg&query_type=year_round&from_type_4y=0&from_type_jc=0&from_type_hs=0&from_type_unk=0": {
+    "captured_at": "2026-07-19T15:37:47.049817+00:00",
+    "path": "draft/2023-round-1.html"
+  },
+  "https://www.baseball-reference.com/leagues/majors/2023-managers.shtml": {
+    "captured_at": "2026-07-19T15:38:24.901427+00:00",
+    "path": "managers/2023.html"
+  },
+  "https://www.baseball-reference.com/leagues/majors/2024-managers.shtml#manager_tendencies": {
+    "captured_at": "2026-07-19T15:38:37.462760+00:00",
+    "path": "managers/2024.html"
+  },
+  "https://www.baseball-reference.com/players/i/imanash01-pitch.shtml": {
+    "captured_at": "2026-07-19T15:39:02.584626+00:00",
+    "path": "players/imanash01-pitching.html"
+  },
+  "https://www.baseball-reference.com/players/s/sheldsc01-field.shtml": {
+    "captured_at": "2026-07-19T15:39:15.152097+00:00",
+    "path": "players/sheldsc01-fielding.html"
+  },
+  "https://www.baseball-reference.com/players/s/suzukse01-bat.shtml": {
+    "captured_at": "2026-07-19T15:38:50.030173+00:00",
+    "path": "players/suzukse01-batting.html"
+  },
+  "https://www.baseball-reference.com/teams/LAA/2023-roster.shtml#all_appearances": {
+    "captured_at": "2026-07-19T15:39:40.254499+00:00",
+    "path": "teams/laa-2023-roster.html"
+  },
+  "https://www.baseball-reference.com/teams/LAA/2023-schedule-scores.shtml": {
+    "captured_at": "2026-07-19T15:39:27.706579+00:00",
+    "path": "teams/laa-2023-schedule.html"
+  },
+  "https://www.baseball-reference.com/teams/NYY/2025-batting-orders.shtml": {
+    "captured_at": "2026-07-19T15:39:52.812227+00:00",
+    "path": "teams/nyy-2025-batting-orders.html"
+  },
+  "https://www.baseball-reference.com/teams/NYY/2025-batting.shtml": {
+    "captured_at": "2026-07-19T15:40:05.407148+00:00",
+    "path": "teams/nyy-2025-batting.html"
+  },
+  "https://www.baseball-reference.com/teams/NYY/2025-fielding.shtml": {
+    "captured_at": "2026-07-19T15:40:30.574864+00:00",
+    "path": "teams/nyy-2025-fielding.html"
+  },
+  "https://www.baseball-reference.com/teams/NYY/2025-pitching.shtml": {
+    "captured_at": "2026-07-19T15:40:17.994460+00:00",
+    "path": "teams/nyy-2025-pitching.html"
+  }
+}

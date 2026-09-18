@@ -3,11 +3,11 @@ from typing import Optional
 
 import polars as pl
 
-from pybaseballstats.consts.statcast_consts import (
+from pybaseballstats._consts.statcast_consts import (
     STATCAST_DATE_RANGE_URL,
     StatcastTeams,
 )
-from pybaseballstats.utils.statcast_utils import (
+from pybaseballstats._utils.statcast_utils import (
     _create_date_ranges,
     _fetch_all_data,
     _handle_dates,
@@ -161,7 +161,7 @@ def pitch_by_pitch_data(
         return asyncio.run(coro)
     else:
         # Event loop already running - Jupyter notebooks, existing async context
-        import nest_asyncio  # type: ignore
+        import nest_asyncio  # type: ignore [import-untyped]
 
         nest_asyncio.apply()
         return loop.run_until_complete(coro)

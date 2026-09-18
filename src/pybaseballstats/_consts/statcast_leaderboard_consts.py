@@ -1,0 +1,82 @@
+from enum import Enum
+
+PARK_FACTOR_DIMENSIONS_URL = "https://baseballsavant.mlb.com/leaderboard/statcast-park-factors?type=dimensions&year={season}&batSide=&stat=index_wOBA&condition=All&rolling=3&parks=mlb&fenceStatType={metric_type}"
+PARK_FACTOR_YEARLY_URL = "https://baseballsavant.mlb.com/leaderboard/statcast-park-factors?type=year&year={season}&batSide={bat_side}&stat=index_wOBA&condition={condition}&rolling={rolling_years}&parks=mlb"
+PARK_FACTOR_DISTANCE_URL = "http://baseballsavant.mlb.com/leaderboard/statcast-park-factors?type=distance&year={season}&parks=mlb"
+TIMER_INFRACTIONS_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/pitch-timer-infractions?type={perspective}&season={season}&min_pitches={min_pitches}&include_zeroes=0&sortColumn=N_pitches&sortDirection=asc&csv=true"
+PERCENTILE_RANKINGS_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/percentile-rankings?type={player_type}&year={season}&position={position}&team={team}&csv=true"
+ABS_CHALLENGES_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/abs-challenges?ballStrike={in_zone}&chalOrg={challenging_teams}&gameType={game_type}&oppOrg={opposing_teams}&pitchType={pitch_types}&shadowZones={attack_zone}&year={season}&challengeType={challenge_type}&level={level}&minChal={min_challenges}&minOppChal={min_opp_challenges}&csv=true"
+ARM_STRENGTH_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/arm-strength?type={stat_type}&year={year}&minThrows={min_throws}&pos={pos}&team={team}&csv=true"
+FIELDING_RUN_VALUE_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/fielding-run-value?dateStart={start_date}&dateEnd={end_date}&gameType={game_type}&groupBy={group_by}&seasonStart={start_season}&seasonEnd={end_season}&team={teams}&type={stat_type}&position={position}&minInnings={min_innings}&minResults={min_results}&csv=true"
+CATCHER_BLOCKING_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/catcher-blocking?game_type={game_type}&n={min_pitches}&season_end={end_season}&season_start={start_season}&split={split_years}&team={team}&type={group_by}&with_team_only=1&sortColumn=diff_runner_pbwp&sortDirection=desc&csv=true"
+CATCHER_FRAMING_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/catcher-framing?gameType={game_type}&seasonStart={start_season}&seasonEnd={end_season}&team={teams}&type={group_by}&minPitches={min_pitches}&minResults={min_results}&batSide={bat_side}&pitchHand={pitch_hand}&ballStrike={ball_strike}&csv=true"
+CATCHER_STANCE_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/catcher-stance?gameType={game_type}&seasonStart={start_season}&seasonEnd={end_season}&team={teams}&type={group_by}&minPitches={min_pitches}&minResults={min_results}&batSide={bat_side}&pitchHand={pitch_hand}&kneeCode={knee_code}&dateStart={start_date}&dateEnd={end_date}&csv=true"
+CATCHER_THROWING_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/catcher-throwing?game_type={game_type}&n={min_sb_attempts}&season_end={end_season}&season_start={start_season}&split={split_years}&team={team}&type={group_by}&with_team_only={with_team_only}&target_base={target_base}&csv=true"
+POPTIME_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/poptime?year={season}&team={team}&min2b={min_2b_attempts}&min3b={min_3b_attempts}&csv=true"
+SPIN_DIRECTION_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/spin-direction-pitches?year={season}&min={min_pitches}&sort=9&sortDir=asc&pitch_type={pitch_type}&throws={throws}&team={team_id}&csv=true"
+ACTIVE_SPIN_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/active-spin?year={season}_{stat_method}&min={min_pitches}&hand={pitcher_handedness}&csv=true"
+ARM_ANGLE_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/pitcher-arm-angles?season={seasons_inferred}&batSide={bat_side}&dateStart={start_date}0&dateEnd={end_date}&gameType={game_type}&groupBy={group_by}&min={min_total_pitches}&minGroupPitches={min_group_size}&perspective=back&pitchHand={pitch_hand}&pitchType={pitch_type}&size=large&sort=ascending&team={team}&view=table&csv=true"
+PITCH_ARSENALS_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/pitch-arsenals?year={year}&min={min_pitches}&type={metric_type}&hand={pitcher_handedness}&csv=true"
+PITCH_MOVEMENT_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/pitch-movement?year={season}&min={min_pitches}&pitch_type={pitch_type}&hand={pitcher_handedness}&csv=true"
+PITCHER_RUNNING_GAME_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/pitcher-running-game?game_type={game_type}&n={min_sb_opportunities}&pitch_hand={pitcher_handedness}&runner_moved={runner_movement}&target_base={target_base}&prior_pk={num_prior_disengagements}&season_end={end_season}&season_start={start_season}&sortColumn=simple_prevented_on_running_attr&sortDirection=desc&split={split_years}&team={team}&type={group_by}&with_team_only=1&csv=true"
+BASERUNNING_RUN_VALUE_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/baserunning-run-value?game_type={game_type}&season_start={start_season}&season_end={end_season}&sortColumn=runner_runs_tot&sortDirection=desc&split={split_years}&n={min_opportunities}&team={team}&type={group_by}&with_team_only=1&csv=true"
+BASESTEALING_RUN_VALUE_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/basestealing-run-value?game_type={game_type}&n={min_sb_opportunities}&pitch_hand={pitcher_handedness}&runner_moved={runner_movement}&target_base={target_base}&prior_pk={num_prior_disengagements}&season_end={end_season}&season_start={start_season}&sortColumn=simple_stolen_on_running_act&sortDirection=desc&split={split_years}&team={team}&type={group_by}&with_team_only=1&csv=true"
+EXTRA_BASES_TAKEN_RUN_VALUE_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/baserunning?game_type={game_type}&n={min_opportunities}&key_base_out={situation}&season_end={end_season}&season_start={start_season}&split={split_years}&team={team}&type={group_by}&with_team_only=1&csv=true"
+SPRINT_SPEED_PLAYER_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/sprint_speed?min_season={start_season}&max_season={end_season}&position={position}&team={team}&min={min_opportunities}&csv=true"
+SPRINT_SPEED_TEAM_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/sprint-speed-team?season={season}&team={team}&csv=true"
+RUNNING_SPLITS_LEADERBOARD_URL = "https://baseballsavant.mlb.com/running_splits?type={split_type}&bats={bat_side}&year={season}&position={position}&team={team}&min={min_opportunities}&csv=true"
+
+
+class StatcastLeaderboardsTeams(Enum):
+    ANGELS = 108
+    ASTROS = 117
+    ATHLETICS = 133
+    BLUE_JAYS = 141
+    BRAVES = 144
+    BREWERS = 158
+    CARDINALS = 138
+    CUBS = 112
+    D_BACKS = 109
+    DODGERS = 119
+    GIANTS = 137
+    GUARDIANS = 114
+    MARINERS = 136
+    MARLINS = 146
+    METS = 121
+    NATIONALS = 120
+    ORIOLES = 110
+    PADRES = 135
+    PHILLIES = 143
+    PIRATES = 134
+    RANGERS = 140
+    RAYS = 139
+    REDS = 113
+    RED_SOX = 111
+    ROCKIES = 115
+    ROYALS = 118
+    TIGERS = 116
+    TWINS = 142
+    WHITE_SOX = 145
+    YANKEES = 147
+
+    # Would give results for any game with at least team in the specified league. Unusable currently.
+    # AMERICAN_LEAGUE = "AmericanL"
+    # NATIONAL_LEAGUE = "NationalL"
+
+    @classmethod
+    def show_options(cls):
+        return "\n".join(f"{team.name}: {team.value}" for team in cls)
+
+
+ARM_STRENGTH_POS_INPUT_MAP = {
+    "All": "",
+    "2b_ss_3b": "arm_inf",
+    "outfield": "arm_of",
+    "1b": "arm_1b",
+    "2b": "arm_2b",
+    "3b": "arm_3b",
+    "ss": "arm_ss",
+    "lf": "arm_lf",
+    "cf": "arm_cf",
+    "rf": "arm_rf",
+}

@@ -4,18 +4,18 @@ import polars as pl
 from bs4 import BeautifulSoup
 
 # TODO: same range of tables as bref_teams, but for this module
-from pybaseballstats.consts.bref_consts import (
+from pybaseballstats._consts.bref_consts import (
     BREF_SINGLE_PLAYER_BATTING_URL,
     BREF_SINGLE_PLAYER_FIELDING_URL,
     BREF_SINGLE_PLAYER_PITCHING_URL,
 )
-from pybaseballstats.utils.bref_utils import (
-    BREFSession,
+from pybaseballstats._utils.bref_utils import (
     _extract_table,
-    _goto_and_get_stable_html,
+    get_bref_table_html,
 )
+from pybaseballstats._utils.session_utils import PBSSessionManager
 
-session = BREFSession.instance()  # type: ignore[attr-defined]
+session = PBSSessionManager.instance(max_req_per_minute=5)  # type: ignore[attr-defined]
 __all__ = [
     "single_player_batting",
     "single_player_pitching",
@@ -37,6 +37,7 @@ def single_player_batting(
         "pitches",
         "cumulative",
     ] = "standard",
+    verbose: bool = False,
 ) -> pl.DataFrame:
     """Return single-player batting statistics for one metric family.
 
@@ -44,6 +45,10 @@ def single_player_batting(
         player_code (str): Baseball Reference player identifier
             (for example ``"troutmi01"``).
         metric_type (Literal[...], optional): Batting table family to fetch.
+            Supported metric families are ``"standard"``, ``"value"``, ``"advanced"``,
+            ``"sabermetric"``, ``"ratio"``, ``"win_probability"``, ``"baserunning"``,
+            ``"situational"``, ``"pitches"``, and ``"cumulative"``.
+        verbose (bool, optional): If True, print debug information during the request process. Defaults to False. Useful for troubleshooting Cloudflare blocks.
 
     Raises:
         ValueError: If ``metric_type`` is not supported.
@@ -66,23 +71,28 @@ def single_player_batting(
     ]:
         raise ValueError(f"Invalid metric type: {metric_type}")
     last_name_initial = player_code[0].lower()
-    with session.get_page() as page:
-        url = BREF_SINGLE_PLAYER_BATTING_URL.format(
+    session.set_verbose(verbose)
+    resp = session.get(
+        BREF_SINGLE_PLAYER_BATTING_URL.format(
             initial=last_name_initial, player_code=player_code
         )
-        html = _goto_and_get_stable_html(page, url)
-        soup = BeautifulSoup(html, "html.parser")
-    table_id = ""
-    if metric_type in ["standard", "value", "advanced"]:
-        table_id = f"players_{metric_type}_batting"
-    elif metric_type == "cumulative":
-        table_id = "cumulative_batting"
-    else:
-        table_id = f"batting_{metric_type}"
-    table = soup.find("table", id=table_id)
-    if table is None:
+    )
+    polars_data = None
+    if resp:
+        table_id = ""
+        if metric_type in ["standard", "value", "advanced"]:
+            table_id = f"players_{metric_type}_batting"
+        elif metric_type == "cumulative":
+            table_id = "cumulative_batting"
+        else:
+            table_id = f"batting_{metric_type}"
+        table_html = get_bref_table_html(resp.text, table_id)
+        if table_html:
+            table_soup = BeautifulSoup(table_html, "html.parser")
+            polars_data = _extract_table(table_soup)
+    if not polars_data:
         raise ValueError(f"Failed to find table with id {table_id}")
-    df = pl.DataFrame(_extract_table(table))
+    df = pl.DataFrame(polars_data)
     df = df.select(pl.all().name.map(lambda col_name: col_name.replace("b_", "")))
     df = df.select(pl.all().name.map(lambda col_name: col_name.replace("_abbr", "")))
     return df
@@ -101,6 +111,7 @@ def single_player_pitching(
         "pitches",
         "cumulative",
     ] = "standard",
+    verbose: bool = False,
 ) -> pl.DataFrame:
     """Return single-player pitching statistics for one metric family.
 
@@ -112,7 +123,7 @@ def single_player_pitching(
         player_code (str): Baseball Reference player identifier
             (for example ``"troutmi01"``).
         metric_type (Literal[...], optional): Pitching table family to fetch.
-
+        verbose (bool, optional): If True, print debug information during the request process. Defaults to False. Useful for troubleshooting Cloudflare blocks.
     Raises:
         ValueError: If ``metric_type`` is not supported.
         ValueError: If the requested pitching table is not found.
@@ -133,26 +144,31 @@ def single_player_pitching(
     ]:
         raise ValueError(f"Invalid metric type: {metric_type}")
     last_name_initial = player_code[0].lower()
-    with session.get_page() as page:
-        url = BREF_SINGLE_PLAYER_PITCHING_URL.format(
+    session.set_verbose(verbose)
+    resp = session.get(
+        BREF_SINGLE_PLAYER_PITCHING_URL.format(
             initial=last_name_initial, player_code=player_code
         )
-        html = _goto_and_get_stable_html(page, url)
-        soup = BeautifulSoup(html, "html.parser")
-    table_id = ""
-    if metric_type in ["standard", "value", "advanced"]:
-        table_id = f"players_{metric_type}_pitching"
-    elif metric_type == "cumulative":
-        table_id = "cumulative_pitching"
-    elif metric_type == "batting_against":
-        table_id = "pitching_batting"
-    else:
-        table_id = f"pitching_{metric_type}"
-    table = soup.find("table", id=table_id)
-    if table is None:
+    )
+    polars_data = None
+    if resp:
+        table_id = ""
+        if metric_type in ["standard", "value", "advanced"]:
+            table_id = f"players_{metric_type}_pitching"
+        elif metric_type == "cumulative":
+            table_id = "cumulative_pitching"
+        elif metric_type == "batting_against":
+            table_id = "pitching_batting"
+        else:
+            table_id = f"pitching_{metric_type}"
+        table_html = get_bref_table_html(resp.text, table_id)
+        if table_html:
+            # 3. Parse the table html string using your existing _extract_table logic
+            table_soup = BeautifulSoup(table_html, "html.parser")
+            polars_data = _extract_table(table_soup)
+    if not polars_data:
         raise ValueError(f"Failed to find table with id {table_id}")
-    data = _extract_table(table)
-    df = pl.DataFrame(data)
+    df = pl.DataFrame(polars_data)
 
     df = df.select(pl.all().name.map(lambda col_name: col_name.replace("p_", "")))
     df = df.select(pl.all().name.map(lambda col_name: col_name.replace("_abbr", "")))
@@ -168,6 +184,7 @@ def single_player_fielding(
         "3b", "ss", "2b", "1b", "c", "c_baserunning", "lf", "rf", "cf", "p"
     ]
     | None = None,
+    verbose: bool = False,
 ) -> pl.DataFrame:
     """Return single-player fielding statistics for one metric family.
 
@@ -183,7 +200,7 @@ def single_player_fielding(
             when ``metric_type="advanced_at_position"``.
             Valid values are ``"3b"``, ``"ss"``, ``"2b"``, ``"1b"``, ``"c"``,
             ``"c_baserunning"``, ``"lf"``, ``"rf"``, ``"cf"``, and ``"p"``.
-
+        verbose (bool, optional): If True, print debug information during the request process. Defaults to False. Useful for troubleshooting Cloudflare blocks.
     Raises:
         ValueError: If ``metric_type`` is not supported.
         ValueError: If ``position`` is missing for
@@ -241,22 +258,24 @@ def single_player_fielding(
     else:
         table_id = f"advanced_fielding_{position}"
     last_name_initial = player_code[0].lower()
-    with session.get_page() as page:
-        url = BREF_SINGLE_PLAYER_FIELDING_URL.format(
+    session.set_verbose(verbose)
+    resp = session.get(
+        BREF_SINGLE_PLAYER_FIELDING_URL.format(
             initial=last_name_initial, player_code=player_code
         )
-        html = _goto_and_get_stable_html(page, url)
-        assert html is not None, "Failed to retrieve HTML content"
-        soup = BeautifulSoup(html, "html.parser")
-    table = soup.find("table", id=table_id)
-    if table is None:
-        for table in soup.find_all("table"):
-            print(table.get("id"))
+    )
+    polars_data = None
+    if resp:
+        table_html = get_bref_table_html(resp.text, table_id)
+        if table_html:
+            table_soup = BeautifulSoup(table_html, "html.parser")
+            polars_data = _extract_table(table_soup)
+    if not polars_data:
         raise ValueError(
             f"Failed to find table with id {table_id}. Check notes on metric_type and position parameters in the docstring and ensure the specified player has data for the requested metric family and position."
         )
-    data = _extract_table(table)
-    df = pl.DataFrame(data)
+
+    df = pl.DataFrame(polars_data)
     df = df.select(pl.all().name.map(lambda col_name: col_name.replace("f_", "")))
     df = df.select(pl.all().name.map(lambda col_name: col_name.replace("_abbr", "")))
     return df

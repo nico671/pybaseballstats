@@ -5,7 +5,7 @@ from typing import Literal
 import polars as pl
 from bs4 import BeautifulSoup
 
-from pybaseballstats.consts.bref_consts import (
+from pybaseballstats._consts.bref_consts import (
     BREF_TEAMS_BATTING_BASE_URL,
     BREF_TEAMS_FIELDING_BASE_URL,
     BREF_TEAMS_PITCHING_BASE_URL,
@@ -13,14 +13,14 @@ from pybaseballstats.consts.bref_consts import (
     BREF_TEAMS_SCHEDULE_RESULTS_URL,
     BREFTeams,
 )
-from pybaseballstats.utils.bref_utils import (
-    BREFSession,
+from pybaseballstats._utils.bref_utils import (
     _extract_table,
-    _goto_and_get_stable_html,
+    get_bref_table_html,
     resolve_bref_team_code,
 )
+from pybaseballstats._utils.session_utils import PBSSessionManager
 
-session = BREFSession.instance()  # type: ignore[attr-defined]
+session = PBSSessionManager.instance(max_req_per_minute=5)  # type: ignore[attr-defined]
 
 __all__ = [
     "BREFTeams",
@@ -36,7 +36,7 @@ __all__ = [
 # region random functions
 
 
-def batting_orders(team: BREFTeams, year: int) -> pl.DataFrame:
+def batting_orders(team: BREFTeams, year: int, verbose: bool = False) -> pl.DataFrame:
     """Return a per-game batting-orders table for a team season.
 
     The function extracts the Baseball Reference table with class ``grid_table``
@@ -69,6 +69,7 @@ def batting_orders(team: BREFTeams, year: int) -> pl.DataFrame:
 
     team_code = resolve_bref_team_code(team=team, year=year)
     url = f"https://www.baseball-reference.com/teams/{team_code}/{year}-batting-orders.shtml"
+    session.set_verbose(verbose)
     resp = session.get(url)
     if resp is None:
         raise ValueError(f"Failed to fetch batting orders for {team.name} in {year}.")
@@ -180,12 +181,15 @@ def batting_orders(team: BREFTeams, year: int) -> pl.DataFrame:
     return pl.DataFrame(rows)
 
 
-def game_by_game_schedule_results(team: BREFTeams, year: int) -> pl.DataFrame:
+def game_by_game_schedule_results(
+    team: BREFTeams, year: int, verbose: bool = False
+) -> pl.DataFrame:
     """Return game-by-game schedule/results for a team season.
 
     Args:
         team (BREFTeams): Team enum value.
         year (int): MLB season year.
+        verbose (bool, optional): If True, print debug information during the request process. Defaults to False. Useful for troubleshooting Cloudflare blocks.
 
     Raises:
         ValueError: If ``team`` is not a ``BREFTeams`` value.
@@ -197,9 +201,13 @@ def game_by_game_schedule_results(team: BREFTeams, year: int) -> pl.DataFrame:
     """
     if not isinstance(team, BREFTeams):
         raise ValueError("Team must be a member of the BREFTeams enum")
+    if year < 1871:
+        raise ValueError("Year must be greater than or equal to 1871.")
     team_code = resolve_bref_team_code(team=team, year=year)
     url = BREF_TEAMS_SCHEDULE_RESULTS_URL.format(team_code=team_code, year=year)
+    session.set_verbose(verbose)
     resp = session.get(url)
+
     if resp is None:
         raise ValueError(f"Failed to fetch data for {team.name} in {year}.")
 
@@ -215,12 +223,15 @@ def game_by_game_schedule_results(team: BREFTeams, year: int) -> pl.DataFrame:
     return df
 
 
-def roster_and_appearances(team: BREFTeams, year: int) -> pl.DataFrame:
+def roster_and_appearances(
+    team: BREFTeams, year: int, verbose: bool = False
+) -> pl.DataFrame:
     """Return roster and appearances data for a team season.
 
     Args:
         team (BREFTeams): Team enum value.
         year (int): MLB season year.
+        verbose (bool, optional): If True, print debug information during the request process. Defaults to False. Useful for troubleshooting Cloudflare blocks.
 
     Raises:
         ValueError: If ``team`` is not a ``BREFTeams`` value.
@@ -231,19 +242,21 @@ def roster_and_appearances(team: BREFTeams, year: int) -> pl.DataFrame:
     """
     if not isinstance(team, BREFTeams):
         raise ValueError("Team must be a member of the BREFTeams enum")
+    if year < 1871:
+        raise ValueError("Year must be greater than or equal to 1871.")
     team_code = resolve_bref_team_code(team=team, year=year)
-    with session.get_page() as page:
-        content = _goto_and_get_stable_html(
-            page,
-            BREF_TEAMS_ROSTER_URL.format(team_code=team_code, year=year),
-        )
-        soup = BeautifulSoup(content, "html.parser")
-    table = soup.find("table", id="appearances")
-    assert table is not None, (
-        f"No roster/appearances table found for {team.name} in {year}."
-    )
-    data = _extract_table(table)
-    df = pl.DataFrame(data)
+    polars_data = None
+    url = BREF_TEAMS_ROSTER_URL.format(team_code=team_code, year=year)
+    session.set_verbose(verbose)
+    resp = session.get(url)
+    if resp:
+        table_html = get_bref_table_html(resp.text, "appearances")
+        if table_html:
+            table_soup = BeautifulSoup(table_html, "html.parser")
+            polars_data = _extract_table(table_soup)
+    if not polars_data:
+        raise ValueError(f"No roster/appearances data found for {team.name} in {year}")
+    df = pl.DataFrame(polars_data)
     df = df.drop("ranker")
     return df
 
@@ -267,6 +280,7 @@ def batting(
         "pitches",
         "cumulative",
     ] = "standard",
+    verbose: bool = False,
 ) -> pl.DataFrame:
     """Return team batting statistics for one season and metric family.
 
@@ -274,6 +288,10 @@ def batting(
         team (BREFTeams): Team enum value.
         year (int): MLB season year.
         metric_type (Literal[...], optional): Batting table family to fetch.
+            Supported metric families are ``"standard"``, ``"value"``, ``"advanced"``,
+            ``"sabermetric"``, ``"ratio"``, ``"win_probability"``, ``"baserunning"``,
+            ``"situational"``, ``"pitches"``, and ``"cumulative"``.
+        verbose: (bool, optional): If True, print debug information during the request process. Defaults to False. Useful for troubleshooting Cloudflare blocks.
 
     Raises:
         ValueError: If ``team`` is not a ``BREFTeams`` value.
@@ -308,17 +326,22 @@ def batting(
     url = BREF_TEAMS_BATTING_BASE_URL.format(
         team_code=resolve_bref_team_code(team, year=year), year=year
     )
-    with session.get_page() as page:
-        content = _goto_and_get_stable_html(page, url)
-        soup = BeautifulSoup(content, "html.parser")
     table_id = f"players_{metric_type}_batting"
-    table = soup.find("table", id=table_id)
-    if table is None:
+    session.set_verbose(verbose)
+    resp = session.get(url)
+    polars_data = None
+    if resp:
+        table_html = get_bref_table_html(resp.text, table_id)
+        if table_html:
+            # 3. Parse the table html string using your existing _extract_table logic
+            table_soup = BeautifulSoup(table_html, "html.parser")
+            polars_data = _extract_table(table_soup)
+    if not polars_data:
         raise ValueError(
             f"No {metric_type} batting table found for {team.name} in {year}."
         )
-    data = _extract_table(table)
-    df = pl.DataFrame(data)
+
+    df = pl.DataFrame(polars_data)
     if "ranker" in df.columns:
         df = df.drop("ranker")  # drop index column
     df = df.select(pl.all().name.map(lambda col_name: col_name.replace("b_", "")))
@@ -351,6 +374,7 @@ def pitching(
         "baserunning_situational",
         "cumulative",
     ] = "standard",
+    verbose: bool = False,
 ) -> pl.DataFrame:
     """Return team pitching statistics for one season and metric family.
 
@@ -358,6 +382,10 @@ def pitching(
         team (BREFTeams): Team enum value.
         year (int): MLB season year.
         metric_type (Literal[...], optional): Pitching table family to fetch.
+            Supported metric families are ``"standard"``, ``"value"``, ``"advanced"``,
+            ``"ratio"``, ``"batting_against"``, ``"win_probability"``, ``"starting"``,
+            ``"relief"``, ``"baserunning_situational"``, and ``"cumulative"``.
+        verbose: (bool, optional): If True, print debug information during the request process. Defaults to False. Useful for troubleshooting Cloudflare blocks.
 
     Raises:
         ValueError: If ``team`` is not a ``BREFTeams`` value.
@@ -406,23 +434,25 @@ def pitching(
     url = BREF_TEAMS_PITCHING_BASE_URL.format(
         team_code=resolve_bref_team_code(team, year=year), year=year
     )
-    with session.get_page() as page:
-        content = _goto_and_get_stable_html(page, url)
-        soup = BeautifulSoup(content, "html.parser")
-
-    table = soup.find("table", id=table_id)
-    if table is None:
+    session.set_verbose(verbose)
+    resp = session.get(url)
+    polars_data = None
+    if resp:
+        table_html = get_bref_table_html(resp.text, table_id)
+        if table_html:
+            # 3. Parse the table html string using your existing _extract_table logic
+            table_soup = BeautifulSoup(table_html, "html.parser")
+            polars_data = _extract_table(table_soup)
+    if not polars_data:
         raise ValueError(
             f"No {metric_type} pitching table found for {team.name} in {year}."
         )
-
-    data = _extract_table(table)
     if metric_type == "cumulative":
         # This table exposes duplicated columns in markup, so normalize all
         # extracted columns to the row count of the player column.
-        reference_row_count = len(data.get("player", []))
+        reference_row_count = len(polars_data.get("player", []))
         normalized_data: dict[str, list[str | int | float | None]] = {}
-        for column_name, series in data.items():
+        for column_name, series in polars_data.items():
             values = series.to_list()
 
             if (
@@ -442,7 +472,7 @@ def pitching(
 
         df = pl.DataFrame(normalized_data)
     else:
-        df = pl.DataFrame(data)
+        df = pl.DataFrame(polars_data)
 
     if "ranker" in df.columns:
         df = df.drop("ranker")
@@ -488,6 +518,7 @@ def fielding(
         "dh",
         "c_baserunning",
     ] = "",
+    verbose: bool = False,
 ) -> pl.DataFrame:
     """Return team fielding statistics for one season.
 
@@ -502,6 +533,7 @@ def fielding(
             - For ``metric_type="advanced"``: ``"c"``, ``"c_baserunning"``,
               ``"1b"``, ``"2b"``, ``"3b"``, ``"ss"``, ``"lf"``, ``"cf"``,
               ``"rf"``, ``"p"``.
+        verbose (bool, optional): If True, print debug information during the request process. Defaults to False. Useful for troubleshooting Cloudflare blocks.
 
     Raises:
         ValueError: If ``team`` is not a ``BREFTeams`` value.
@@ -575,18 +607,20 @@ def fielding(
     url = BREF_TEAMS_FIELDING_BASE_URL.format(
         team_code=resolve_bref_team_code(team, year=year), year=year
     )
-    with session.get_page() as page:
-        content = _goto_and_get_stable_html(page, url)
-        soup = BeautifulSoup(content, "html.parser")
-
-    table = soup.find("table", id=table_id)
-    if table is None:
+    session.set_verbose(verbose)
+    resp = session.get(url)
+    polars_data = None
+    if resp:
+        table_html = get_bref_table_html(resp.text, table_id)
+        if table_html:
+            table_soup = BeautifulSoup(table_html, "html.parser")
+            polars_data = _extract_table(table_soup)
+    if not polars_data:
         raise ValueError(
-            f"No {metric_type} fielding table '{table_id}' found for {team.name} in {year}."
+            f"No fielding table found for {team.name} in {year} with metric type '{metric_type}' and position '{position}'."
         )
 
-    data = _extract_table(table)
-    df = pl.DataFrame(data)
+    df = pl.DataFrame(polars_data)
 
     if "ranker" in df.columns:
         df = df.drop("ranker")

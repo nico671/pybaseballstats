@@ -4,14 +4,14 @@ A Python package for scraping baseball statistics from the web. Inspired by the 
 
 ---
 
-[![PyPI Downloads](https://static.pepy.tech/badge/pybaseballstats)](https://pepy.tech/projects/pybaseballstats)  ![Coverage](https://github.com/nico671/pybaseballstats/blob/coverage-badge/badges/coverage.svg)  ![Pytest Status](https://github.com/nico671/pybaseballstats/actions/workflows/run_unit_tests.yml/badge.svg)  ![Mypy Status](https://github.com/nico671/pybaseballstats/actions/workflows/run_mypy.yml/badge.svg)
+[![PyPI Downloads](https://static.pepy.tech/badge/pybaseballstats)](https://pepy.tech/projects/pybaseballstats)  ![Pytest Status](https://github.com/nico671/pybaseballstats/actions/workflows/run_unit_tests.yml/badge.svg)  ![Mypy Status](https://github.com/nico671/pybaseballstats/actions/workflows/run_mypy.yml/badge.svg)
 
 ---
 
 ## Available Sources
 
 1. [Baseball Savant](https://baseballsavant.mlb.com/)
-    - This source provides high quality pitch-by-pitch data for all MLB games since 2015 as well as interesting leaderboards for various categories.
+    - This source provides high quality pitch-by-pitch data for all MLB games since 2015, grouped single-player season summaries, and interesting leaderboards for various categories.
 2. [Umpire Scorecards](https://umpscorecards.com/home/)
     - This source provides umpire game logs and statistics for all MLB games since 2008.
 3. [Baseball Reference](https://www.baseball-reference.com/)
@@ -40,6 +40,23 @@ or:
 pip install pybaseballstats
 ```
 
+Some functions use Playwright and require its Chromium browser. Install it
+after installing `pybaseballstats`:
+
+```bash
+# uv
+uv run playwright install chromium
+
+# pip or another Python environment
+python -m playwright install chromium
+```
+
+On Linux, use `--with-deps` if the required system dependencies are missing:
+
+```bash
+python -m playwright install --with-deps chromium
+```
+
 ## Documentation
 
 Usage documentation can be found in this [folder](usage_docs/). This documentation is a work in progress and will be updated as I add more functionality to the package.
@@ -58,63 +75,8 @@ df_pandas = df_polars.to_pandas()
 
 ## Contributing
 
-Improvements and bug fixes are welcome! This project follows a branch-based development workflow to keep releases stable and active development fast.
-
-### 1. Branching Strategy
-
-We use a standard two-branch workflow:
-
-- `main` (**release branch**)  
-    Heavily protected and contains only code that is currently live on PyPI. Do **not** push or open pull requests directly against `main`.
-- `dev` (**active development branch**)  
-    This is the default branch. All ongoing development, experiments, and bug fixes happen here.
-- **Feature branches**  
-    Start new work from `dev` (for example: `feature/your-feature-name`).
-
-### 2. Local Development & Committing
-
-This project uses `just` to automate safety checks before code is pushed.
-
-When your changes are ready, run:
-
-```bash
-just commit "your descriptive commit message"
-```
-
-This command automatically:
-
-- Runs `mypy` for strict type checking.
-- Runs `pytest` with coverage tracking.
-- Commits your changes and safely pushes them to your current GitHub branch.
-
-If type checking or tests fail, the commit is automatically aborted so you can fix issues first.
-
-### 3. Submitting Your Changes
-
-Once your feature or bug fix is complete and tested locally:
-
-1. Open a pull request from your feature branch into `dev`.
-2. GitHub Actions automatically runs CI (unit tests + `mypy`).
-3. After checks pass and review is complete, your changes are merged into `dev`.
-
-> [!NOTE]
-> Coverage badges in this README reflect the current state of the `dev` branch, giving real-time visibility into active development health.
-
-### 4. Release Pipeline (Maintainers Only)
-
-Releases are automated for security and stability:
-
-1. Open a pull request from `dev` to `main`.
-2. Branch protections ensure nothing enters `main` unless all required checks pass.
-3. After merge, run:
-
-```bash
-just release <version> "Release message"
-```
-
-This performs final validation, tags the release, and pushes it.
-
-A GitHub Action then builds the `uv` package and deploys to PyPI using Trusted Publishers (tokenless publishing).
+See the [contributing guide](contributing.md) for development setup, testing,
+branching, pull requests, and release instructions.
 
 ## Credit and Acknowledgement
 

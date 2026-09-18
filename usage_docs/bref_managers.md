@@ -44,3 +44,4 @@ print(tendencies_df)
 1. `managers_basic_data` uses Playwright and can be slower than simple HTTP scraping.
 2. Both functions return Polars DataFrames.
 3. Baseball Reference rate limits are handled internally by the shared BREF session utilities.
+4. All functions take in a `verbose` parameter that, when set to True, will print debug information during the request process. This can be useful for troubleshooting Cloudflare blocks.

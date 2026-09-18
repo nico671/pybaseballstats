@@ -3,13 +3,8 @@ import pytest
 
 import pybaseballstats.statcast as sc
 
-pytestmark = [
-    pytest.mark.integration,
-    pytest.mark.heavy,
-    pytest.mark.data_dependent,
-]
 
-
+@pytest.mark.live
 def test_pitch_by_pitch_data_errors():
     """Test error handling in pitch_by_pitch_data."""
     with pytest.raises(ValueError):
@@ -37,6 +32,7 @@ def test_pitch_by_pitch_data_fails_gracefully_when_chunk_fails(monkeypatch):
         sc.pitch_by_pitch_data(start_date="2023-07-01", end_date="2023-07-02")
 
 
+@pytest.mark.live
 def test_pitch_by_pitch_data_general():
     """Test general functionality of pitch_by_pitch_data."""
     df = sc.pitch_by_pitch_data(
@@ -45,13 +41,14 @@ def test_pitch_by_pitch_data_general():
     assert df is not None
     assert isinstance(df, pl.DataFrame)
     assert df.shape[0] == 12227
-    assert df.shape[1] == 118
+    assert df.shape[1] == 119
     assert df.select(pl.col("game_date").min()).item() == "2023-07-01"
     assert df.select(pl.col("game_date").max()).item() == "2023-07-03"
     assert df.select(pl.col("game_pk").n_unique()).item() == 41
     assert df.select(pl.col("player_name").n_unique()).item() == 296
 
 
+@pytest.mark.live
 def test_pitch_by_pitch_data_team_none_returns_all():
     """Ensure no filtering is applied when team is None."""
     df = sc.pitch_by_pitch_data(
@@ -63,6 +60,7 @@ def test_pitch_by_pitch_data_team_none_returns_all():
     assert df.select(pl.col("away_team").n_unique()).item() > 1
 
 
+@pytest.mark.live
 def test_pitch_by_pitch_data_team_filtering():
     """Test team filtering of pitch_by_pitch_data."""
     df = sc.pitch_by_pitch_data(
@@ -73,7 +71,7 @@ def test_pitch_by_pitch_data_team_filtering():
     )
     assert df is not None
     assert isinstance(df, pl.DataFrame)
-    assert df.shape[1] == 118
+    assert df.shape[1] == 119
     assert df.select(pl.col("game_date").min()).item() == "2023-07-01"
     assert df.select(pl.col("game_date").max()).item() == "2023-07-03"
 
