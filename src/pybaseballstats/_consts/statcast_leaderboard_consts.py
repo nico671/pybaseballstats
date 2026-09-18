@@ -5,7 +5,9 @@ PARK_FACTOR_YEARLY_URL = "https://baseballsavant.mlb.com/leaderboard/statcast-pa
 PARK_FACTOR_DISTANCE_URL = "http://baseballsavant.mlb.com/leaderboard/statcast-park-factors?type=distance&year={season}&parks=mlb"
 TIMER_INFRACTIONS_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/pitch-timer-infractions?type={perspective}&season={season}&min_pitches={min_pitches}&include_zeroes=0&sortColumn=N_pitches&sortDirection=asc&csv=true"
 PERCENTILE_RANKINGS_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/percentile-rankings?type={player_type}&year={season}&position={position}&team={team}&csv=true"
-ABS_CHALLENGES_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/abs-challenges?ballStrike={in_zone}&chalOrg={challenging_teams}&gameType={game_type}&oppOrg={opposing_teams}&pitchType={pitch_types}&shadowZones={attack_zone}&year={season}&challengeType={challenge_type}&level={level}&minChal={min_challenges}&minOppChal={min_opp_challenges}&csv=true"
+ABS_CHALLENGES_LEADERBOARD_URL = (
+    "https://baseballsavant.mlb.com/leaderboard/abs-challenges"
+)
 ARM_STRENGTH_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/arm-strength?type={stat_type}&year={year}&minThrows={min_throws}&pos={pos}&team={team}&csv=true"
 FIELDING_RUN_VALUE_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/fielding-run-value?dateStart={start_date}&dateEnd={end_date}&gameType={game_type}&groupBy={group_by}&seasonStart={start_season}&seasonEnd={end_season}&team={teams}&type={stat_type}&position={position}&minInnings={min_innings}&minResults={min_results}&csv=true"
 CATCHER_BLOCKING_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/catcher-blocking?game_type={game_type}&n={min_pitches}&season_end={end_season}&season_start={start_season}&split={split_years}&team={team}&type={group_by}&with_team_only=1&sortColumn=diff_runner_pbwp&sortDirection=desc&csv=true"

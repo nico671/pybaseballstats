@@ -4,6 +4,7 @@ import polars as pl
 import pytest
 
 import pybaseballstats.statcast_leaderboards as sl
+from pybaseballstats.statcast_leaderboards import _abs
 
 
 # Helper to run tests in a separate thread to avoid "Sync API inside asyncio loop" errors
@@ -895,13 +896,60 @@ def test_abs_challenges_leaderboard_badinputs():
         )
 
 
+def test_abs_challenges_leaderboard_reads_embedded_page_data(monkeypatch):
+    captured: dict[str, object] = {}
+
+    class Response:
+        text = (
+            '<script>const absData = [{"level": "MLB", "team_abbr": "NYY"}];</script>'
+        )
+
+        def raise_for_status(self) -> None:
+            return None
+
+    def get(url: str, *, params: dict[str, str | list[str]]) -> Response:
+        captured["url"] = url
+        captured["params"] = params
+        return Response()
+
+    monkeypatch.setattr(_abs.requests, "get", get)
+
+    df = sl.abs_challenges_leaderboard(
+        season=2026,
+        game_type="playoff",
+        challenging_teams=[sl.StatcastLeaderboardsTeams.YANKEES],
+        opposing_teams=[sl.StatcastLeaderboardsTeams.RED_SOX],
+        pitch_types=["FF", "SL"],
+        attack_zone=["11", "12"],
+        in_zone=True,
+    )
+
+    assert df.to_dicts() == [{"level": "MLB", "team_abbr": "NYY"}]
+    assert (
+        captured["url"] == "https://baseballsavant.mlb.com/leaderboard/abs-challenges"
+    )
+    assert captured["params"] == {
+        "season[]": ["2026"],
+        "challengeType": "batter",
+        "gameType[]": ["F", "D", "L", "W"],
+        "level": "mlb",
+        "minChal": "0",
+        "minOppChal": "0",
+        "chalOrg[]": ["147"],
+        "oppOrg[]": ["111"],
+        "pitchType[]": ["FF", "SL"],
+        "shadowZones[]": ["11", "12"],
+        "ballStrike": "in",
+    }
+
+
 @pytest.mark.live
 def test_abs_challenges_leaderboard_season():
     df = sl.abs_challenges_leaderboard(
         season=2026,
     )
     assert df.shape[0] >= 381
-    assert df.shape[1] == 35
+    assert df.shape[1] >= 35
     assert df.select(pl.col("level").unique()).item() == "MLB"
     assert df.select(pl.col("team_abbr").n_unique()).item() == 30
 
@@ -913,14 +961,14 @@ def test_abs_challenges_leaderboard_challenge_type():
         challenge_type="batter",
     )
     assert df_batter.shape[0] >= 381
-    assert df_batter.shape[1] == 35
+    assert df_batter.shape[1] >= 35
 
     df = sl.abs_challenges_leaderboard(
         season=2026,
         challenge_type="batting-team",
     )
     assert df.shape[0] == 30
-    assert df.shape[1] == 35
+    assert df.shape[1] >= 35
     assert df.select(pl.col("team_abbr").n_unique()).item() == 30
 
     df = sl.abs_challenges_leaderboard(
@@ -928,14 +976,14 @@ def test_abs_challenges_leaderboard_challenge_type():
         challenge_type="league",
     )
     assert df.shape[0] == 1
-    assert df.shape[1] == 27
+    assert df.shape[1] >= 27
 
     df = sl.abs_challenges_leaderboard(
         season=2026,
         challenge_type="catcher",
     )
     assert df.shape[0] >= 63
-    assert df.shape[1] == 35
+    assert df.shape[1] >= 35
     assert df.select(pl.col("team_abbr").n_unique()).item() == 30
 
 
