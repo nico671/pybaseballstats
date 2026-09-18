@@ -1,4 +1,5 @@
-import io
+import json
+import re
 from typing import List, Literal
 
 import polars as pl
@@ -176,18 +177,33 @@ def abs_challenges_leaderboard(
     if not isinstance(min_opp_challenges, int) or min_opp_challenges < 0:
         raise ValueError("min_opp_challenges must be a non-negative integer")
 
-    url = ABS_CHALLENGES_LEADERBOARD_URL.format(
-        in_zone=in_zone_param_str,
-        challenging_teams=challenging_teams_param_str,
-        game_type=game_type,
-        level=level,
-        opposing_teams=opposing_teams_param_str,
-        pitch_types=pitch_types_param_str,
-        attack_zone=attack_zone_param_str,
-        season=season,
-        challenge_type=challenge_type,
-        min_challenges=min_challenges,
-        min_opp_challenges=min_opp_challenges,
-    )
-    df = pl.read_csv(io.StringIO(requests.get(url).text))
-    return df
+    game_types = {
+        "regular": ["R"],
+        "spring": ["S"],
+        "playoff": ["F", "D", "L", "W"],
+    }
+    params: dict[str, str | list[str]] = {
+        "season[]": [str(season)],
+        "challengeType": challenge_type,
+        "gameType[]": game_types[game_type],
+        "level": level,
+        "minChal": str(min_challenges),
+        "minOppChal": str(min_opp_challenges),
+    }
+    if challenging_teams_param_str:
+        params["chalOrg[]"] = challenging_teams_param_str.split("|")
+    if opposing_teams_param_str:
+        params["oppOrg[]"] = opposing_teams_param_str.split("|")
+    if pitch_types_param_str:
+        params["pitchType[]"] = pitch_types_param_str.split("|")
+    if attack_zone_param_str:
+        params["shadowZones[]"] = attack_zone_param_str.split("|")
+    if in_zone_param_str:
+        params["ballStrike"] = in_zone_param_str
+
+    response = requests.get(ABS_CHALLENGES_LEADERBOARD_URL, params=params)
+    response.raise_for_status()
+    match = re.search(r"const absData = (.*?);", response.text, re.DOTALL)
+    if match is None:
+        raise ValueError("ABS leaderboard page did not include leaderboard data")
+    return pl.DataFrame(json.loads(match.group(1)))
