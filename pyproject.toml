@@ -1,45 +1,45 @@
 [project]
 keywords = [
-    "baseball",
-    "stats",
-    "data",
-    "savant",
-    "Baseball Savant",
-    "MLB",
-    "scraping",
-    "sabermetrics",
-    "sports analytics",
-    "retrosheet",
-    "baseball data",
-    "baseball statistics",
-    "baseball analytics",
-    "python baseball",
-    "python sports analytics",
+  "baseball",
+  "stats",
+  "data",
+  "savant",
+  "Baseball Savant",
+  "MLB",
+  "scraping",
+  "sabermetrics",
+  "sports analytics",
+  "retrosheet",
+  "baseball data",
+  "baseball statistics",
+  "baseball analytics",
+  "python baseball",
+  "python sports analytics",
 ]
 name = "pybaseballstats"
-version = "0.6.3"
+version = "0.6.4"
 description = "A Python package for scraping baseball data."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "aiohttp>=3.11.11",
-    "bs4>=0.0.2",
-    "curl-cffi>=0.13.0",
-    "nest-asyncio>=1.6.0",
-    "playwright-stealth>=2.0.3",
-    "playwright>=1.55.0",
-    "polars>=1.20.0",
-    "requests>=2.32.3",
-    "rich>=14.0.0",
+  "aiohttp>=3.11.11",
+  "bs4>=0.0.2",
+  "curl-cffi>=0.13.0",
+  "nest-asyncio>=1.6.0",
+  "playwright-stealth>=2.0.3",
+  "playwright>=1.55.0",
+  "polars>=1.20.0",
+  "requests>=2.32.3",
+  "rich>=14.0.0",
 ]
 authors = [{ name = "Nicolas Carbone", email = "carbone.nicolas0@gmail.com" }]
 license = { text = "MIT" }
 maintainers = [
-    { name = "Nicolas Carbone", email = "carbone.nicolas0@gmail.com" },
+  { name = "Nicolas Carbone", email = "carbone.nicolas0@gmail.com" },
 ]
 classifiers = [
-    "Development Status :: 4 - Beta",
-    "Intended Audience :: Developers",
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
 ]
 
 [project.urls]
@@ -60,17 +60,17 @@ build-backend = "setuptools.build_meta"
 
 [dependency-groups]
 dev = [
-    "ipykernel>=6.29.5",
-    "mypy>=1.18.2",
-    "pytest-asyncio>=1.3.0",
-    "pytest>=8.3.4",
-    "ruff>=0.9.7",
-    "types-dateparser>=1.2.2.20250809",
-    "types-requests>=2.32.4.20250913",
-    "matplotlib>=3.10.8",
-    "seaborn>=0.13.2",
-    "ipywidgets>=8.1.8",
-    "pytest-xdist>=3.8.0",
+  "ipykernel>=6.29.5",
+  "mypy>=1.18.2",
+  "pytest-asyncio>=1.3.0",
+  "pytest>=8.3.4",
+  "ruff>=0.9.7",
+  "types-dateparser>=1.2.2.20250809",
+  "types-requests>=2.32.4.20250913",
+  "matplotlib>=3.10.8",
+  "seaborn>=0.13.2",
+  "ipywidgets>=8.1.8",
+  "pytest-xdist>=3.8.0",
 ]
 
 [tool.setuptools]
@@ -81,7 +81,5 @@ pybaseballstats = ["py.typed"]
 
 [tool.pytest.ini_options]
 addopts = "-ra --strict-markers -m 'not live'"
-markers = [
-    "live: tests that contact external data sources",
-]
+markers = ["live: tests that contact external data sources"]
 pythonpath = ["."]
