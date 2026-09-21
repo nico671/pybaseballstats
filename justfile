@@ -79,53 +79,67 @@ release version commit_message:
         exit 1
     end
     
-    echo "Step 2: Running mypy type checking..."
+    echo "Step 2: Updating the lockfile..."
+    uv lock
+    if test $status -ne 0
+        echo "Release aborted: unable to update uv.lock!"
+        exit 1
+    end
+
+    echo "Step 3: Verifying the locked environment..."
+    uv sync --locked --all-extras --dev
+    if test $status -ne 0
+        echo "Release aborted: locked environment verification failed!"
+        exit 1
+    end
+
+    echo "Step 4: Running mypy type checking..."
     just mypy
     if test $status -ne 0
         echo "Release aborted: mypy type checking failed!"
         exit 1
     end
     
-    echo "Step 3: Running lint checks..."
+    echo "Step 5: Running lint checks..."
     just lint
     if test $status -ne 0
         echo "Release aborted: lint checks failed!"
         exit 1
     end
 
-    echo "Step 4: Checking formatting..."
+    echo "Step 6: Checking formatting..."
     just format-check
     if test $status -ne 0
         echo "Release aborted: formatting checks failed!"
         exit 1
     end
 
-    echo "Step 5: Running tests..."
+    echo "Step 7: Running tests..."
     just test
     if test $status -ne 0
         echo "Release aborted: tests failed!"
         exit 1
     end
     
-    echo "Step 6: Running required live smoke tests..."
+    echo "Step 8: Running required live smoke tests..."
     just smoke
     if test $status -ne 0
         echo "Release aborted: live smoke tests failed!"
         exit 1
     end
 
-    echo "Step 7: Building package..."
+    echo "Step 9: Building package..."
     just build
     if test $status -ne 0
         echo "Release aborted: package build failed!"
         exit 1
     end
 
-    echo "Step 8: Committing version bump..."
-    git add pyproject.toml
+    echo "Step 10: Committing version bump..."
+    git add pyproject.toml uv.lock
     git commit -m "Bump version to {{ version }}; Message: {{ commit_message }}"
     
-    echo "Step 9: Creating and pushing tag..."
+    echo "Step 11: Creating and pushing tag..."
     git tag -a v{{ version }} -m "Release version {{ version }}"
     
     git push origin main

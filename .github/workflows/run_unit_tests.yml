@@ -56,6 +56,10 @@ jobs:
         if: steps.changes.outputs.run_tests == 'true'
         run: uv python install
 
+      - name: Verify lockfile
+        if: steps.changes.outputs.run_tests == 'true'
+        run: uv lock --check
+
       - name: Install dependencies
         if: steps.changes.outputs.run_tests == 'true'
         run: uv sync --locked --all-extras --dev
