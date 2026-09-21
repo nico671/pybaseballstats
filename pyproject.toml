@@ -33,7 +33,8 @@ dependencies = [
   "rich>=14.0.0",
 ]
 authors = [{ name = "Nicolas Carbone", email = "carbone.nicolas0@gmail.com" }]
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE"]
 maintainers = [
   { name = "Nicolas Carbone", email = "carbone.nicolas0@gmail.com" },
 ]
@@ -55,7 +56,7 @@ pybaseballstats = { workspace = true }
 select = ["E4", "E7", "E9", "F", "I"]
 
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools>=77.0.3", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [dependency-groups]
