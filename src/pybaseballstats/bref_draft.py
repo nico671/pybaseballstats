@@ -7,6 +7,7 @@ from pybaseballstats._consts.bref_consts import (
     BREFTeams,
 )
 from pybaseballstats._utils.bref_utils import (
+    _clean_draft_dataframes,
     _extract_table,
     get_bref_table_html,
     resolve_bref_team_code,
@@ -40,8 +41,9 @@ def draft_order_by_year_round(
         raise ValueError("Draft data is only available from 1965 onwards")
     if draft_round < 1 or draft_round > 60:
         raise ValueError("Draft round must be between 1 and 60")
-    session.set_verbose(verbose)
-    resp = session.get(BREF_DRAFT_YEAR_ROUND_URL.format(year=year, round=draft_round))
+    resp = session.get(
+        BREF_DRAFT_YEAR_ROUND_URL.format(year=year, round=draft_round), verbose=verbose
+    )
     polars_data = None
     if resp:
         table_html = get_bref_table_html(resp.text, "draft_stats")
@@ -52,10 +54,7 @@ def draft_order_by_year_round(
     if not polars_data:
         raise ValueError(f"No draft data found for year {year} and round {draft_round}")
     df = pl.DataFrame(polars_data)
-    df = df.drop("draft_abb")
-    df = df.with_columns(
-        pl.col("player").str.replace_all(r"\s+\(minors\)$", "").alias("player")
-    )
+    df = _clean_draft_dataframes(df)
     return df
 
 
@@ -83,16 +82,16 @@ def franchise_draft_order(
             "Team must be a valid BREFTeams enum value. See BREFTeams class for valid values."
         )
 
-    session.set_verbose(verbose)
     resolved_code = resolve_bref_team_code(team=team, year=year)
 
     candidate_codes = [resolved_code]
     if team.value != resolved_code:
         candidate_codes.append(team.value)
-    print(resolved_code, team.value)
     polars_data = None
     for candidate_code in candidate_codes:
-        resp = session.get(TEAM_YEAR_DRAFT_URL.format(year=year, team=candidate_code))
+        resp = session.get(
+            TEAM_YEAR_DRAFT_URL.format(year=year, team=candidate_code), verbose=verbose
+        )
 
         if resp:
             table_html = get_bref_table_html(resp.text, "draft_stats")
@@ -107,8 +106,5 @@ def franchise_draft_order(
         raise ValueError(f"No draft table found for {team.name} in {year}.")
 
     df = pl.DataFrame(polars_data)
-    df = df.with_columns(
-        pl.col("player").str.replace_all(r"\s+\(minors\)$", "").alias("player")
-    )
-    df = df.drop("draft_abb")
+    df = _clean_draft_dataframes(df)
     return df

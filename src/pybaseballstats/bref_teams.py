@@ -69,8 +69,7 @@ def batting_orders(team: BREFTeams, year: int, verbose: bool = False) -> pl.Data
 
     team_code = resolve_bref_team_code(team=team, year=year)
     url = f"https://www.baseball-reference.com/teams/{team_code}/{year}-batting-orders.shtml"
-    session.set_verbose(verbose)
-    resp = session.get(url)
+    resp = session.get(url, verbose=verbose)
     if resp is None:
         raise ValueError(f"Failed to fetch batting orders for {team.name} in {year}.")
 
@@ -205,8 +204,7 @@ def game_by_game_schedule_results(
         raise ValueError("Year must be greater than or equal to 1871.")
     team_code = resolve_bref_team_code(team=team, year=year)
     url = BREF_TEAMS_SCHEDULE_RESULTS_URL.format(team_code=team_code, year=year)
-    session.set_verbose(verbose)
-    resp = session.get(url)
+    resp = session.get(url, verbose=verbose)
 
     if resp is None:
         raise ValueError(f"Failed to fetch data for {team.name} in {year}.")
@@ -247,8 +245,7 @@ def roster_and_appearances(
     team_code = resolve_bref_team_code(team=team, year=year)
     polars_data = None
     url = BREF_TEAMS_ROSTER_URL.format(team_code=team_code, year=year)
-    session.set_verbose(verbose)
-    resp = session.get(url)
+    resp = session.get(url, verbose=verbose)
     if resp:
         table_html = get_bref_table_html(resp.text, "appearances")
         if table_html:
@@ -327,8 +324,7 @@ def batting(
         team_code=resolve_bref_team_code(team, year=year), year=year
     )
     table_id = f"players_{metric_type}_batting"
-    session.set_verbose(verbose)
-    resp = session.get(url)
+    resp = session.get(url, verbose=verbose)
     polars_data = None
     if resp:
         table_html = get_bref_table_html(resp.text, table_id)
@@ -434,8 +430,7 @@ def pitching(
     url = BREF_TEAMS_PITCHING_BASE_URL.format(
         team_code=resolve_bref_team_code(team, year=year), year=year
     )
-    session.set_verbose(verbose)
-    resp = session.get(url)
+    resp = session.get(url, verbose=verbose)
     polars_data = None
     if resp:
         table_html = get_bref_table_html(resp.text, table_id)
@@ -607,8 +602,7 @@ def fielding(
     url = BREF_TEAMS_FIELDING_BASE_URL.format(
         team_code=resolve_bref_team_code(team, year=year), year=year
     )
-    session.set_verbose(verbose)
-    resp = session.get(url)
+    resp = session.get(url, verbose=verbose)
     polars_data = None
     if resp:
         table_html = get_bref_table_html(resp.text, table_id)

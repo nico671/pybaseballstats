@@ -36,8 +36,7 @@ def managers_basic_data(year: int, verbose: bool = False) -> pl.DataFrame:
         raise TypeError("Year must be an integer")
     if year < 1871:
         raise ValueError("Year must be greater than 1871")
-    session.set_verbose(verbose)
-    resp = session.get(BREF_MANAGERS_GENERAL_URL.format(year=year))
+    resp = session.get(BREF_MANAGERS_GENERAL_URL.format(year=year), verbose=verbose)
     polars_data = None
     if resp:
         table_html = get_bref_table_html(resp.text, "manager_record")
@@ -79,8 +78,7 @@ def managers_tendencies_data(year: int, verbose: bool = False) -> pl.DataFrame:
         raise TypeError("Year must be an integer")
     if year < 1871:
         raise ValueError("Year must be greater than 1871")
-    session.set_verbose(verbose)
-    resp = session.get(BREF_MANAGER_TENDENCIES_URL.format(year=year))
+    resp = session.get(BREF_MANAGER_TENDENCIES_URL.format(year=year), verbose=verbose)
     soup = BeautifulSoup(resp.content, "html.parser")
     table = soup.find("table", {"id": "manager_tendencies"})
     df = pl.DataFrame(_extract_table(table))

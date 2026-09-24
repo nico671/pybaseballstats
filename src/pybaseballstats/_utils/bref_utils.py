@@ -6,6 +6,8 @@ from bs4 import BeautifulSoup, Comment
 
 from pybaseballstats._consts.bref_consts import BREF_TEAM_CODE_SWITCHES, BREFTeams
 
+# region shared
+
 
 def get_bref_table_html(html_content: str, table_id: str) -> str | None:
     """
@@ -191,4 +193,14 @@ def resolve_bref_team_code(team: BREFTeams, year: int) -> str:
 
     raise ValueError(
         f"No Baseball Reference team code mapping found for {team.name} in {year}."
+    )
+
+
+# endregion
+
+
+# region bref_draft
+def _clean_draft_dataframes(draft_df: pl.DataFrame) -> pl.DataFrame:
+    return draft_df.drop("draft_abb").with_columns(
+        pl.col("player").str.replace_all(r"\s+\(minors\)$", "").alias("player")
     )

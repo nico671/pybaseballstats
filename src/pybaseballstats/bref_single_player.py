@@ -71,11 +71,11 @@ def single_player_batting(
     ]:
         raise ValueError(f"Invalid metric type: {metric_type}")
     last_name_initial = player_code[0].lower()
-    session.set_verbose(verbose)
     resp = session.get(
         BREF_SINGLE_PLAYER_BATTING_URL.format(
             initial=last_name_initial, player_code=player_code
-        )
+        ),
+        verbose=verbose,
     )
     polars_data = None
     if resp:
@@ -144,11 +144,11 @@ def single_player_pitching(
     ]:
         raise ValueError(f"Invalid metric type: {metric_type}")
     last_name_initial = player_code[0].lower()
-    session.set_verbose(verbose)
     resp = session.get(
         BREF_SINGLE_PLAYER_PITCHING_URL.format(
             initial=last_name_initial, player_code=player_code
-        )
+        ),
+        verbose=verbose,
     )
     polars_data = None
     if resp:
@@ -258,11 +258,11 @@ def single_player_fielding(
     else:
         table_id = f"advanced_fielding_{position}"
     last_name_initial = player_code[0].lower()
-    session.set_verbose(verbose)
     resp = session.get(
         BREF_SINGLE_PLAYER_FIELDING_URL.format(
             initial=last_name_initial, player_code=player_code
-        )
+        ),
+        verbose=verbose,
     )
     polars_data = None
     if resp:
