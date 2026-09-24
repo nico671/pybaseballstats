@@ -1,5 +1,4 @@
 import polars as pl
-from bs4 import BeautifulSoup
 
 from pybaseballstats._consts.bref_consts import (
     BREF_DRAFT_YEAR_ROUND_URL,
@@ -7,15 +6,9 @@ from pybaseballstats._consts.bref_consts import (
     BREFTeams,
 )
 from pybaseballstats._utils.bref_utils import (
-    _clean_draft_dataframes,
-    _extract_table,
-    get_bref_table_html,
+    _get_draft_dataframe,
     resolve_bref_team_code,
 )
-from pybaseballstats._utils.session_utils import PBSSessionManager
-
-session = PBSSessionManager.instance(max_req_per_minute=5)  # type: ignore[attr-defined]
-
 
 __all__ = ["BREFTeams", "draft_order_by_year_round", "franchise_draft_order"]
 
@@ -41,20 +34,11 @@ def draft_order_by_year_round(
         raise ValueError("Draft data is only available from 1965 onwards")
     if draft_round < 1 or draft_round > 60:
         raise ValueError("Draft round must be between 1 and 60")
-    resp = session.get(
-        BREF_DRAFT_YEAR_ROUND_URL.format(year=year, round=draft_round), verbose=verbose
+    df = _get_draft_dataframe(
+        BREF_DRAFT_YEAR_ROUND_URL.format(year=year, round=draft_round), verbose
     )
-    polars_data = None
-    if resp:
-        table_html = get_bref_table_html(resp.text, "draft_stats")
-
-        if table_html:
-            table_soup = BeautifulSoup(table_html, "html.parser")
-            polars_data = _extract_table(table_soup)
-    if not polars_data:
+    if df is None:
         raise ValueError(f"No draft data found for year {year} and round {draft_round}")
-    df = pl.DataFrame(polars_data)
-    df = _clean_draft_dataframes(df)
     return df
 
 
@@ -87,24 +71,11 @@ def franchise_draft_order(
     candidate_codes = [resolved_code]
     if team.value != resolved_code:
         candidate_codes.append(team.value)
-    polars_data = None
     for candidate_code in candidate_codes:
-        resp = session.get(
-            TEAM_YEAR_DRAFT_URL.format(year=year, team=candidate_code), verbose=verbose
+        df = _get_draft_dataframe(
+            TEAM_YEAR_DRAFT_URL.format(year=year, team=candidate_code), verbose
         )
+        if df is not None:
+            return df
 
-        if resp:
-            table_html = get_bref_table_html(resp.text, "draft_stats")
-
-            if table_html:
-                table_soup = BeautifulSoup(table_html, "html.parser")
-                polars_data = _extract_table(table_soup)
-        if polars_data:
-            break
-
-    if polars_data is None:
-        raise ValueError(f"No draft table found for {team.name} in {year}.")
-
-    df = pl.DataFrame(polars_data)
-    df = _clean_draft_dataframes(df)
-    return df
+    raise ValueError(f"No draft table found for {team.name} in {year}.")

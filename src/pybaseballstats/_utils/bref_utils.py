@@ -5,6 +5,7 @@ import polars as pl
 from bs4 import BeautifulSoup, Comment
 
 from pybaseballstats._consts.bref_consts import BREF_TEAM_CODE_SWITCHES, BREFTeams
+from pybaseballstats._utils.session_utils import PBSSessionManager
 
 # region shared
 
@@ -204,3 +205,21 @@ def _clean_draft_dataframes(draft_df: pl.DataFrame) -> pl.DataFrame:
     return draft_df.drop("draft_abb").with_columns(
         pl.col("player").str.replace_all(r"\s+\(minors\)$", "").alias("player")
     )
+
+
+def _get_draft_dataframe(url: str, verbose: bool = False) -> pl.DataFrame | None:
+    """Fetch and clean a Baseball Reference draft table, if present."""
+    session = PBSSessionManager.instance(max_req_per_minute=5)  # type: ignore[attr-defined]
+    resp = session.get(url, verbose=verbose)
+    if not resp:
+        return None
+
+    table_html = get_bref_table_html(resp.text, "draft_stats")
+    if not table_html:
+        return None
+
+    polars_data = _extract_table(BeautifulSoup(table_html, "html.parser"))
+    if not polars_data:
+        return None
+
+    return _clean_draft_dataframes(pl.DataFrame(polars_data))
