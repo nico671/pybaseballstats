@@ -13,9 +13,8 @@ from pybaseballstats._utils.bref_utils import (
     _extract_table,
     get_bref_table_html,
 )
-from pybaseballstats._utils.session_utils import PBSSessionManager
+from pybaseballstats._utils.session_utils import BREF_SESSION as session
 
-session = PBSSessionManager.instance(max_req_per_minute=5)  # type: ignore[attr-defined]
 __all__ = [
     "single_player_batting",
     "single_player_pitching",

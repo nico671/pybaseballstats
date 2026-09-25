@@ -1,16 +1,15 @@
 import asyncio
-import io
-from typing import Dict, List
+from typing import Any, Coroutine, Dict, List
 
 import nest_asyncio  # type: ignore
 import polars as pl
-import requests
 from bs4 import BeautifulSoup
 
 from pybaseballstats._consts.statcast_consts import (
     STATCAST_SINGLE_GAME_EV_PV_WP_URL,
     STATCAST_SINGLE_GAME_URL,
 )
+from pybaseballstats._utils.request_utils import get_csv
 from pybaseballstats._utils.statcast_single_game_utils import (
     _handle_single_game_date,
     fetch_gamefeed_table_html,
@@ -28,7 +27,7 @@ __all__ = [
 
 
 # helper for running async code in sync functions
-def _run_in_loop(coro):
+def _run_in_loop(coro: Coroutine[Any, Any, Any]) -> Any:
     """Run an async coroutine in the current runtime context.
 
     If an event loop is already active (e.g. notebooks), this function applies
@@ -95,12 +94,7 @@ def single_game_pitch_by_pitch(game_pk: int) -> pl.DataFrame:
     Returns:
         pl.DataFrame: Pitch-level Statcast data for the requested game.
     """
-    response = requests.get(
-        STATCAST_SINGLE_GAME_URL.format(game_pk=game_pk),
-    )
-    statcast_content = response.content
-    df = pl.read_csv(io.StringIO(statcast_content.decode("utf-8")))
-    return df
+    return get_csv(STATCAST_SINGLE_GAME_URL.format(game_pk=game_pk))
 
 
 def single_game_exit_velocity(game_pk: int, game_date: str) -> pl.DataFrame:

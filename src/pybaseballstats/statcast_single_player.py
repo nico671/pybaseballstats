@@ -1,20 +1,22 @@
 import asyncio
-import io
 from datetime import date
-from typing import Literal
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from typing import Literal, cast
 
 import polars as pl
-import requests
 
 from pybaseballstats._consts.statcast_consts import (
     STATCAST_SINGLE_PLAYER_PITCH_BY_PITCH_URL,
     STATCAST_SINGLE_PLAYER_STATS_URL,
     STATCAST_YEAR_RANGES,
 )
+from pybaseballstats._utils.request_utils import get_csv
 from pybaseballstats._utils.statcast_utils import (
     _create_date_ranges,
     _fetch_all_data,
     _load_all_data,
+    _retain_lazy_sources,
 )
 
 __all__ = ["single_player_pitch_by_pitch", "single_player_season_stats"]
@@ -72,47 +74,65 @@ async def _async_single_player_pitch_by_pitch(
     ]
 
     date_range_total_days = (season_end - season_start).days + 1
+    source_dir = (
+        None
+        if force_collect
+        else TemporaryDirectory(prefix="pybaseballstats-statcast-player-")
+    )
     try:
-        responses = await _fetch_all_data(
-            urls,
-            date_range_total_days,
-            concurrency=concurrency,
+        try:
+            responses = await _fetch_all_data(
+                urls,
+                date_range_total_days,
+                concurrency=concurrency,
+                show_progress=show_progress,
+                output_dir=Path(source_dir.name) if source_dir else None,
+            )
+        except RuntimeError as e:
+            raise RuntimeError(
+                "Unable to complete Statcast single-player pitch-by-pitch download "
+                f"for {player_type} {player_id} in {season}. {e}"
+            ) from e
+
+        if responses and isinstance(responses[0], Path):
+            non_empty_responses = responses
+        else:
+            non_empty_responses = [
+                response
+                for response in cast(list[pl.DataFrame], responses)
+                if not response.is_empty()
+            ]
+        if not non_empty_responses:
+            raise RuntimeError(
+                "No Statcast single-player pitch-by-pitch data found for "
+                f"{player_type} {player_id} in {season}."
+            )
+
+        if verbose:
+            print("Aligning and concatenating chunk data.")
+        data_list = _load_all_data(
+            non_empty_responses,
             show_progress=show_progress,
         )
-    except RuntimeError as e:
-        raise RuntimeError(
-            "Unable to complete Statcast single-player pitch-by-pitch download "
-            f"for {player_type} {player_id} in {season}. {e}"
-        ) from e
+        if not data_list:
+            raise RuntimeError(
+                "Unable to process Statcast single-player pitch-by-pitch data for "
+                f"{player_type} {player_id} in {season}."
+            )
 
-    non_empty_responses = [
-        response for response in responses if not response.is_empty()
-    ]
-    if not non_empty_responses:
-        raise RuntimeError(
-            "No Statcast single-player pitch-by-pitch data found for "
-            f"{player_type} {player_id} in {season}."
-        )
+        df = pl.concat(data_list)
+        if verbose:
+            print("Data retrieval complete.")
 
-    if verbose:
-        print("Aligning and concatenating chunk data.")
-    data_list = _load_all_data(
-        non_empty_responses,
-        show_progress=show_progress,
-    )
-    if not data_list:
-        raise RuntimeError(
-            "Unable to process Statcast single-player pitch-by-pitch data for "
-            f"{player_type} {player_id} in {season}."
-        )
-
-    df = pl.concat(data_list)
-    if verbose:
-        print("Data retrieval complete.")
-
-    if force_collect:
-        return df.collect()
-    return df
+        if force_collect:
+            return df.collect()
+        if source_dir and any(isinstance(response, Path) for response in responses):
+            _retain_lazy_sources(source_dir)
+            source_dir = None
+        return df
+    finally:
+        if source_dir:
+            source_dir.cleanup()
 
 
 def single_player_pitch_by_pitch(
@@ -136,6 +156,9 @@ def single_player_pitch_by_pitch(
         season (int): MLB season year.
         player_type (Literal["batter", "pitcher"]): Player perspective.
         force_collect (bool, optional): Return an eager ``pl.DataFrame`` when True.
+            Otherwise, downloaded CSV chunks are spooled to temporary files and
+            scanned lazily. Downloading still occurs before return. The temporary
+            files remain until process exit so derived LazyFrames remain valid.
         chunk_size_days (int, optional): Days per request chunk.
         show_progress (bool, optional): Show progress while downloading/loading.
         concurrency (int | None, optional): Max concurrent requests override.
@@ -246,9 +269,8 @@ def single_player_season_stats(
         player_id=player_id,
     )
 
-    resp = requests.get(url)
     try:
-        df = pl.read_csv(io.StringIO(resp.text))
+        df = get_csv(url)
     except pl.exceptions.NoDataError as e:
         raise RuntimeError(
             "No Statcast single-player data found for "

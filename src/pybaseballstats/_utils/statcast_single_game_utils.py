@@ -1,12 +1,13 @@
 import asyncio
 from contextlib import asynccontextmanager
 from datetime import datetime
+from typing import AsyncIterator
 
-from playwright.async_api import async_playwright
+from playwright.async_api import Page, async_playwright
 
 
 @asynccontextmanager
-async def get_page_async():
+async def get_page_async() -> AsyncIterator[Page]:
     """Async context manager for Playwright page."""
     async with async_playwright() as playwright:
         browser = await playwright.chromium.launch(
@@ -48,7 +49,7 @@ async def get_page_async():
             await browser.close()
 
 
-def _handle_single_game_date(game_date: str):
+def _handle_single_game_date(game_date: str) -> str:
     try:
         dt_object = datetime.strptime(game_date, "%Y-%m-%d")
     except ValueError:
@@ -58,7 +59,7 @@ def _handle_single_game_date(game_date: str):
 
 
 async def fetch_gamefeed_table_html(
-    page,
+    page: Page,
     url: str,
     selector: str,
     *,

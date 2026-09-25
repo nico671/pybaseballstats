@@ -3,12 +3,12 @@ import re
 from typing import List, Literal
 
 import polars as pl
-import requests
 
 from pybaseballstats._consts.statcast_leaderboard_consts import (
     ABS_CHALLENGES_LEADERBOARD_URL,
     StatcastLeaderboardsTeams,
 )
+from pybaseballstats._utils.request_utils import get_text
 
 
 def abs_challenges_leaderboard(
@@ -201,9 +201,8 @@ def abs_challenges_leaderboard(
     if in_zone_param_str:
         params["ballStrike"] = in_zone_param_str
 
-    response = requests.get(ABS_CHALLENGES_LEADERBOARD_URL, params=params)
-    response.raise_for_status()
-    match = re.search(r"const absData = (.*?);", response.text, re.DOTALL)
+    page = get_text(ABS_CHALLENGES_LEADERBOARD_URL, params=params)
+    match = re.search(r"const absData = (.*?);", page, re.DOTALL)
     if match is None:
         raise ValueError("ABS leaderboard page did not include leaderboard data")
     return pl.DataFrame(json.loads(match.group(1)))

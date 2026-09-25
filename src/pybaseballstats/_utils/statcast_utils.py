@@ -2,7 +2,9 @@ import asyncio
 import io
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
-from typing import Iterator, List, Optional, Tuple
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from typing import Iterator, List, Optional, Tuple, cast
 
 import aiohttp
 import polars as pl
@@ -12,12 +14,49 @@ from pybaseballstats._consts.statcast_consts import (
     STATCAST_YEAR_RANGES,
 )
 
+_LAZY_SOURCE_DIRS: list[TemporaryDirectory] = []
+
+
+def _retain_lazy_sources(source_dir: TemporaryDirectory) -> None:
+    """Keep scanned CSV files alive while a returned LazyFrame may use them."""
+    _LAZY_SOURCE_DIRS.append(source_dir)
+
 
 @dataclass
 class ChunkFetchResult:
     url: str
     dataframe: Optional[pl.DataFrame]
     error: Optional[str] = None
+    source_path: Optional[Path] = None
+
+
+def _validate_streamed_csv(path: Path) -> bool:
+    """Parse every row without loading the full download into memory."""
+    scan = pl.scan_csv(
+        path,
+        null_values=["null", "NULL", "NA"],
+        ignore_errors=True,
+        infer_schema_length=10000,
+    )
+    if "game_date" not in scan.collect_schema():
+        raise ValueError("Statcast CSV is missing game_date")
+    if hasattr(scan, "collect_batches"):
+        has_rows = False
+        for batch in scan.collect_batches(chunk_size=8192):
+            has_rows = has_rows or batch.height > 0
+        return has_rows
+
+    # Older supported Polars versions do not have LazyFrame.collect_batches.
+    reader = pl.read_csv_batched(
+        path,
+        null_values=["null", "NULL", "NA"],
+        ignore_errors=True,
+        infer_schema_length=10000,
+    )
+    has_rows = False
+    while (batches := reader.next_batches(1)) is not None:
+        has_rows = has_rows or any(batch.height > 0 for batch in batches)
+    return has_rows
 
 
 async def _fetch_and_parse_chunk(
@@ -25,6 +64,7 @@ async def _fetch_and_parse_chunk(
     url: str,
     semaphore: asyncio.Semaphore,
     max_retries: int = 3,
+    output_path: Path | None = None,
 ) -> ChunkFetchResult:
     async with semaphore:
         last_error = "Unknown error"
@@ -33,6 +73,37 @@ async def _fetch_and_parse_chunk(
             try:
                 async with session.get(url) as response:
                     if response.status == 200:
+                        if output_path is not None:
+                            try:
+                                size = 0
+                                with output_path.open("wb") as output:
+                                    async for block in response.content.iter_chunked(
+                                        64 * 1024
+                                    ):
+                                        output.write(block)
+                                        size += len(block)
+                                if size:
+                                    if not _validate_streamed_csv(output_path):
+                                        output_path.unlink()
+                                        return ChunkFetchResult(
+                                            url=url, dataframe=pl.DataFrame()
+                                        )
+                                    return ChunkFetchResult(
+                                        url=url,
+                                        dataframe=None,
+                                        source_path=output_path,
+                                    )
+                                last_error = "Empty response body"
+                            except Exception:
+                                output_path.unlink(missing_ok=True)
+                                raise
+                            if attempt < max_retries:
+                                await asyncio.sleep(1 * attempt)
+                                continue
+                            return ChunkFetchResult(
+                                url=url, dataframe=None, error=last_error
+                            )
+
                         raw_bytes = await response.read()
                         if not raw_bytes:
                             last_error = "Empty response body"
@@ -104,7 +175,8 @@ async def _fetch_all_data(
     *,
     concurrency: int | None = None,
     show_progress: bool = True,
-) -> List[pl.DataFrame]:
+    output_dir: Path | None = None,
+) -> List[pl.DataFrame | Path]:
     """
     Orchestrates the fetching of all URLs.
     """
@@ -116,7 +188,7 @@ async def _fetch_all_data(
     timeout = aiohttp.ClientTimeout(total=None, sock_connect=15, sock_read=45)
 
     semaphore = asyncio.Semaphore(concurrency)
-    results: List[pl.DataFrame] = []
+    results: List[pl.DataFrame | Path | None] = [None] * len(urls)
     failed_chunks: List[ChunkFetchResult] = []
 
     if show_progress:
@@ -131,7 +203,28 @@ async def _fetch_all_data(
             "User-Agent": "pybaseballstats (https://github.com/nico671/pybaseballstats)",
         },
     ) as session:
-        tasks = [_fetch_and_parse_chunk(session, url, semaphore) for url in urls]
+
+        async def _fetch_indexed(index: int, url: str) -> Tuple[int, ChunkFetchResult]:
+            result = await _fetch_and_parse_chunk(
+                session,
+                url,
+                semaphore,
+                output_path=(output_dir / f"chunk-{index:06d}.csv")
+                if output_dir is not None
+                else None,
+            )
+            return index, result
+
+        tasks = [_fetch_indexed(index, url) for index, url in enumerate(urls)]
+
+        def _add_result(index: int, result: ChunkFetchResult) -> None:
+            if result.source_path is not None:
+                results[index] = result.source_path
+            elif result.dataframe is not None:
+                if output_dir is None or not result.dataframe.is_empty():
+                    results[index] = result.dataframe
+            else:
+                failed_chunks.append(result)
 
         if show_progress:
             with Progress(
@@ -140,20 +233,20 @@ async def _fetch_all_data(
                 MofNCompleteColumn(),
                 TimeElapsedColumn(),
             ) as progress:
-                task_id = progress.add_task("Downloading & Parsing...", total=len(urls))
+                task_id = progress.add_task(
+                    "Downloading..." if output_dir else "Downloading & Parsing...",
+                    total=len(urls),
+                )
 
                 # as_completed yields futures as they finish, allowing us to update progress
                 for future in asyncio.as_completed(tasks):
-                    result = await future
-                    if result.dataframe is not None:
-                        results.append(result.dataframe)
-                    else:
-                        failed_chunks.append(result)
+                    index, result = await future
+                    _add_result(index, result)
                     progress.update(task_id, advance=1)
         else:
             gathered = await asyncio.gather(*tasks)
-            results.extend([r.dataframe for r in gathered if r.dataframe is not None])
-            failed_chunks.extend([r for r in gathered if r.dataframe is None])
+            for index, result in gathered:
+                _add_result(index, result)
 
     if failed_chunks:
         failed_count = len(failed_chunks)
@@ -172,38 +265,48 @@ async def _fetch_all_data(
             f"\nFailure details:\n{details}"
         )
 
-    return results
+    return [result for result in results if result is not None]
 
 
 def _load_all_data(
-    responses: List[pl.DataFrame], *, show_progress: bool = True
+    responses: List[pl.DataFrame | Path], *, show_progress: bool = True
 ) -> List[pl.LazyFrame]:
-    """Convert fetched DataFrames into LazyFrames with a consistent schema.
+    """Build lazy scans for streamed CSVs or align in-memory DataFrames.
 
-    The download step returns parsed DataFrames for reliability. This function:
-    - chooses a reference schema from the first successful chunk
-    - aligns subsequent chunks to that schema (adds missing cols, drops extras, casts)
-    - returns LazyFrames to preserve the public behavior of statcast.pitch_by_pitch_data
+    Scanned chunks use a relaxed diagonal concat to preserve schema drift.
+    In-memory responses use an explicit union schema for compatibility.
     """
+    if responses and all(isinstance(response, Path) for response in responses):
+        scans = [
+            pl.scan_csv(
+                path,
+                null_values=["null", "NULL", "NA"],
+                ignore_errors=True,
+                infer_schema_length=10000,
+            )
+            for path in responses
+            if isinstance(path, Path)
+        ]
+        return [pl.concat(scans, how="diagonal_relaxed")]
+
+    dataframes = cast(List[pl.DataFrame], responses)
     data_list: List[pl.LazyFrame] = []
-    schema: dict[str, pl.DataType] | None = None
+    schema: dict[str, pl.DataType] = {}
     schema_cols: List[str] = []
 
-    def _align_df(df: pl.DataFrame) -> pl.DataFrame:
-        assert schema is not None
-        assert schema_cols
+    for response in dataframes:
+        for column, dtype in response.schema.items():
+            if column not in schema:
+                schema[column] = dtype
+                schema_cols.append(column)
 
+    def _align_df(df: pl.DataFrame) -> pl.DataFrame:
         # Add missing columns as nulls with the expected dtype
         missing = [c for c in schema_cols if c not in df.columns]
         if missing:
             df = df.with_columns(
                 [pl.lit(None).cast(schema[c]).alias(c) for c in missing]
             )
-
-        # Drop any unexpected columns
-        extras = [c for c in df.columns if c not in schema]
-        if extras:
-            df = df.drop(extras)
 
         # Reorder and cast to match schema
         df = df.select(schema_cols)
@@ -231,34 +334,27 @@ def _load_all_data(
         ) as progress:
             process_task = progress.add_task("Processing data...", total=len(responses))
 
-            for response in responses:
+            for index, response in enumerate(dataframes):
                 try:
-                    if schema is None:
-                        schema = dict(response.schema)
-                        schema_cols = list(response.columns)
-                        data_list.append(response.lazy())
-                        continue
-
                     aligned = _align_df(response)
                     data_list.append(aligned.lazy())
                 except Exception as e:
-                    progress.log(f"Error processing data: {e}")
-                    continue
+                    raise RuntimeError(
+                        f"Failed to process Statcast chunk {index + 1}/{len(responses)} "
+                        f"(columns={response.columns}): {type(e).__name__}: {e}"
+                    ) from e
                 finally:
                     progress.update(process_task, advance=1)
     else:
-        for response in responses:
+        for index, response in enumerate(dataframes):
             try:
-                if schema is None:
-                    schema = dict(response.schema)
-                    schema_cols = list(response.columns)
-                    data_list.append(response.lazy())
-                    continue
-
                 aligned = _align_df(response)
                 data_list.append(aligned.lazy())
-            except Exception:
-                continue
+            except Exception as e:
+                raise RuntimeError(
+                    f"Failed to process Statcast chunk {index + 1}/{len(responses)} "
+                    f"(columns={response.columns}): {type(e).__name__}: {e}"
+                ) from e
     return data_list
 
 

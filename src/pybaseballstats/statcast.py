@@ -1,4 +1,6 @@
 import asyncio
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Optional
 
 import polars as pl
@@ -12,6 +14,7 @@ from pybaseballstats._utils.statcast_utils import (
     _fetch_all_data,
     _handle_dates,
     _load_all_data,
+    _retain_lazy_sources,
 )
 
 __all__ = ["pitch_by_pitch_data"]
@@ -35,6 +38,9 @@ async def _async_pitch_by_pitch_data(
         end_date (str): End date in ``YYYY-MM-DD`` format.
         team (StatcastTeams | None, optional): Optional team filter.
         force_collect (bool, optional): Return an eager ``pl.DataFrame`` when True.
+            Otherwise, downloaded CSV chunks are spooled to temporary files and
+            scanned lazily. Downloading still occurs before return. The temporary
+            files remain until process exit so derived LazyFrames remain valid.
         chunk_size_days (int, optional): Days per request chunk.
         show_progress (bool, optional): Show progress while downloading/loading.
         concurrency (int | None, optional): Max concurrent requests override.
@@ -73,32 +79,45 @@ async def _async_pitch_by_pitch_data(
 
     # inclusive days in the requested range (used only for concurrency heuristics)
     date_range_total_days = (end_dt - start_dt).days + 1
+    source_dir = (
+        None
+        if force_collect
+        else TemporaryDirectory(prefix="pybaseballstats-statcast-")
+    )
     try:
-        responses = await _fetch_all_data(
-            urls,
-            date_range_total_days,
-            concurrency=concurrency,
-            show_progress=show_progress,
-        )
-    except RuntimeError as e:
-        raise RuntimeError(
-            "Unable to complete Statcast pitch-by-pitch download for the requested "
-            f"range {start_dt} to {end_dt}. {e}"
-        ) from e
-    data_list = _load_all_data(responses, show_progress=show_progress)
+        try:
+            responses = await _fetch_all_data(
+                urls,
+                date_range_total_days,
+                concurrency=concurrency,
+                show_progress=show_progress,
+                output_dir=Path(source_dir.name) if source_dir else None,
+            )
+        except RuntimeError as e:
+            raise RuntimeError(
+                "Unable to complete Statcast pitch-by-pitch download for the requested "
+                f"range {start_dt} to {end_dt}. {e}"
+            ) from e
+        data_list = _load_all_data(responses, show_progress=show_progress)
 
-    if not data_list:
-        print("No data was successfully retrieved.")
+        if not data_list:
+            print("No data was successfully retrieved.")
 
-    if verbose:
-        print("Concatenating data.")
-    df = pl.concat(data_list)
-    if verbose:
-        print("Data retrieval complete.")
+        if verbose:
+            print("Concatenating data.")
+        df = pl.concat(data_list)
+        if verbose:
+            print("Data retrieval complete.")
 
-    if force_collect:
-        return df.collect()
-    return df
+        if force_collect:
+            return df.collect()
+        if source_dir and any(isinstance(response, Path) for response in responses):
+            _retain_lazy_sources(source_dir)
+            source_dir = None
+        return df
+    finally:
+        if source_dir:
+            source_dir.cleanup()
 
 
 def pitch_by_pitch_data(
@@ -122,6 +141,9 @@ def pitch_by_pitch_data(
         end_date (str): End date in ``YYYY-MM-DD`` format.
         team (StatcastTeams | None, optional): Optional team filter.
         force_collect (bool, optional): Return an eager ``pl.DataFrame`` when True.
+            Otherwise, downloaded CSV chunks are spooled to temporary files and
+            scanned lazily. Downloading still occurs before return. The temporary
+            files remain until process exit so derived LazyFrames remain valid.
         chunk_size_days (int, optional): Days per request chunk.
         show_progress (bool, optional): Show progress while downloading/loading.
         concurrency (int | None, optional): Max concurrent requests override.

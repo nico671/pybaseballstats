@@ -1,10 +1,12 @@
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
+from urllib.parse import parse_qs, urlsplit
 
 import polars as pl
 import pytest
 
 import pybaseballstats.statcast_leaderboards as sl
-from pybaseballstats.statcast_leaderboards import _abs
+from pybaseballstats.statcast_leaderboards import _pitching
 
 
 # Helper to run tests in a separate thread to avoid "Sync API inside asyncio loop" errors
@@ -240,12 +242,15 @@ def test_percentile_rankings_leaderboard_builds_batter_urls(monkeypatch):
     requested_urls = []
 
     class Response:
+        def raise_for_status(self) -> None:
+            pass
+
         text = (
             "player_name,player_id,year,xwoba,xba,hard_hit_percent,bat_speed\n"
             '"Judge, Aaron",592450,2025,100,,99,98\n'
         )
 
-    def fake_get(url):
+    def fake_get(url, **kwargs):
         requested_urls.append(url)
         return Response()
 
@@ -278,12 +283,15 @@ def test_percentile_rankings_leaderboard_builds_pitcher_url(monkeypatch):
     requested_urls = []
 
     class Response:
+        def raise_for_status(self) -> None:
+            pass
+
         text = (
             "player_name,player_id,year,xwoba,xera,fb_velocity,curve_spin\n"
             '"Sale, Chris",519242,2025,92,92,58,\n'
         )
 
-    def fake_get(url):
+    def fake_get(url, **kwargs):
         requested_urls.append(url)
         return Response()
 
@@ -406,12 +414,15 @@ def test_fielding_run_value_leaderboard_builds_url(monkeypatch):
     requested_urls = []
 
     class Response:
+        def raise_for_status(self) -> None:
+            pass
+
         text = (
             "name,id,year,api_game_date_month_text,total_runs\n"
             '"Blue Jays",141,2024,April,12.5\n'
         )
 
-    def fake_get(url):
+    def fake_get(url, **kwargs):
         requested_urls.append(url)
         return Response()
 
@@ -480,13 +491,16 @@ def test_catcher_blocking_leaderboard_builds_url(monkeypatch):
     requested_urls = []
 
     class Response:
+        def raise_for_status(self) -> None:
+            pass
+
         text = (
             "player_id,player_name,team_name,start_year,end_year,pitches,"
             "catcher_blocking_runs,blocks_above_average\n"
             '672386,"Kirk, Alejandro",TOR,2025,2025,2118,3,13\n'
         )
 
-    def fake_get(url):
+    def fake_get(url, **kwargs):
         requested_urls.append(url)
         return Response()
 
@@ -566,12 +580,15 @@ def test_catcher_framing_leaderboard_builds_url(monkeypatch):
     requested_urls = []
 
     class Response:
+        def raise_for_status(self) -> None:
+            pass
+
         text = (
             "id,name,pitches,rv_tot,pct_tot,rv_11,pct_11\n"
             '672386,"Kirk, Alejandro",878,0.46,0.84,0,0.60\n'
         )
 
-    def fake_get(url):
+    def fake_get(url, **kwargs):
         requested_urls.append(url)
         return Response()
 
@@ -630,6 +647,9 @@ def test_catcher_pop_time_leaderboard_builds_url(monkeypatch):
     requested_urls = []
 
     class Response:
+        def raise_for_status(self) -> None:
+            pass
+
         text = (
             "entity_name,entity_id,team_id,age,maxeff_arm_2b_3b_sba,"
             "exchange_2b_3b_sba,pop_2b_sba_count,pop_2b_sba,pop_2b_cs,"
@@ -637,7 +657,7 @@ def test_catcher_pop_time_leaderboard_builds_url(monkeypatch):
             '"Kirk, Alejandro",672386,141,27,82.4,0.63,20,1.95,1.92,1.98,5,1.4,1.35,1.45\n'
         )
 
-    def fake_get(url):
+    def fake_get(url, **kwargs):
         requested_urls.append(url)
         return Response()
 
@@ -706,13 +726,16 @@ def test_catcher_stance_leaderboard_builds_url(monkeypatch):
     requested_urls = []
 
     class Response:
+        def raise_for_status(self) -> None:
+            pass
+
         text = (
             "id,name,year,pitches,knee_down_pct,l_down_r_up_pct,r_down_l_up_pct,"
             "both_down_pct,both_up_pct,catching_rv\n"
             '672386,"Kirk, Alejandro",2024,2500,0.5,0.2,0.1,0.1,0.1,1.2\n'
         )
 
-    def fake_get(url):
+    def fake_get(url, **kwargs):
         requested_urls.append(url)
         return Response()
 
@@ -789,6 +812,9 @@ def test_catcher_throwing_leaderboard_builds_url(monkeypatch):
     requested_urls = []
 
     class Response:
+        def raise_for_status(self) -> None:
+            pass
+
         text = (
             "player_id,player_name,team_name,start_year,end_year,sb_attempts,"
             "catcher_stealing_runs,caught_stealing_above_average,n_cs,rate_cs,"
@@ -796,7 +822,7 @@ def test_catcher_throwing_leaderboard_builds_url(monkeypatch):
             '672386,"Kirk, Alejandro",TOR,2024,2024,75,1.2,2.1,15,0.2,0.25,0.03,1.9,0.6,80\n'
         )
 
-    def fake_get(url):
+    def fake_get(url, **kwargs):
         requested_urls.append(url)
         return Response()
 
@@ -907,12 +933,12 @@ def test_abs_challenges_leaderboard_reads_embedded_page_data(monkeypatch):
         def raise_for_status(self) -> None:
             return None
 
-    def get(url: str, *, params: dict[str, str | list[str]]) -> Response:
+    def get(url: str, *, params: dict[str, str | list[str]], timeout: int) -> Response:
         captured["url"] = url
         captured["params"] = params
         return Response()
 
-    monkeypatch.setattr(_abs.requests, "get", get)
+    monkeypatch.setattr(sl.requests, "get", get)
 
     df = sl.abs_challenges_leaderboard(
         season=2026,
@@ -1164,6 +1190,43 @@ def test_arm_angle_leaderboard_badinputs():
         )
 
 
+def test_arm_angle_url_and_default_end_date_are_set_at_call_time(monkeypatch):
+    requested_urls = []
+    current_day = [2]
+
+    class Clock(datetime):
+        @classmethod
+        def today(cls):
+            return cls(2023, 5, current_day[0])
+
+    class Response:
+        text = "player_name\nPitcher\n"
+
+        def raise_for_status(self) -> None:
+            pass
+
+    def fake_get(url, **kwargs):
+        requested_urls.append(url)
+        return Response()
+
+    monkeypatch.setattr(_pitching, "datetime", Clock)
+    monkeypatch.setattr(sl.requests, "get", fake_get)
+
+    sl.arm_angle_leaderboard(start_date="2023-04-01")
+    current_day[0] = 3
+    sl.arm_angle_leaderboard(start_date="2023-04-01")
+
+    parsed_urls = [urlsplit(url) for url in requested_urls]
+    queries = [parse_qs(url.query) for url in parsed_urls]
+    assert {url.path for url in parsed_urls} == {"/leaderboard/pitcher-arm-angles"}
+    assert all(query["csv"] == ["true"] for query in queries)
+    assert [query["dateStart"] for query in queries] == [["2023-04-01"]] * 2
+    assert [query["dateEnd"] for query in queries] == [
+        ["2023-05-02"],
+        ["2023-05-03"],
+    ]
+
+
 @pytest.mark.live
 def test_arm_angle_leaderboard():
     df = sl.arm_angle_leaderboard(
@@ -1371,12 +1434,15 @@ def test_baserunning_run_value_leaderboard_builds_url(monkeypatch):
     requested_urls = []
 
     class Response:
+        def raise_for_status(self) -> None:
+            pass
+
         text = (
             "player_id,entity_name,team_name,start_year,end_year,runner_runs_tot\n"
             '677951,"Witt Jr., Bobby",KC,2024,2025,12.5\n'
         )
 
-    def fake_get(url):
+    def fake_get(url, **kwargs):
         requested_urls.append(url)
         return Response()
 
@@ -1404,12 +1470,15 @@ def test_baserunning_run_value_leaderboard_builds_url(monkeypatch):
 
 def test_baserunning_run_value_leaderboard_normalizes_group_identifiers(monkeypatch):
     class Response:
+        def raise_for_status(self) -> None:
+            pass
+
         text = (
             "player_id,entity_name,team_name,start_year,end_year,runner_runs_tot\n"
             '147,"Yankees",NYY,2024,2024,10.0\n'
         )
 
-    monkeypatch.setattr(sl.requests, "get", lambda url: Response())
+    monkeypatch.setattr(sl.requests, "get", lambda url, **kwargs: Response())
 
     team_df = sl.baserunning_run_value_leaderboard(
         start_season=2024, end_season=2024, group_by="Running Team"
@@ -1476,13 +1545,16 @@ def test_basestealing_run_value_leaderboard_builds_url(monkeypatch):
     requested_urls = []
 
     class Response:
+        def raise_for_status(self) -> None:
+            pass
+
         text = (
             "player_id,player_name,team_name,start_year,end_year,key_target_base,"
             "runs_stolen_on_running_act,n_init\n"
             '677951,"Witt Jr., Bobby",KC,2024,2025,"2B",3.5,25\n'
         )
 
-    def fake_get(url):
+    def fake_get(url, **kwargs):
         requested_urls.append(url)
         return Response()
 
@@ -1515,13 +1587,16 @@ def test_basestealing_run_value_leaderboard_builds_url(monkeypatch):
 
 def test_basestealing_run_value_leaderboard_keeps_identifier_columns(monkeypatch):
     class Response:
+        def raise_for_status(self) -> None:
+            pass
+
         text = (
             "player_id,player_name,team_name,start_year,end_year,key_target_base,"
             "runs_stolen_on_running_act,n_init\n"
             '147,"Yankees",NYY,2024,2024,"All",-3.7,10\n'
         )
 
-    monkeypatch.setattr(sl.requests, "get", lambda url: Response())
+    monkeypatch.setattr(sl.requests, "get", lambda url, **kwargs: Response())
 
     df = sl.basestealing_run_value_leaderboard(
         start_season=2024, end_season=2024, group_by="Running Team"
@@ -1568,13 +1643,16 @@ def test_extra_bases_taken_run_value_leaderboard_builds_url(monkeypatch):
     requested_urls = []
 
     class Response:
+        def raise_for_status(self) -> None:
+            pass
+
         text = (
             "entity_name,entity_id,team_name,year,runner_runs,"
             "runner_runs_advances\n"
             '"Rojas, Miguel",500743,LAD,2024,1.5,2.0\n'
         )
 
-    def fake_get(url):
+    def fake_get(url, **kwargs):
         requested_urls.append(url)
         return Response()
 
@@ -1604,12 +1682,15 @@ def test_extra_bases_taken_run_value_leaderboard_normalizes_group_identifiers(
     monkeypatch,
 ):
     class Response:
+        def raise_for_status(self) -> None:
+            pass
+
         text = (
             "entity_name,entity_id,team_name,year,runner_runs\n"
             '"Yankees",147,NYY,2024,1.0\n'
         )
 
-    monkeypatch.setattr(sl.requests, "get", lambda url: Response())
+    monkeypatch.setattr(sl.requests, "get", lambda url, **kwargs: Response())
 
     team_df = sl.extra_bases_taken_run_value_leaderboard(
         start_season=2024, end_season=2024, group_by="Batting Team"
@@ -1660,13 +1741,16 @@ def test_sprint_speed_leaderboard_builds_player_url(monkeypatch):
     requested_urls = []
 
     class Response:
+        def raise_for_status(self) -> None:
+            pass
+
         text = (
             '"last_name, first_name",player_id,team_id,team,position,age,'
             "competitive_runs,bolts,hp_to_1b,sprint_speed\n"
             '"Witt Jr., Bobby",677951,118,KC,SS,25,543,257,4.12,30.4\n'
         )
 
-    def fake_get(url):
+    def fake_get(url, **kwargs):
         requested_urls.append(url)
         return Response()
 
@@ -1707,13 +1791,16 @@ def test_sprint_speed_leaderboard_builds_team_urls(monkeypatch):
     requested_urls = []
 
     class Response:
+        def raise_for_status(self) -> None:
+            pass
+
         text = (
             "team,team_id,year,n,competitive_runs,bolts,home_to_first,"
             "avg_sprint_speed,fastest_sprint_speed\n"
             '"Yankees",147,2024,18,1543,29,4.52,26.8,"29.0"\n'
         )
 
-    def fake_get(url):
+    def fake_get(url, **kwargs):
         requested_urls.append(url)
         return Response()
 
@@ -1767,13 +1854,16 @@ def test_running_splits_leaderboard_builds_url(monkeypatch):
     requested_urls = []
 
     class Response:
+        def raise_for_status(self) -> None:
+            pass
+
         text = (
             '"last_name, first_name",player_id,name_abbrev,team_id,position_name,'
             "age,bat_side,seconds_since_hit_000,seconds_since_hit_005\n"
             '"Volpe, Anthony",683011,NYY,147,SS,23,R,0.00,0.56\n'
         )
 
-    def fake_get(url):
+    def fake_get(url, **kwargs):
         requested_urls.append(url)
         return Response()
 

@@ -18,9 +18,7 @@ from pybaseballstats._utils.bref_utils import (
     get_bref_table_html,
     resolve_bref_team_code,
 )
-from pybaseballstats._utils.session_utils import PBSSessionManager
-
-session = PBSSessionManager.instance(max_req_per_minute=5)  # type: ignore[attr-defined]
+from pybaseballstats._utils.session_utils import BREF_SESSION as session
 
 __all__ = [
     "BREFTeams",
@@ -442,32 +440,7 @@ def pitching(
         raise ValueError(
             f"No {metric_type} pitching table found for {team.name} in {year}."
         )
-    if metric_type == "cumulative":
-        # This table exposes duplicated columns in markup, so normalize all
-        # extracted columns to the row count of the player column.
-        reference_row_count = len(polars_data.get("player", []))
-        normalized_data: dict[str, list[str | int | float | None]] = {}
-        for column_name, series in polars_data.items():
-            values = series.to_list()
-
-            if (
-                column_name == "earned_run_avg_plus"
-                and reference_row_count > 0
-                and len(values) == reference_row_count * 2
-            ):
-                values = values[::2]
-
-            if reference_row_count > 0:
-                if len(values) > reference_row_count:
-                    values = values[:reference_row_count]
-                elif len(values) < reference_row_count:
-                    values = values + [None] * (reference_row_count - len(values))
-
-            normalized_data[column_name] = values
-
-        df = pl.DataFrame(normalized_data)
-    else:
-        df = pl.DataFrame(polars_data)
+    df = pl.DataFrame(polars_data)
 
     if "ranker" in df.columns:
         df = df.drop("ranker")

@@ -39,7 +39,7 @@ class StatcastTeams(Enum):
     # NATIONAL_LEAGUE = "NationalL"
 
     @classmethod
-    def show_options(cls):
+    def show_options(cls) -> str:
         return "\n".join(f"{team.name}: {team.value}" for team in cls)
 
 

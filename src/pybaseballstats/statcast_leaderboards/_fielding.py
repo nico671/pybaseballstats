@@ -1,10 +1,8 @@
-import io
 import math
 from datetime import datetime
 from typing import Literal
 
 import polars as pl
-import requests
 
 from pybaseballstats._consts.statcast_leaderboard_consts import (
     ARM_STRENGTH_LEADERBOARD_URL,
@@ -12,6 +10,7 @@ from pybaseballstats._consts.statcast_leaderboard_consts import (
     FIELDING_RUN_VALUE_LEADERBOARD_URL,
     StatcastLeaderboardsTeams,
 )
+from pybaseballstats._utils.request_utils import get_csv
 
 
 def fielding_run_value_leaderboard(
@@ -213,8 +212,7 @@ def fielding_run_value_leaderboard(
         min_innings=min_innings_param,
         min_results=min_results,
     )
-    resp = requests.get(url)
-    df = pl.read_csv(io.StringIO(resp.text))
+    df = get_csv(url)
     if stat_type in ["Fielders", "Batters", "Pitchers"]:
         return df.rename({"id": "player_id", "name": "player_name"})
     return df.rename({"id": "team_id", "name": "team_name"})
@@ -278,8 +276,7 @@ def arm_strength_leaderboard(
         pos=ARM_STRENGTH_POS_INPUT_MAP[pos],
         team=team_value,
     )
-    resp = requests.get(url)
-    df = pl.read_csv(io.StringIO(resp.text), truncate_ragged_lines=True)
+    df = get_csv(url, truncate_ragged_lines=True)
     if stat_type == "player":
         df = df.drop(["team_name"])
     if stat_type == "team":

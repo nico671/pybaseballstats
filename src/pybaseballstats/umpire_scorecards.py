@@ -1,4 +1,3 @@
-import json
 from datetime import datetime
 from typing import Literal
 
@@ -12,6 +11,7 @@ from pybaseballstats._consts.umpire_scorecard_consts import (
     UMPIRE_SCORECARDS_PLAYERS_URL,
     UmpireScorecardTeams,
 )
+from pybaseballstats._utils.request_utils import get_json
 
 __all__ = [
     "game_type_options",
@@ -23,7 +23,7 @@ __all__ = [
 ]
 
 
-def game_type_options():
+def game_type_options() -> None:
     """Print supported game type filter codes for Umpire Scorecards endpoints."""
     print(
         """Game Type Options:
@@ -111,7 +111,7 @@ def game_data(
                 if focus_team_home_away == "a":
                     team_string += "-h"
     # call to the internal Umpire Scorecard API
-    resp = requests.get(
+    data = get_json(
         UMPIRE_SCORECARD_GAMES_URL.format(
             start_date=start_date_str,
             end_date=end_date_str,
@@ -122,7 +122,7 @@ def game_data(
 
     # loading the data into a polars dataframe
     df = pl.DataFrame(
-        json.loads(resp.text)["rows"],
+        data["rows"],
     )
     # filtering by umpire name if provided
     if umpire_name != "" and umpire_name is not None:
@@ -214,7 +214,7 @@ def umpire_data(
                     team_string += "-h"
     if min_games_called < 0:
         raise ValueError("min_games_called must be greater than or equal to 0")
-    resp = requests.get(
+    data = get_json(
         UMPIRE_SCORECARD_UMPIRES_URL.format(
             start_date=start_date_str,
             end_date=end_date_str,
@@ -224,7 +224,7 @@ def umpire_data(
     )
 
     df = pl.DataFrame(
-        json.loads(resp.text)["rows"],
+        data["rows"],
     )
     if umpire_name != "" and umpire_name is not None:
         unique_umpire_names = df.select(pl.col("umpire").unique()).to_series().to_list()
@@ -284,7 +284,7 @@ def team_data(
             "game_type must be one of '*', 'R', 'A', 'P', 'F', 'D', 'L', or 'W'"
         )
 
-    resp = requests.get(
+    data = get_json(
         UMPIRE_SCORECARD_TEAMS_URL.format(
             start_date=start_date_str,
             end_date=end_date_str,
@@ -293,7 +293,7 @@ def team_data(
     )
 
     df = pl.DataFrame(
-        json.loads(resp.text)["rows"],
+        data["rows"],
     )
     if focus_team != UmpireScorecardTeams.ALL:
         df = df.filter(pl.col("team").str.contains(focus_team.value))
@@ -355,22 +355,21 @@ def player_data(
         raise ValueError("player_type must be one of 'C', 'P', or 'B'")
     assert isinstance(team, UmpireScorecardTeams)
 
-    resp = requests.get(
-        UMPIRE_SCORECARDS_PLAYERS_URL.format(
-            player_type=player_type,
-            start_date=start_date_str,
-            end_date=end_date_str,
-            game_type=game_type,
-            team=team.value,
-        )
-    )
     try:
-        resp.raise_for_status()
+        data = get_json(
+            UMPIRE_SCORECARDS_PLAYERS_URL.format(
+                player_type=player_type,
+                start_date=start_date_str,
+                end_date=end_date_str,
+                game_type=game_type,
+                team=team.value,
+            )
+        )
     except requests.exceptions.HTTPError as e:
         raise ValueError(f"HTTP error occurred: {e}")
     try:
         df = pl.DataFrame(
-            json.loads(resp.text)["rows"],
+            data["rows"],
         )
     except KeyError:
         raise ValueError("No data found for the given parameters.")

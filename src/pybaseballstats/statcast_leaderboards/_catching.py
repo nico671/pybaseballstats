@@ -1,9 +1,7 @@
-import io
 from datetime import datetime
 from typing import List, Literal
 
 import polars as pl
-import requests
 
 from pybaseballstats._consts.statcast_leaderboard_consts import (
     CATCHER_BLOCKING_LEADERBOARD_URL,
@@ -13,6 +11,7 @@ from pybaseballstats._consts.statcast_leaderboard_consts import (
     POPTIME_LEADERBOARD_URL,
     StatcastLeaderboardsTeams,
 )
+from pybaseballstats._utils.request_utils import get_csv
 
 
 def catcher_blocking_leaderboard(
@@ -108,8 +107,7 @@ def catcher_blocking_leaderboard(
         team=team_param,
         group_by=group_by_param,
     )
-    resp = requests.get(url)
-    return pl.read_csv(io.StringIO(resp.text))
+    return get_csv(url)
 
 
 def catcher_framing_leaderboard(
@@ -230,8 +228,7 @@ def catcher_framing_leaderboard(
         pitch_hand=pitch_hand_param,
         ball_strike=ball_strike_param,
     )
-    resp = requests.get(url)
-    df = pl.read_csv(io.StringIO(resp.text))
+    df = get_csv(url)
     if group_by in ["catcher", "batter", "pitcher"]:
         return df.rename({"id": "player_id", "name": "player_name"})
     if group_by in ["catching-team", "batting-team"]:
@@ -280,8 +277,7 @@ def catcher_pop_time_leaderboard(
         min_2b_attempts=min_2b_attempts,
         min_3b_attempts=min_3b_attempts,
     )
-    resp = requests.get(url)
-    return pl.read_csv(io.StringIO(resp.text))
+    return get_csv(url)
 
 
 def catcher_stance_leaderboard(
@@ -435,8 +431,7 @@ def catcher_stance_leaderboard(
         start_date=date_params["start_date"],
         end_date=date_params["end_date"],
     )
-    resp = requests.get(url)
-    df = pl.read_csv(io.StringIO(resp.text))
+    df = get_csv(url)
     if group_by in ["catcher", "batter", "pitcher"]:
         return df.rename({"id": "player_id", "name": "player_name"})
     if group_by in ["catching-team", "batting-team"]:
@@ -528,8 +523,7 @@ def catcher_throwing_leaderboard(
         with_team_only="1" if with_team_only else "0",
         target_base=target_base,
     )
-    resp = requests.get(url)
-    return pl.read_csv(io.StringIO(resp.text))
+    return get_csv(url)
 
 
 # endregion

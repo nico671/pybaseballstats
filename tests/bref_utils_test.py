@@ -74,6 +74,27 @@ def test_extract_table_handles_home_or_vis_and_missing_values():
     assert data["optional"].to_list() == [None, None]
 
 
+def test_extract_table_keeps_missing_cells_in_their_rows():
+    soup = BeautifulSoup(
+        """
+        <table><tbody>
+          <tr><th data-stat="player">A</th><td data-stat="R">1</td></tr>
+          <tr><th data-stat="player">B</th><td data-stat="H">2</td></tr>
+          <tr><th data-stat="player">C</th><td data-stat="R">3</td>
+              <td data-stat="R">99</td></tr>
+        </tbody></table>
+        """,
+        "html.parser",
+    )
+
+    data = _extract_table(soup.find("table"))
+
+    assert pl.DataFrame(data).shape == (3, 3)
+    assert data["player"].to_list() == ["A", "B", "C"]
+    assert data["R"].to_list() == [1, None, 3]
+    assert data["H"].to_list() == [None, 2, None]
+
+
 def test_resolve_team_code_switches():
     assert resolve_bref_team_code(BREFTeams.ANGELS, 2004) == "ANA"
     assert resolve_bref_team_code(BREFTeams.ANGELS, 2005) == "LAA"

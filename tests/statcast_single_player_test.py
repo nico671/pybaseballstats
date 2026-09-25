@@ -2,6 +2,7 @@ import polars as pl
 import pytest
 
 import pybaseballstats.statcast_single_player as ssp
+from pybaseballstats._utils import request_utils
 
 
 @pytest.fixture
@@ -80,11 +81,13 @@ def test_single_player_pitch_by_pitch_query_and_return_type(
         *,
         concurrency=None,
         show_progress=True,
+        output_dir=None,
     ):
         captured["urls"] = urls
         captured["date_range_total_days"] = date_range_total_days
         captured["concurrency"] = concurrency
         captured["show_progress"] = show_progress
+        captured["output_dir"] = output_dir
         return [
             pl.DataFrame(),
             pl.DataFrame(
@@ -114,6 +117,7 @@ def test_single_player_pitch_by_pitch_query_and_return_type(
     assert captured["date_range_total_days"] == 229
     assert captured["concurrency"] == 3
     assert captured["show_progress"] is False
+    assert captured["output_dir"].name.startswith("pybaseballstats-statcast-player-")
     assert len(captured["urls"]) == 1
     url = captured["urls"][0]
     assert "type=details" in url
@@ -186,6 +190,25 @@ def test_single_player_pitch_by_pitch_no_data(monkeypatch, run_async_inline):
             "No Statcast single-player pitch-by-pitch data found for "
             "batter 999999999 in 2025"
         ),
+    ):
+        ssp.single_player_pitch_by_pitch(
+            player_id=999999999,
+            season=2025,
+            player_type="batter",
+            show_progress=False,
+        )
+
+
+def test_single_player_pitch_by_pitch_no_rows_in_streamed_chunks(
+    monkeypatch, run_async_inline
+):
+    async def _mock_fetch_all_data(*args, **kwargs):
+        return []
+
+    monkeypatch.setattr(ssp, "_fetch_all_data", _mock_fetch_all_data)
+
+    with pytest.raises(
+        RuntimeError, match="No Statcast single-player pitch-by-pitch data"
     ):
         ssp.single_player_pitch_by_pitch(
             player_id=999999999,
@@ -274,12 +297,15 @@ def test_single_player_season_stats_player_not_found():
 
 def test_single_player_season_stats_malformed_csv(monkeypatch):
     class MockResponse:
+        def raise_for_status(self) -> None:
+            pass
+
         text = "a,b\n1,2,3\n"
 
     def _mock_get(*args, **kwargs):
         return MockResponse()
 
-    monkeypatch.setattr(ssp.requests, "get", _mock_get)
+    monkeypatch.setattr(request_utils.requests, "get", _mock_get)
 
     with pytest.raises(
         RuntimeError,

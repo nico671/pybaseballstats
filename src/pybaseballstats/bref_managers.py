@@ -9,9 +9,8 @@ from pybaseballstats._utils.bref_utils import (
     _extract_table,
     get_bref_table_html,
 )
-from pybaseballstats._utils.session_utils import PBSSessionManager
+from pybaseballstats._utils.session_utils import BREF_SESSION as session
 
-session = PBSSessionManager.instance(max_req_per_minute=5)  # type: ignore[attr-defined]
 __all__ = ["managers_basic_data", "managers_tendencies_data"]
 
 
@@ -79,8 +78,12 @@ def managers_tendencies_data(year: int, verbose: bool = False) -> pl.DataFrame:
     if year < 1871:
         raise ValueError("Year must be greater than 1871")
     resp = session.get(BREF_MANAGER_TENDENCIES_URL.format(year=year), verbose=verbose)
+    if resp is None:
+        raise ValueError(f"No manager tendencies table found for {year}.")
     soup = BeautifulSoup(resp.content, "html.parser")
     table = soup.find("table", {"id": "manager_tendencies"})
+    if table is None:
+        raise ValueError(f"No manager tendencies table found for {year}.")
     df = pl.DataFrame(_extract_table(table))
     df = df.drop("ranker")
     df = df.with_columns(

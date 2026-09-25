@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from pybaseballstats._utils.session_utils import PBSSessionManager
+from pybaseballstats._utils.session_utils import BREF_SESSION
 
 FIXTURE_ROOT = Path(__file__).parent / "fixtures" / "bref"
 
@@ -59,5 +59,4 @@ def replay_bref_pages(request: pytest.FixtureRequest, monkeypatch: pytest.Monkey
             raise AssertionError(f"No offline BREF fixture recorded for {url}") from exc
         return FixtureResponse((FIXTURE_ROOT / relative_path).read_bytes())
 
-    session = PBSSessionManager.instance()  # type: ignore[attr-defined]
-    monkeypatch.setattr(session, "get", get_fixture)
+    monkeypatch.setattr(BREF_SESSION, "get", get_fixture)

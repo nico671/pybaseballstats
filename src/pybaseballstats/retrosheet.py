@@ -2,12 +2,12 @@ from datetime import datetime
 from typing import Optional
 
 import polars as pl
-import requests
 
 from pybaseballstats._consts.retrosheet_consts import (
     EJECTIONS_URL,
     RETROSHEET_KEEP_COLS,
 )
+from pybaseballstats._utils.request_utils import get_bytes
 from pybaseballstats._utils.retrosheet_utils import _get_people_data, _strip_accents
 
 __all__ = ["player_lookup", "ejections_data"]
@@ -135,7 +135,7 @@ def ejections_data(
         pl.DataFrame: Ejection rows matching the provided filters.
     """
     df = pl.read_csv(
-        requests.get(EJECTIONS_URL).content,
+        get_bytes(EJECTIONS_URL),
         infer_schema_length=None,
         truncate_ragged_lines=True,
         schema_overrides={"INNING": pl.String},

@@ -2,10 +2,10 @@ import re
 from typing import Any
 
 import polars as pl
-from bs4 import BeautifulSoup, Comment
+from bs4 import BeautifulSoup, Comment, Tag
 
 from pybaseballstats._consts.bref_consts import BREF_TEAM_CODE_SWITCHES, BREFTeams
-from pybaseballstats._utils.session_utils import PBSSessionManager
+from pybaseballstats._utils.session_utils import BREF_SESSION
 
 # region shared
 
@@ -106,13 +106,14 @@ def _infer_series_dtype(values: list[str | int | float | None]) -> Any:
     return pl.Utf8
 
 
-def _extract_table(table):
+def _extract_table(table: Tag) -> dict[str, pl.Series]:
     """Extracts data from an HTML table into a dictionary of lists.
 
     Works specifically for Baseball Reference Tables
     """
+    assert table.tbody is not None
     trs = table.tbody.find_all("tr")
-    row_data: dict[str, list[str | int | float | None]] = {}
+    rows: list[dict[str, str | int | float | None]] = []
 
     for tr in trs:
         if tr.has_attr("class") and "thead" in tr["class"]:
@@ -121,33 +122,37 @@ def _extract_table(table):
         tds.extend(tr.find_all("td"))
         if len(tds) == 0:
             continue
-        used_data_stats: set[str] = set()
+        row: dict[str, str | int | float | None] = {}
         for td in tds:
-            data_stat = td.attrs["data-stat"]
-            if data_stat in used_data_stats:
+            data_stat = td.get("data-stat")
+            if not isinstance(data_stat, str):
                 continue
-            if data_stat not in row_data:
-                row_data[data_stat] = []
-            if td.find("a") and data_stat != "player":  # special case for bref_draft
-                raw_value = td.find("a").text
-            elif td.find("a") and data_stat == "player":
+            if data_stat in row:
+                continue
+            anchor = td.find("a")
+            span = td.find("span")
+            strong = td.find("strong")
+            if anchor and data_stat != "player":  # special case for bref_draft
+                raw_value = anchor.text
+            elif anchor and data_stat == "player":
                 raw_value = td.text
-            elif td.find("span"):
-                raw_value = td.find("span").string
-            elif td.find("strong"):
-                raw_value = td.find("strong").string
+            elif span:
+                raw_value = span.string
+            elif strong:
+                raw_value = strong.string
             elif (
                 data_stat == "homeORvis"
             ):  # special case for schedule/results table to determine home vs away
-                if td.text.strip() == "@":
-                    row_data[data_stat].append("away")
-                else:
-                    row_data[data_stat].append("home")
+                row[data_stat] = "away" if td.text.strip() == "@" else "home"
                 continue
             else:
                 raw_value = td.string
-            used_data_stats.add(data_stat)
-            row_data[data_stat].append(_safe_parse_cell_value(raw_value))
+            row[data_stat] = _safe_parse_cell_value(raw_value)
+        if row:
+            rows.append(row)
+
+    columns = dict.fromkeys(column for row in rows for column in row)
+    row_data = {column: [row.get(column) for row in rows] for column in columns}
 
     typed_row_data: dict[str, pl.Series] = {}
     for column_name, values in row_data.items():
@@ -209,8 +214,7 @@ def _clean_draft_dataframes(draft_df: pl.DataFrame) -> pl.DataFrame:
 
 def _get_draft_dataframe(url: str, verbose: bool = False) -> pl.DataFrame | None:
     """Fetch and clean a Baseball Reference draft table, if present."""
-    session = PBSSessionManager.instance(max_req_per_minute=5)  # type: ignore[attr-defined]
-    resp = session.get(url, verbose=verbose)
+    resp = BREF_SESSION.get(url, verbose=verbose)
     if not resp:
         return None
 

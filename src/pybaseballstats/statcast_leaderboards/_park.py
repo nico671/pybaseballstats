@@ -14,7 +14,7 @@ from pybaseballstats._consts.statcast_leaderboard_consts import (
 
 def park_factor_dimensions_leaderboard(
     season: int, metric: Literal["distance", "height"] = "distance"
-):
+) -> pl.DataFrame:
     """Return Baseball Savant park-dimension leaderboard data.
 
     Args:

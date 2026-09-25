@@ -1,9 +1,7 @@
-import io
 from datetime import datetime
 from typing import List, Literal
 
 import polars as pl
-import requests
 
 from pybaseballstats._consts.statcast_leaderboard_consts import (
     ACTIVE_SPIN_LEADERBOARD_URL,
@@ -14,6 +12,7 @@ from pybaseballstats._consts.statcast_leaderboard_consts import (
     SPIN_DIRECTION_LEADERBOARD_URL,
     StatcastLeaderboardsTeams,
 )
+from pybaseballstats._utils.request_utils import get_csv
 
 
 def spin_direction_leaderboard(
@@ -119,8 +118,7 @@ def spin_direction_leaderboard(
         team_id=team_id_param,
         throws=throws_param,
     )
-    resp = requests.get(url)
-    df = pl.read_csv(io.StringIO(resp.text))
+    df = get_csv(url)
     df = df.rename({"last_name, first_name": "player_name"})
     return df
 
@@ -186,15 +184,14 @@ def active_spin_leaderboard(
         min_pitches=min_pitches,
         pitcher_handedness=throws_param,
     )
-    resp = requests.get(url)
-    df = pl.read_csv(io.StringIO(resp.text))
+    df = get_csv(url)
     df = df.rename({"entity_name": "player_name", "entity_id": "player_id"})
     return df
 
 
 def arm_angle_leaderboard(
     start_date: str = "2020-01-01",
-    end_date: str = datetime.today().strftime("%Y-%m-%d"),
+    end_date: str | None = None,
     teams: List[StatcastLeaderboardsTeams] | None = None,
     season_type: List[Literal["R", "WC", "DS", "CS", "WS"]] | None = None,
     pitcher_handedness: Literal["R", "L", "ALL"] = "ALL",
@@ -266,6 +263,8 @@ def arm_angle_leaderboard(
         - Data is aggregated across all inferred seasons unless ``group_by`` includes ``"season"``.
     """
     # validate date inputs
+    if end_date is None:
+        end_date = datetime.today().strftime("%Y-%m-%d")
     try:
         start_date_obj = datetime.strptime(start_date, "%Y-%m-%d")
     except ValueError:
@@ -399,8 +398,7 @@ def arm_angle_leaderboard(
         team=teams_param,
         seasons_inferred=seasons_inferred,
     )
-    resp = requests.get(url)
-    df = pl.read_csv(io.StringIO(resp.text))
+    df = get_csv(url)
     if "api_pitch_type_group03" in df.columns:
         df = df.rename({"api_pitch_type_group03": "pitch_type"})
     if "api_game_date_month_text" in df.columns:
@@ -478,8 +476,7 @@ def pitch_arsenals_leaderboard(
         pitcher_handedness=throws_param,
         min_pitches=min_pitches_param,
     )
-    resp = requests.get(url)
-    df = pl.read_csv(io.StringIO(resp.text))
+    df = get_csv(url)
     df = df.rename({"last_name, first_name": "player_name", "pitcher": "player_id"})
     if metric_type == "usage_percentage":
         for col in df.columns:
@@ -577,8 +574,7 @@ def pitch_movement_leaderboard(
         pitcher_handedness=throws_param,
         min_pitches=min_pitches_param,
     )
-    resp = requests.get(url)
-    df = pl.read_csv(io.StringIO(resp.text))
+    df = get_csv(url)
     df = df.rename({"last_name, first_name": "player_name"})
     return df
 
@@ -734,6 +730,5 @@ def pitcher_running_game_leaderboard(
         team=team_param,
         group_by=group_by_param,
     )
-    resp = requests.get(url)
-    df = pl.read_csv(io.StringIO(resp.text))
+    df = get_csv(url)
     return df

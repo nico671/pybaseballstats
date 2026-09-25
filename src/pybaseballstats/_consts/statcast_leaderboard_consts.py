@@ -17,7 +17,7 @@ CATCHER_THROWING_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/c
 POPTIME_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/poptime?year={season}&team={team}&min2b={min_2b_attempts}&min3b={min_3b_attempts}&csv=true"
 SPIN_DIRECTION_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/spin-direction-pitches?year={season}&min={min_pitches}&sort=9&sortDir=asc&pitch_type={pitch_type}&throws={throws}&team={team_id}&csv=true"
 ACTIVE_SPIN_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/active-spin?year={season}_{stat_method}&min={min_pitches}&hand={pitcher_handedness}&csv=true"
-ARM_ANGLE_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/pitcher-arm-angles?season={seasons_inferred}&batSide={bat_side}&dateStart={start_date}0&dateEnd={end_date}&gameType={game_type}&groupBy={group_by}&min={min_total_pitches}&minGroupPitches={min_group_size}&perspective=back&pitchHand={pitch_hand}&pitchType={pitch_type}&size=large&sort=ascending&team={team}&view=table&csv=true"
+ARM_ANGLE_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/pitcher-arm-angles?season={seasons_inferred}&batSide={bat_side}&dateStart={start_date}&dateEnd={end_date}&gameType={game_type}&groupBy={group_by}&min={min_total_pitches}&minGroupPitches={min_group_size}&perspective=back&pitchHand={pitch_hand}&pitchType={pitch_type}&size=large&sort=ascending&team={team}&view=table&csv=true"
 PITCH_ARSENALS_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/pitch-arsenals?year={year}&min={min_pitches}&type={metric_type}&hand={pitcher_handedness}&csv=true"
 PITCH_MOVEMENT_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/pitch-movement?year={season}&min={min_pitches}&pitch_type={pitch_type}&hand={pitcher_handedness}&csv=true"
 PITCHER_RUNNING_GAME_LEADERBOARD_URL = "https://baseballsavant.mlb.com/leaderboard/pitcher-running-game?game_type={game_type}&n={min_sb_opportunities}&pitch_hand={pitcher_handedness}&runner_moved={runner_movement}&target_base={target_base}&prior_pk={num_prior_disengagements}&season_end={end_season}&season_start={start_season}&sortColumn=simple_prevented_on_running_attr&sortDirection=desc&split={split_years}&team={team}&type={group_by}&with_team_only=1&csv=true"
@@ -66,7 +66,7 @@ class StatcastLeaderboardsTeams(Enum):
     # NATIONAL_LEAGUE = "NationalL"
 
     @classmethod
-    def show_options(cls):
+    def show_options(cls) -> str:
         return "\n".join(f"{team.name}: {team.value}" for team in cls)
 
 

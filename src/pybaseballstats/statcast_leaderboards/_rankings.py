@@ -1,14 +1,13 @@
-import io
 from datetime import datetime
 from typing import Literal
 
 import polars as pl
-import requests
 
 from pybaseballstats._consts.statcast_leaderboard_consts import (
     PERCENTILE_RANKINGS_LEADERBOARD_URL,
     StatcastLeaderboardsTeams,
 )
+from pybaseballstats._utils.request_utils import get_csv
 
 
 def percentile_rankings_leaderboard(
@@ -80,5 +79,4 @@ def percentile_rankings_leaderboard(
         position=position_params[position],
         team=team_param,
     )
-    resp = requests.get(url)
-    return pl.read_csv(io.StringIO(resp.text))
+    return get_csv(url)

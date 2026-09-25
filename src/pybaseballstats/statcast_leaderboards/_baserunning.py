@@ -1,9 +1,7 @@
-import io
 from datetime import datetime
 from typing import Literal
 
 import polars as pl
-import requests
 
 from pybaseballstats._consts.statcast_leaderboard_consts import (
     BASERUNNING_RUN_VALUE_LEADERBOARD_URL,
@@ -14,6 +12,7 @@ from pybaseballstats._consts.statcast_leaderboard_consts import (
     SPRINT_SPEED_TEAM_LEADERBOARD_URL,
     StatcastLeaderboardsTeams,
 )
+from pybaseballstats._utils.request_utils import get_csv
 
 
 def baserunning_run_value_leaderboard(
@@ -113,8 +112,7 @@ def baserunning_run_value_leaderboard(
         team=team_param,
         group_by=group_by_params[group_by],
     )
-    resp = requests.get(url)
-    df = pl.read_csv(io.StringIO(resp.text))
+    df = get_csv(url)
     if group_by == "Runners":
         return df.rename({"entity_name": "player_name"})
     if group_by in ["Running Team", "Pitching Team"]:
@@ -256,8 +254,7 @@ def basestealing_run_value_leaderboard(
         team=team_param,
         group_by=group_by_params[group_by],
     )
-    resp = requests.get(url)
-    return pl.read_csv(io.StringIO(resp.text))
+    return get_csv(url)
 
 
 def extra_bases_taken_run_value_leaderboard(
@@ -414,8 +411,7 @@ def extra_bases_taken_run_value_leaderboard(
         team=team_param,
         group_by=group_by_params[group_by],
     )
-    resp = requests.get(url)
-    df = pl.read_csv(io.StringIO(resp.text))
+    df = get_csv(url)
     if group_by in ["Runners", "Fielders", "Pitchers"]:
         return df.rename({"entity_id": "player_id", "entity_name": "player_name"})
     if group_by in ["Batting Team", "Fielding Team"]:
@@ -551,8 +547,7 @@ def sprint_speed_leaderboard(
             team=team_param,
         )
 
-    resp = requests.get(url)
-    df = pl.read_csv(io.StringIO(resp.text))
+    df = get_csv(url)
     if group_by == "Player":
         return df.rename(
             {
@@ -666,8 +661,7 @@ def running_splits_leaderboard(
         team=team_param,
         min_opportunities=min_opportunities,
     )
-    resp = requests.get(url)
-    df = pl.read_csv(io.StringIO(resp.text))
+    df = get_csv(url)
     return df.rename(
         {
             "last_name, first_name": "player_name",
