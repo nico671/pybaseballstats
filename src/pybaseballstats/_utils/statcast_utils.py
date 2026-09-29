@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Iterator, List, Optional, Tuple, cast
+from typing import Iterator, List, Optional, Tuple
 
 import aiohttp
 import polars as pl
@@ -28,6 +28,7 @@ class ChunkFetchResult:
     dataframe: Optional[pl.DataFrame]
     error: Optional[str] = None
     source_path: Optional[Path] = None
+    cause: Exception | None = None
 
 
 def _validate_streamed_csv(path: Path) -> bool:
@@ -35,7 +36,6 @@ def _validate_streamed_csv(path: Path) -> bool:
     scan = pl.scan_csv(
         path,
         null_values=["null", "NULL", "NA"],
-        ignore_errors=True,
         infer_schema_length=10000,
     )
     if "game_date" not in scan.collect_schema():
@@ -50,7 +50,6 @@ def _validate_streamed_csv(path: Path) -> bool:
     reader = pl.read_csv_batched(
         path,
         null_values=["null", "NULL", "NA"],
-        ignore_errors=True,
         infer_schema_length=10000,
     )
     has_rows = False
@@ -83,18 +82,14 @@ async def _fetch_and_parse_chunk(
                                         output.write(block)
                                         size += len(block)
                                 if size:
-                                    if not _validate_streamed_csv(output_path):
-                                        output_path.unlink()
-                                        return ChunkFetchResult(
-                                            url=url, dataframe=pl.DataFrame()
-                                        )
+                                    _validate_streamed_csv(output_path)
                                     return ChunkFetchResult(
                                         url=url,
                                         dataframe=None,
                                         source_path=output_path,
                                     )
                                 last_error = "Empty response body"
-                            except Exception:
+                            except (OSError, pl.exceptions.PolarsError, ValueError):
                                 output_path.unlink(missing_ok=True)
                                 raise
                             if attempt < max_retries:
@@ -117,31 +112,19 @@ async def _fetch_and_parse_chunk(
                             df = pl.read_csv(
                                 io.BytesIO(raw_bytes),
                                 null_values=["null", "NULL", "NA"],
-                                ignore_errors=True,
                                 infer_schema_length=10000,
                             )
-                            if df.height > 0:
-                                return ChunkFetchResult(url=url, dataframe=df)
-                            elif df.height == 0:
-                                return ChunkFetchResult(
-                                    url=url, dataframe=pl.DataFrame(), error=None
-                                )
-
-                            last_error = "Parsed CSV contained zero rows"
-                            if attempt < max_retries:
-                                await asyncio.sleep(1 * attempt)
-                                continue
-                            return ChunkFetchResult(
-                                url=url, dataframe=None, error=last_error
-                            )
-                        except Exception as e:
+                            if "game_date" not in df.columns:
+                                raise ValueError("Statcast CSV is missing game_date")
+                            return ChunkFetchResult(url=url, dataframe=df)
+                        except (pl.exceptions.PolarsError, ValueError) as e:
                             # Sometimes empty or malformed CSVs come back
                             last_error = f"CSV parse error: {type(e).__name__}: {e}"
                             if attempt < max_retries:
                                 await asyncio.sleep(1 * attempt)
                                 continue
                             return ChunkFetchResult(
-                                url=url, dataframe=None, error=last_error
+                                url=url, dataframe=None, error=last_error, cause=e
                             )
                     # Handle Non-200
                     else:
@@ -154,13 +137,27 @@ async def _fetch_and_parse_chunk(
                             url=url, dataframe=None, error=last_error
                         )
 
-            except Exception as e:
-                # Retry all transport/runtime errors for data integrity guarantees.
+            except (
+                aiohttp.ClientError,
+                asyncio.TimeoutError,
+                pl.exceptions.PolarsError,
+                ValueError,
+            ) as e:
+                # Retry only expected transport and source-parse failures.
                 last_error = f"{type(e).__name__}: {e}"
                 if attempt < max_retries:
                     await asyncio.sleep(1 * attempt)
                     continue
-                return ChunkFetchResult(url=url, dataframe=None, error=last_error)
+                return ChunkFetchResult(
+                    url=url, dataframe=None, error=last_error, cause=e
+                )
+            except OSError as e:
+                return ChunkFetchResult(
+                    url=url,
+                    dataframe=None,
+                    error=f"{type(e).__name__}: {e}",
+                    cause=e,
+                )
 
         return ChunkFetchResult(
             url=url,
@@ -258,12 +255,15 @@ async def _fetch_all_data(
         if failed_count > 5:
             details += f"\n  - ... and {failed_count - 5} more failed chunk(s)."
 
-        raise RuntimeError(
+        failure = RuntimeError(
             "Statcast download failed to retrieve all requested chunks after retries. "
             f"{failed_count}/{len(urls)} chunk(s) failed. "
             "Data integrity policy prevented returning partial data. "
             f"\nFailure details:\n{details}"
         )
+        if failed_chunks[0].cause is not None:
+            raise failure from failed_chunks[0].cause
+        raise failure
 
     return [result for result in results if result is not None]
 
@@ -271,91 +271,54 @@ async def _fetch_all_data(
 def _load_all_data(
     responses: List[pl.DataFrame | Path], *, show_progress: bool = True
 ) -> List[pl.LazyFrame]:
-    """Build lazy scans for streamed CSVs or align in-memory DataFrames.
-
-    Scanned chunks use a relaxed diagonal concat to preserve schema drift.
-    In-memory responses use an explicit union schema for compatibility.
-    """
-    if responses and all(isinstance(response, Path) for response in responses):
-        scans = [
-            pl.scan_csv(
-                path,
-                null_values=["null", "NULL", "NA"],
-                ignore_errors=True,
-                infer_schema_length=10000,
-            )
-            for path in responses
-            if isinstance(path, Path)
+    """Join downloaded chunks while retaining columns across schema changes."""
+    if not responses:
+        return []
+    try:
+        if all(isinstance(response, Path) for response in responses):
+            scans = [
+                pl.scan_csv(
+                    response,
+                    null_values=["null", "NULL", "NA"],
+                    infer_schema_length=10000,
+                )
+                for response in responses
+                if isinstance(response, Path)
+            ]
+            non_empty = [
+                scan for scan in scans if not scan.limit(1).collect().is_empty()
+            ]
+        elif all(isinstance(response, pl.DataFrame) for response in responses):
+            scans = [
+                response.lazy()
+                for response in responses
+                if isinstance(response, pl.DataFrame)
+            ]
+            non_empty = [
+                response.lazy()
+                for response in responses
+                if isinstance(response, pl.DataFrame) and not response.is_empty()
+            ]
+        else:
+            raise RuntimeError("Statcast download returned mixed chunk formats")
+        if not non_empty:
+            return [pl.concat(scans, how="diagonal_relaxed")]
+        combined = pl.concat(non_empty, how="diagonal_relaxed")
+        known = set(combined.collect_schema())
+        missing = [
+            name
+            for scan in scans
+            for name in scan.collect_schema()
+            if name not in known
         ]
-        return [pl.concat(scans, how="diagonal_relaxed")]
-
-    dataframes = cast(List[pl.DataFrame], responses)
-    data_list: List[pl.LazyFrame] = []
-    schema: dict[str, pl.DataType] = {}
-    schema_cols: List[str] = []
-
-    for response in dataframes:
-        for column, dtype in response.schema.items():
-            if column not in schema:
-                schema[column] = dtype
-                schema_cols.append(column)
-
-    def _align_df(df: pl.DataFrame) -> pl.DataFrame:
-        # Add missing columns as nulls with the expected dtype
-        missing = [c for c in schema_cols if c not in df.columns]
         if missing:
-            df = df.with_columns(
-                [pl.lit(None).cast(schema[c]).alias(c) for c in missing]
+            combined = combined.with_columns(
+                pl.lit(None).cast(pl.String).alias(name)
+                for name in dict.fromkeys(missing)
             )
-
-        # Reorder and cast to match schema
-        df = df.select(schema_cols)
-        casts = []
-        for c in schema_cols:
-            try:
-                current = df.schema.get(c)
-                expected = schema[c]
-                if current != expected:
-                    casts.append(pl.col(c).cast(expected, strict=False))
-            except Exception:
-                # If schema lookup/cast fails for a column, keep it as-is.
-                continue
-        if casts:
-            df = df.with_columns(casts)
-
-        return df
-
-    if show_progress:
-        with Progress(
-            SpinnerColumn(),
-            *Progress.get_default_columns(),
-            TimeElapsedColumn(),
-            MofNCompleteColumn(),
-        ) as progress:
-            process_task = progress.add_task("Processing data...", total=len(responses))
-
-            for index, response in enumerate(dataframes):
-                try:
-                    aligned = _align_df(response)
-                    data_list.append(aligned.lazy())
-                except Exception as e:
-                    raise RuntimeError(
-                        f"Failed to process Statcast chunk {index + 1}/{len(responses)} "
-                        f"(columns={response.columns}): {type(e).__name__}: {e}"
-                    ) from e
-                finally:
-                    progress.update(process_task, advance=1)
-    else:
-        for index, response in enumerate(dataframes):
-            try:
-                aligned = _align_df(response)
-                data_list.append(aligned.lazy())
-            except Exception as e:
-                raise RuntimeError(
-                    f"Failed to process Statcast chunk {index + 1}/{len(responses)} "
-                    f"(columns={response.columns}): {type(e).__name__}: {e}"
-                ) from e
-    return data_list
+        return [combined]
+    except pl.exceptions.PolarsError as exc:
+        raise RuntimeError("Statcast chunk schemas could not be joined") from exc
 
 
 def _handle_dates(start_date_str: str, end_date_str: str) -> Tuple[date, date]:
@@ -369,15 +332,18 @@ def _handle_dates(start_date_str: str, end_date_str: str) -> Tuple[date, date]:
     Returns:
     A tuple of datetime.date objects for the start and end dates.
     """
+    if not isinstance(start_date_str, str) or not isinstance(end_date_str, str):
+        raise TypeError("start_date and end_date must be YYYY-MM-DD strings")
     try:
         start_dt = datetime.strptime(start_date_str, "%Y-%m-%d")
         end_dt = datetime.strptime(end_date_str, "%Y-%m-%d")
     except ValueError as e:
-        raise ValueError(f"Invalid date format: {e}")
-    except Exception as e:
-        raise ValueError(f"Error parsing dates: {e}")
-    assert start_dt is not None, "Could not parse start_date"
-    assert end_dt is not None, "Could not parse end_date"
+        raise ValueError(f"Invalid date format: {e}") from e
+    if (
+        start_dt.strftime("%Y-%m-%d") != start_date_str
+        or end_dt.strftime("%Y-%m-%d") != end_date_str
+    ):
+        raise ValueError("Dates must use YYYY-MM-DD format")
     start_dt_date = start_dt.date()
     end_dt_date = end_dt.date()
     if start_dt_date > end_dt_date:

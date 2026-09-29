@@ -12,9 +12,10 @@ from pybaseballstats._consts.statcast_leaderboard_consts import (
     SPIN_DIRECTION_LEADERBOARD_URL,
     StatcastLeaderboardsTeams,
 )
-from pybaseballstats._utils.request_utils import get_csv
+from pybaseballstats._utils.request_utils import get_csv, source_schema_errors
 
 
+@source_schema_errors
 def spin_direction_leaderboard(
     season: int | str = "ALL",
     team: StatcastLeaderboardsTeams | None = None,
@@ -59,23 +60,23 @@ def spin_direction_leaderboard(
         - Column names are standardized with ``last_name, first_name`` renamed to ``player_name``.
     """
     # validate season input, can either be int from 2020 to current year, or "ALL"
-    if isinstance(season, int):
+    if type(season) is int:
         if season < 2020 or season > datetime.now().year:
             raise ValueError(f"season must be between 2020 and {datetime.now().year}")
     elif isinstance(season, str):
         if season != "ALL":
             raise ValueError("season must be an integer or 'ALL'")
     else:
-        raise ValueError("season must be an integer or 'ALL'")
+        raise TypeError("season must be an integer or 'ALL'")
 
     # validate team input, must be an instance of StatcastLeaderboardsTeams or None
     if team is not None and not isinstance(team, StatcastLeaderboardsTeams):
-        raise ValueError(
-            "team must be an instance of StatcastLeaderboardsTeams or None"
-        )
+        raise TypeError("team must be an instance of StatcastLeaderboardsTeams or None")
     team_id_param = str(team.value) if team is not None else ""
 
     # validate pitch_type input, must be one of the specified options
+    if not isinstance(pitch_type, str):
+        raise TypeError("pitch_type must be a string")
     if pitch_type not in [
         "FF",
         "CH",
@@ -96,19 +97,21 @@ def spin_direction_leaderboard(
         )
 
     # validate pitcher_handedness input, must be one of the specified options
+    if not isinstance(pitcher_handedness, str):
+        raise TypeError("pitcher_handedness must be a string")
     if pitcher_handedness not in ["R", "L", "ALL"]:
         raise ValueError("pitcher_handedness must be 'R', 'L', or 'ALL'")
     throws_param = pitcher_handedness if pitcher_handedness != "ALL" else ""
 
     # validate min_pitches input, must be a positive integer or "q"
-    if isinstance(min_pitches, int):
+    if type(min_pitches) is int:
         if min_pitches < 1:
             raise ValueError("min_pitches must be a positive integer")
     elif isinstance(min_pitches, str):
         if min_pitches != "q":
             raise ValueError("min_pitches must be a positive integer or 'q'")
     else:
-        raise ValueError("min_pitches must be a positive integer or 'q'")
+        raise TypeError("min_pitches must be a positive integer or 'q'")
     min_pitches_param = str(min_pitches)
 
     url = SPIN_DIRECTION_LEADERBOARD_URL.format(
@@ -123,6 +126,7 @@ def spin_direction_leaderboard(
     return df
 
 
+@source_schema_errors
 def active_spin_leaderboard(
     season: int,
     min_pitches: int = 100,
@@ -162,6 +166,8 @@ def active_spin_leaderboard(
         - Observed spin measurements are available from 2017 onwards.
         - Column names are standardized with ``entity_name`` to ``player_name`` and ``entity_id`` to ``player_id``.
     """
+    if type(season) is not int:
+        raise TypeError("season must be an integer")
     # validate season input
     if season < 2017 or season > datetime.now().year:
         raise ValueError(f"season must be between 2017 and {datetime.now().year}")
@@ -189,6 +195,7 @@ def active_spin_leaderboard(
     return df
 
 
+@source_schema_errors
 def arm_angle_leaderboard(
     start_date: str = "2020-01-01",
     end_date: str | None = None,
@@ -408,8 +415,9 @@ def arm_angle_leaderboard(
     return df
 
 
+@source_schema_errors
 def pitch_arsenals_leaderboard(
-    season: int = 2026,
+    season: int | None = None,
     metric_type: Literal["avg_speed", "usage_percentage", "avg_spin"] = "avg_speed",
     pitcher_handedness: Literal["R", "L", "ALL"] = "ALL",
     min_pitches: int | str = "q",
@@ -420,7 +428,7 @@ def pitch_arsenals_leaderboard(
     or spin rates across different pitch types.
 
     Args:
-        season (int, optional): Season year between 2008 and current year. Defaults to ``2026``.
+        season (int | None, optional): Season year between 2008 and current year. Defaults to the current year.
         metric_type (Literal["avg_speed", "usage_percentage", "avg_spin"], optional):
             Metric to retrieve: ``"avg_speed"`` for average velocity, ``"usage_percentage"``
             for pitch type usage distribution, ``"avg_spin"`` for average spin rate.
@@ -446,20 +454,28 @@ def pitch_arsenals_leaderboard(
         - Usage percentage metrics are calculated as percentages across all pitch types thrown.
         - Column names are automatically standardized after retrieval.
     """
-    # validate season input
-    if season < 2008 or season > datetime.now().year:
-        raise ValueError(f"season must be between 2008 and {datetime.now().year}")
+    current_year = datetime.now().year
+    if season is None:
+        season = current_year
+    if not isinstance(season, int) or isinstance(season, bool):
+        raise TypeError("season must be an integer")
+    if season < 2008 or season > current_year:
+        raise ValueError(f"season must be between 2008 and {current_year}")
     # validate metric_type input
+    if not isinstance(metric_type, str):
+        raise TypeError("metric_type must be a string")
     if metric_type not in ["avg_speed", "usage_percentage", "avg_spin"]:
         raise ValueError(
             "metric_type must be 'avg_speed', 'usage_percentage', or 'avg_spin'"
         )
     # validate pitcher_handedness input
+    if not isinstance(pitcher_handedness, str):
+        raise TypeError("pitcher_handedness must be a string")
     if pitcher_handedness not in ["R", "L", "ALL"]:
         raise ValueError("pitcher_handedness must be 'R', 'L', or 'ALL'")
     throws_param = pitcher_handedness if pitcher_handedness != "ALL" else ""
     # validate min_pitches input
-    if isinstance(min_pitches, int):
+    if type(min_pitches) is int:
         if min_pitches < 1:
             raise ValueError("min_pitches must be at least 1")
         min_pitches_param = str(min_pitches)
@@ -468,7 +484,7 @@ def pitch_arsenals_leaderboard(
             raise ValueError("min_pitches must be a positive integer or 'q'")
         min_pitches_param = min_pitches
     else:
-        raise ValueError("min_pitches must be a positive integer or 'q'")
+        raise TypeError("min_pitches must be a positive integer or 'q'")
 
     url = PITCH_ARSENALS_LEADERBOARD_URL.format(
         year=season,
@@ -489,8 +505,9 @@ def pitch_arsenals_leaderboard(
     return df
 
 
+@source_schema_errors
 def pitch_movement_leaderboard(
-    season: int = 2026,
+    season: int | None = None,
     pitch_type: Literal[
         "FF", "CH", "CU", "FC", "FO", "KN", "SC", "SI", "SL", "SV", "FS", "ST", "ALL"
     ] = "ALL",
@@ -503,7 +520,7 @@ def pitch_movement_leaderboard(
     break induced by spin and other factors.
 
     Args:
-        season (int, optional): Season year between 2017 and current year. Defaults to ``2026``.
+        season (int | None, optional): Season year between 2017 and current year. Defaults to the current year.
         pitch_type (Literal[...]): Pitch type filter. Options: ``FF`` (Four-Seam Fastball),
             ``SI`` (Sinker), ``FC`` (Cut Fastball), ``CH`` (Changeup), ``FS`` (Splitter),
             ``FO`` (Forkball), ``SC`` (Screwball), ``CU`` (Curveball), ``SL`` (Slider),
@@ -529,9 +546,13 @@ def pitch_movement_leaderboard(
         - Movement metrics typically include induced vertical break (IVB) and horizontal break (HB).
         - Column names are standardized with ``last_name, first_name`` renamed to ``player_name``.
     """
-    # validate season input
-    if season < 2017 or season > datetime.now().year:
-        raise ValueError(f"season must be between 2017 and {datetime.now().year}")
+    current_year = datetime.now().year
+    if season is None:
+        season = current_year
+    if not isinstance(season, int) or isinstance(season, bool):
+        raise TypeError("season must be an integer")
+    if season < 2017 or season > current_year:
+        raise ValueError(f"season must be between 2017 and {current_year}")
     # validate pitch_type input
     valid_pitch_types = [
         "FF",
@@ -548,16 +569,20 @@ def pitch_movement_leaderboard(
         "KN",
         "ALL",
     ]
+    if not isinstance(pitch_type, str):
+        raise TypeError("pitch_type must be a string")
     if pitch_type not in valid_pitch_types:
         raise ValueError(
             f"pitch_type must be one of the following options: {valid_pitch_types}"
         )
     # validate pitcher_handedness input
+    if not isinstance(pitcher_handedness, str):
+        raise TypeError("pitcher_handedness must be a string")
     if pitcher_handedness not in ["R", "L", "ALL"]:
         raise ValueError("pitcher_handedness must be 'R', 'L', or 'ALL'")
     throws_param = pitcher_handedness if pitcher_handedness != "ALL" else ""
     # validate min_pitches input
-    if isinstance(min_pitches, int):
+    if type(min_pitches) is int:
         if min_pitches < 1:
             raise ValueError("min_pitches must be at least 1")
         min_pitches_param = str(min_pitches)
@@ -566,7 +591,7 @@ def pitch_movement_leaderboard(
             raise ValueError("min_pitches must be a positive integer or 'q'")
         min_pitches_param = min_pitches
     else:
-        raise ValueError("min_pitches must be a positive integer or 'q'")
+        raise TypeError("min_pitches must be a positive integer or 'q'")
 
     url = PITCH_MOVEMENT_LEADERBOARD_URL.format(
         season=season,
@@ -579,6 +604,7 @@ def pitch_movement_leaderboard(
     return df
 
 
+@source_schema_errors
 def pitcher_running_game_leaderboard(
     start_season: int,
     end_season: int,
@@ -646,6 +672,8 @@ def pitcher_running_game_leaderboard(
         - The ``"All-Split"`` team option is useful for tracking pitchers who played for multiple teams.
         - Results can be aggregated across years or split by individual season using ``split_years``.
     """
+    if type(start_season) is not int or type(end_season) is not int:
+        raise TypeError("start_season and end_season must be integers")
     # validate season inputs
     if start_season < 2016 or start_season > datetime.now().year:
         raise ValueError(f"start_season must be between 2016 and {datetime.now().year}")

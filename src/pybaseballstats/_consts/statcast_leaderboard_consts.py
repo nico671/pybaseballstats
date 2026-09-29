@@ -38,6 +38,7 @@ class StatcastLeaderboardsTeams(Enum):
     BREWERS = 158
     CARDINALS = 138
     CUBS = 112
+    DIAMONDBACKS = 109
     D_BACKS = 109
     DODGERS = 119
     GIANTS = 137

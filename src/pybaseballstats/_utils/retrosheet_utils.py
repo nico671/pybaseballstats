@@ -15,15 +15,23 @@ def _get_people_data() -> pl.DataFrame:
     """Fetch and cache people data from Retrosheet."""
     df_list = []
     for i in range(0, 10):
-        data = get_bytes(PEOPLES_URL.format(num=i))
-        df = pl.read_csv(data)
-        df = df.select(pl.col(RETROSHEET_KEEP_COLS))
+        url = PEOPLES_URL.format(num=i)
+        try:
+            df = pl.read_csv(get_bytes(url)).select(pl.col(RETROSHEET_KEEP_COLS))
+        except (pl.exceptions.PolarsError, RuntimeError) as exc:
+            raise RuntimeError(
+                f"player_lookup: invalid Retrosheet shard {url}"
+            ) from exc
         df_list.append(df)
 
     for letter in ["a", "b", "c", "d", "f"]:
-        data = get_bytes(PEOPLES_URL.format(num=letter))
-        df = pl.read_csv(data)
-        df = df.select(pl.col(RETROSHEET_KEEP_COLS))
+        url = PEOPLES_URL.format(num=letter)
+        try:
+            df = pl.read_csv(get_bytes(url)).select(pl.col(RETROSHEET_KEEP_COLS))
+        except (pl.exceptions.PolarsError, RuntimeError) as exc:
+            raise RuntimeError(
+                f"player_lookup: invalid Retrosheet shard {url}"
+            ) from exc
         df_list.append(df)
 
     df = pl.concat(df_list)

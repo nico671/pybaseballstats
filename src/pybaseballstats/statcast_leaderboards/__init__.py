@@ -1,11 +1,5 @@
 """Public Baseball Savant Statcast leaderboard interface."""
 
-import requests as _requests
-
-from pybaseballstats._consts.statcast_leaderboard_consts import (
-    StatcastLeaderboardsTeams,
-)
-
 from ._abs import abs_challenges_leaderboard
 from ._baserunning import (
     baserunning_run_value_leaderboard,
@@ -38,11 +32,7 @@ from ._pitching import (
 from ._rankings import percentile_rankings_leaderboard
 from ._timer import timer_infractions_leaderboard
 
-# Backward-compatible test seam. It is intentionally absent from the public API.
-requests = _requests
-
 __all__ = [
-    "StatcastLeaderboardsTeams",
     "park_factor_yearly_leaderboard",
     "park_factor_distance_leaderboard",
     "park_factor_dimensions_leaderboard",

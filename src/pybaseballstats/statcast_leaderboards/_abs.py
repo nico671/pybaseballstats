@@ -8,9 +8,10 @@ from pybaseballstats._consts.statcast_leaderboard_consts import (
     ABS_CHALLENGES_LEADERBOARD_URL,
     StatcastLeaderboardsTeams,
 )
-from pybaseballstats._utils.request_utils import get_text
+from pybaseballstats._utils.request_utils import get_text, source_schema_errors
 
 
+@source_schema_errors
 def abs_challenges_leaderboard(
     season: int,
     challenge_type: Literal[
@@ -65,6 +66,8 @@ def abs_challenges_leaderboard(
     Returns:
         pl.DataFrame: ABS challenges leaderboard data.
     """
+    if type(season) is not int:
+        raise TypeError("season must be an integer")
     # Validate inputs
 
     # season must be greater than 2025

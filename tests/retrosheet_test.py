@@ -4,6 +4,7 @@ import polars as pl
 import pytest
 
 import pybaseballstats.retrosheet as rs
+from pybaseballstats._utils import retrosheet_utils
 from pybaseballstats._utils.retrosheet_utils import _clear_people_cache
 
 
@@ -149,4 +150,4 @@ def test_ejection_data_inning():
 
 
 def test_strip_accents():
-    assert rs._strip_accents("Bábé Rúth") == "Babe Ruth"
+    assert retrosheet_utils._strip_accents("Bábé Rúth") == "Babe Ruth"

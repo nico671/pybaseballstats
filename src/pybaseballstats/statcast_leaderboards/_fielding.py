@@ -10,9 +10,10 @@ from pybaseballstats._consts.statcast_leaderboard_consts import (
     FIELDING_RUN_VALUE_LEADERBOARD_URL,
     StatcastLeaderboardsTeams,
 )
-from pybaseballstats._utils.request_utils import get_csv
+from pybaseballstats._utils.request_utils import get_csv, source_schema_errors
 
 
+@source_schema_errors
 def fielding_run_value_leaderboard(
     start_season: int,
     end_season: int,
@@ -76,6 +77,8 @@ def fielding_run_value_leaderboard(
             ``player_id`` and ``player_name``; team rows use ``team_id`` and
             ``team_name``.
     """
+    if type(start_season) is not int or type(end_season) is not int:
+        raise TypeError("start_season and end_season must be integers")
     current_year = datetime.now().year
     if (
         not isinstance(start_season, int)
@@ -218,9 +221,10 @@ def fielding_run_value_leaderboard(
     return df.rename({"id": "team_id", "name": "team_name"})
 
 
+@source_schema_errors
 def arm_strength_leaderboard(
     stat_type: Literal["player", "team"] = "player",
-    year: int | str = 2025,  # All for all years (9999) is passed in
+    year: int | str | None = None,
     min_throws: int = 50,
     pos: Literal[
         "All", "2b_ss_3b", "outfield", "1b", "2b", "3b", "ss", "lf", "cf", "rf"
@@ -231,7 +235,7 @@ def arm_strength_leaderboard(
 
     Args:
         stat_type (Literal["player", "team"], optional): Aggregate by player or team.
-        year (int | str, optional): Season year, or ``"All"`` for all available years.
+        year (int | str | None, optional): Season year, or ``"All"`` for all available years. Defaults to the current year.
         min_throws (int, optional): Minimum throw threshold.
         pos (Literal[...], optional): Position group filter.
         team (StatcastLeaderboardsTeams | None, optional): Optional team filter.
@@ -246,10 +250,17 @@ def arm_strength_leaderboard(
     Returns:
         pl.DataFrame: Arm-strength leaderboard data.
     """
+    if not isinstance(stat_type, str):
+        raise TypeError("stat_type must be a string")
     if stat_type not in ["player", "team"]:
         raise ValueError("stat_type must be either 'player' or 'team'")
-    if isinstance(year, int) and (year < 2020 or year > datetime.now().year):
-        raise ValueError(f"year must be between 2020 and {datetime.now().year}")
+    current_year = datetime.now().year
+    if year is None:
+        year = current_year
+    if not isinstance(year, (int, str)) or isinstance(year, bool):
+        raise TypeError("year must be an integer or 'All'")
+    if isinstance(year, int) and (year < 2020 or year > current_year):
+        raise ValueError(f"year must be between 2020 and {current_year}")
 
     if isinstance(year, str) and year != "All":
         raise ValueError(
@@ -258,16 +269,18 @@ def arm_strength_leaderboard(
     if isinstance(year, str) and year == "All":
         year = 9999
 
+    if not isinstance(min_throws, int) or isinstance(min_throws, bool):
+        raise TypeError("min_throws must be an integer")
     if min_throws < 1:
         raise ValueError("min_throws must be at least 1")
+    if not isinstance(pos, str):
+        raise TypeError("pos must be a string")
     if pos not in ARM_STRENGTH_POS_INPUT_MAP.keys():
         raise ValueError(
             f"pos must be one of {list(ARM_STRENGTH_POS_INPUT_MAP.keys())}"
         )
     if team is not None and not isinstance(team, StatcastLeaderboardsTeams):
-        raise ValueError(
-            "team must be an instance of StatcastLeaderboardsTeams or None"
-        )
+        raise TypeError("team must be an instance of StatcastLeaderboardsTeams or None")
     team_value = team.value if team is not None else ""
     url = ARM_STRENGTH_LEADERBOARD_URL.format(
         stat_type=stat_type,

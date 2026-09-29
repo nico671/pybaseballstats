@@ -94,5 +94,5 @@ print(df)
 1. `get_available_game_pks_for_date` internally calls `statcast.pitch_by_pitch_data` for the given day and groups results by `game_pk`.
 2. `single_game_pitch_by_pitch` directly pulls one-game CSV data from Baseball Savant.
 3. `single_game_exit_velocity`, `single_game_pitch_velocity`, and `single_game_win_probability` scrape the Baseball Savant gamefeed tables and return Polars DataFrames.
-4. The three table functions include retry-aware page loading; when data cannot be loaded (for example, mismatched `game_pk`/`game_date`), they return an empty DataFrame.
+4. The three table functions include retry-aware page loading. A browser, request, or source parse failure raises `RuntimeError`. A valid table with no rows returns an empty DataFrame.
 5. All functions return standard Python/Polars objects and can be used in scripts or notebooks.

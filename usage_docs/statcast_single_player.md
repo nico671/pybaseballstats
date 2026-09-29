@@ -23,6 +23,7 @@ This module provides functions to retrieve grouped player-season stats and pitch
 
 - `player_id` (int): MLBAM player identifier.
 - `season` (int): MLB season year.
+- Supported seasons come from an explicit date table. The latest configured season is `2026`; a later calendar year does not add a season automatically.
 - `player_type` ("batter" | "pitcher"): Player perspective. Use `"batter"` for pitches seen by the player or `"pitcher"` for pitches thrown by the player.
 - `force_collect` (bool): If `True`, returns a Polars `DataFrame`; otherwise returns a Polars `LazyFrame`.
 - `chunk_size_days` (int): Number of days per request chunk. Must be greater than 0.
@@ -58,9 +59,10 @@ This module provides functions to retrieve grouped player-season stats and pitch
 - Both functions raise `ValueError` when `season` is not a supported Statcast season or when `player_type` is not `"batter"` or `"pitcher"`.
 - `single_player_pitch_by_pitch` raises `TypeError` when `chunk_size_days` is not an integer or when `concurrency` is neither an integer nor `None`.
 - `single_player_pitch_by_pitch` raises `ValueError` when `chunk_size_days` or an explicit `concurrency` value is not positive.
-- `single_player_pitch_by_pitch` raises `RuntimeError` when a chunk cannot be downloaded after retries, no matching pitches exist, or the downloaded chunks cannot be processed. It does not return partial data when a chunk fails.
-- `single_player_season_stats` raises `RuntimeError` when Baseball Savant returns no CSV data for the requested player lookup, such as an invalid MLBAM ID or a valid player with no data for the requested `player_type` and season.
+- `single_player_pitch_by_pitch` raises `RuntimeError` when a chunk cannot be downloaded after retries or the downloaded chunks cannot be processed. It does not return partial data when a chunk fails. Valid header-only data returns an empty frame with its columns.
+- `single_player_season_stats` returns an empty DataFrame when a valid response has no matching rows. An invalid response raises `RuntimeError`.
 - `single_player_season_stats` raises `RuntimeError` when Baseball Savant returns malformed CSV content.
+- With `force_collect=False`, Polars can raise a parse error later when you call `.collect()`. With `force_collect=True`, a parse error inside the package call raises `RuntimeError`.
 
 ## Example Usage
 

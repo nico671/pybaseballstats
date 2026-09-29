@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import AsyncIterator
 
+from playwright.async_api import Error as PlaywrightError
 from playwright.async_api import Page, async_playwright
 
 
@@ -26,33 +27,39 @@ async def get_page_async() -> AsyncIterator[Page]:
             ],
         )
 
-        context = await browser.new_context(
-            user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            viewport={"width": 1920, "height": 1080},
-        )
-
-        # Block unnecessary resources
-        await context.route(
-            "**/*.{png,jpg,jpeg,gif,svg,woff,woff2,ttf,css}",
-            lambda route: route.abort(),
-        )
-
-        page = await context.new_page()
-        page.set_default_navigation_timeout(30000)
-        page.set_default_timeout(15000)
-
         try:
-            yield page
+            context = await browser.new_context(
+                user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                viewport={"width": 1920, "height": 1080},
+            )
+            try:
+                # Block unnecessary resources
+                await context.route(
+                    "**/*.{png,jpg,jpeg,gif,svg,woff,woff2,ttf,css}",
+                    lambda route: route.abort(),
+                )
+
+                page = await context.new_page()
+                try:
+                    page.set_default_navigation_timeout(30000)
+                    page.set_default_timeout(15000)
+                    yield page
+                finally:
+                    await page.close()
+            finally:
+                await context.close()
         finally:
-            await page.close()
-            await context.close()
             await browser.close()
 
 
 def _handle_single_game_date(game_date: str) -> str:
+    if not isinstance(game_date, str):
+        raise TypeError("game_date must be a YYYY-MM-DD string")
     try:
         dt_object = datetime.strptime(game_date, "%Y-%m-%d")
     except ValueError:
+        raise ValueError("Incorrect date format. Please use YYYY-MM-DD format.")
+    if dt_object.strftime("%Y-%m-%d") != game_date:
         raise ValueError("Incorrect date format. Please use YYYY-MM-DD format.")
     formatted_date = f"{dt_object.month}/{dt_object.day}/{dt_object.year}"
     return formatted_date.replace("/", "%2F")
@@ -85,14 +92,15 @@ async def fetch_gamefeed_table_html(
             if html:
                 return html
             raise ValueError(f"Empty HTML for selector: {selector}")
-        except Exception as exc:  # pragma: no cover - behavior tested via callers
+        except (PlaywrightError, ValueError) as exc:
             last_error = exc
             if attempt < attempts:
                 await asyncio.sleep(0.75 * attempt)
                 continue
             break
 
-    assert last_error is not None
+    if last_error is None:
+        raise RuntimeError(f"No gamefeed attempt was made for {url}")
     raise RuntimeError(
         f"Failed to load selector '{selector}' from gamefeed URL after {attempts} attempts"
     ) from last_error

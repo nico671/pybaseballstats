@@ -9,7 +9,7 @@ from pybaseballstats._utils import session_utils
 def test_bref_modules_share_one_session():
     for name in ("bref_teams", "bref_managers", "bref_single_player"):
         assert (
-            import_module(f"pybaseballstats.{name}").session
+            import_module(f"pybaseballstats._{name}").session
             is session_utils.BREF_SESSION
         )
     assert (
@@ -71,3 +71,24 @@ def test_cloudflare_fallback_reserves_a_second_request(monkeypatch):
 
     assert manager.get("https://example.com") is fallback_response
     assert reservations == [False, False]
+
+
+def test_cloudflare_fallback_failure_keeps_cause(monkeypatch):
+    manager = session_utils.PBSSessionManager()
+    monkeypatch.setattr(manager.rate_limiter, "wait", lambda verbose: None)
+    monkeypatch.setattr(
+        manager.session,
+        "get",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            status_code=403, url="https://example.com", text=""
+        ),
+    )
+    cause = RuntimeError("browser failed")
+
+    def fail(*args):
+        raise cause
+
+    monkeypatch.setattr(manager, "_solve_cloudflare_challenge", fail)
+    with pytest.raises(RuntimeError, match="browser failed") as caught:
+        manager.get("https://example.com")
+    assert caught.value is cause

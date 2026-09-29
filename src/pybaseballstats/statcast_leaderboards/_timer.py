@@ -6,9 +6,10 @@ import polars as pl
 from pybaseballstats._consts.statcast_leaderboard_consts import (
     TIMER_INFRACTIONS_LEADERBOARD_URL,
 )
-from pybaseballstats._utils.request_utils import get_csv
+from pybaseballstats._utils.request_utils import get_csv, source_schema_errors
 
 
+@source_schema_errors
 def timer_infractions_leaderboard(
     season: int,
     perspective: Literal["Pit", "Bat", "Cat", "Team"] = "Pit",
@@ -30,6 +31,12 @@ def timer_infractions_leaderboard(
     Returns:
         pl.DataFrame: Timer-infraction leaderboard data.
     """
+    if type(season) is not int:
+        raise TypeError("season must be an integer")
+    if type(min_pitches) is not int:
+        raise TypeError("min_pitches must be an integer")
+    if not isinstance(perspective, str):
+        raise TypeError("perspective must be a string")
     if perspective not in ["Pit", "Bat", "Cat", "Team"]:
         raise ValueError("perspective must be one of 'Pit', 'Bat', 'Cat', or 'Team'")
     if min_pitches < 1:

@@ -1,11 +1,31 @@
 import re
-from typing import Any
+from functools import wraps
+from typing import Any, Callable, ParamSpec, TypeVar
 
 import polars as pl
 from bs4 import BeautifulSoup, Comment, Tag
 
 from pybaseballstats._consts.bref_consts import BREF_TEAM_CODE_SWITCHES, BREFTeams
 from pybaseballstats._utils.session_utils import BREF_SESSION
+
+P = ParamSpec("P")
+T = TypeVar("T")
+
+
+def _source_schema_errors(function: Callable[P, T]) -> Callable[P, T]:
+    """Report Polars source-schema failures with the public operation name."""
+
+    @wraps(function)
+    def wrapped(*args: P.args, **kwargs: P.kwargs) -> T:
+        try:
+            return function(*args, **kwargs)
+        except pl.exceptions.PolarsError as exc:
+            raise RuntimeError(
+                f"{function.__name__}: invalid Baseball Reference table"
+            ) from exc
+
+    return wrapped
+
 
 # region shared
 
@@ -33,8 +53,14 @@ def get_bref_table_html(html_content: str, table_id: str) -> str | None:
             if hidden_table:
                 return str(hidden_table)
 
-    print(f"Table with id '{table_id}' not found in DOM or comments.")
     return None
+
+
+def _required_table(html_content: str, table_id: str, operation: str) -> pl.DataFrame:
+    table_html = get_bref_table_html(html_content, table_id)
+    if table_html is None:
+        raise RuntimeError(f"{operation}: missing Baseball Reference table {table_id}")
+    return pl.DataFrame(_extract_table(BeautifulSoup(table_html, "html.parser")))
 
 
 _INT_PATTERN = re.compile(r"^[+-]?\d+$")
@@ -111,7 +137,8 @@ def _extract_table(table: Tag) -> dict[str, pl.Series]:
 
     Works specifically for Baseball Reference Tables
     """
-    assert table.tbody is not None
+    if table.tbody is None:
+        raise RuntimeError("Baseball Reference table is missing a body")
     trs = table.tbody.find_all("tr")
     rows: list[dict[str, str | int | float | None]] = []
 
@@ -152,6 +179,14 @@ def _extract_table(table: Tag) -> dict[str, pl.Series]:
             rows.append(row)
 
     columns = dict.fromkeys(column for row in rows for column in row)
+    if not rows:
+        columns = dict.fromkeys(
+            stat
+            for header in table.select("thead [data-stat]")
+            if isinstance(stat := header.get("data-stat"), str)
+        )
+        if not columns:
+            raise RuntimeError("Baseball Reference table has no columns")
     row_data = {column: [row.get(column) for row in rows] for column in columns}
 
     typed_row_data: dict[str, pl.Series] = {}
@@ -215,15 +250,12 @@ def _clean_draft_dataframes(draft_df: pl.DataFrame) -> pl.DataFrame:
 def _get_draft_dataframe(url: str, verbose: bool = False) -> pl.DataFrame | None:
     """Fetch and clean a Baseball Reference draft table, if present."""
     resp = BREF_SESSION.get(url, verbose=verbose)
-    if not resp:
-        return None
-
     table_html = get_bref_table_html(resp.text, "draft_stats")
-    if not table_html:
+    if table_html is None:
         return None
 
     polars_data = _extract_table(BeautifulSoup(table_html, "html.parser"))
-    if not polars_data:
-        return None
-
-    return _clean_draft_dataframes(pl.DataFrame(polars_data))
+    try:
+        return _clean_draft_dataframes(pl.DataFrame(polars_data))
+    except pl.exceptions.PolarsError as exc:
+        raise RuntimeError(f"draft: invalid Baseball Reference table at {url}") from exc

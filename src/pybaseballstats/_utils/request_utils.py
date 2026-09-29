@@ -1,10 +1,33 @@
 """Fetch and parse data from endpoints that use plain HTTP GET requests."""
 
 import io
-from typing import Any
+from functools import wraps
+from typing import Any, Callable, ParamSpec, TypeVar
 
 import polars as pl
 import requests
+
+P = ParamSpec("P")
+T = TypeVar("T")
+
+
+def source_schema_errors(function: Callable[P, T]) -> Callable[P, T]:
+    """Add operation context to source CSV schema failures."""
+
+    @wraps(function)
+    def wrapped(*args: P.args, **kwargs: P.kwargs) -> T:
+        try:
+            return function(*args, **kwargs)
+        except pl.exceptions.PolarsError as exc:
+            raise RuntimeError(
+                f"{function.__name__}: invalid Baseball Savant source columns"
+            ) from exc
+        except RuntimeError as exc:
+            if str(exc).startswith(f"{function.__name__}:"):
+                raise
+            raise RuntimeError(f"{function.__name__}: {exc}") from exc
+
+    return wrapped
 
 
 def _get(
@@ -13,17 +36,29 @@ def _get(
     kwargs: dict[str, Any] = {"timeout": 30}
     if params is not None:
         kwargs["params"] = params
-    response = requests.get(url, **kwargs)
-    response.raise_for_status()
+    try:
+        response = requests.get(url, **kwargs)
+        response.raise_for_status()
+    except requests.RequestException as exc:
+        raise RuntimeError(f"GET failed for {url}") from exc
     return response
 
 
 def get_csv(url: str, **read_csv_kwargs: Any) -> pl.DataFrame:
-    return pl.read_csv(io.StringIO(_get(url).text), **read_csv_kwargs)
+    text = _get(url).text
+    if text.lstrip().lower().startswith(("<!doctype html", "<html")):
+        raise RuntimeError(f"CSV endpoint returned HTML for {url}")
+    try:
+        return pl.read_csv(io.StringIO(text), **read_csv_kwargs)
+    except (pl.exceptions.PolarsError, ValueError) as exc:
+        raise RuntimeError(f"CSV parsing failed for {url}") from exc
 
 
 def get_json(url: str) -> Any:
-    return _get(url).json()
+    try:
+        return _get(url).json()
+    except requests.exceptions.JSONDecodeError as exc:
+        raise RuntimeError(f"JSON parsing failed for {url}") from exc
 
 
 def get_text(url: str, *, params: dict[str, str | list[str]] | None = None) -> str:

@@ -13,7 +13,7 @@ A Python package for scraping baseball statistics from the web. Inspired by the 
 1. [Baseball Savant](https://baseballsavant.mlb.com/)
     - This source provides high quality pitch-by-pitch data for all MLB games since 2015, grouped single-player season summaries, and interesting leaderboards for various categories.
 2. [Umpire Scorecards](https://umpscorecards.com/home/)
-    - This source provides umpire game logs and statistics for all MLB games since 2008.
+    - This source has umpire game logs that start in 2008. This package accepts date ranges from 2015 onward.
 3. [Baseball Reference](https://www.baseball-reference.com/)
     - This source provides comprehensive, high detail stats for all MLB players and teams since 1871.
 4. [Retrosheet](https://retrosheet.org/)
@@ -58,11 +58,27 @@ python -m playwright install --with-deps chromium
 ## Documentation
 
 Usage documentation can be found in this [folder](usage_docs/). This documentation is a work in progress and will be updated as I add more functionality to the package.
+For changes to enum imports, empty results, and errors, see the [public API migration guide](docs/public-api-migration.md).
 
 ### General Documentation (Things of Note)
 
-1. This project uses Polars internally. This means that all data returned from functions in this package will be in the form of a Polars DataFrame. If you want to convert the data to a Pandas DataFrame, you can do so by using the `.to_pandas()` method on the Polars DataFrame. For example:
-2. The BREF functions use a singleton pattern to guarantee that you won't exceed rate limits and face a longer timeout. So: don't be surprised if when you are making multiple calls to BREF functions that these calls may be a little slower than expected. This is to be expected as the singleton pattern is used to ensure that only one instance of the BREF scraper is created and used throughout the lifetime of your program. This is done to avoid exceeding rate limits and being blocked by BREF.
+Use `from pybaseballstats import statcast as sc` for a source module and
+`from pybaseballstats.enums import StatcastTeams` for its team filter. The same
+source modules also support qualified imports and direct function imports.
+Modules with an initial underscore are private implementation details.
+
+Most functions return a Polars `DataFrame`. Statcast pitch-by-pitch functions
+return a `LazyFrame` by default; call `.collect()` to get a `DataFrame`, or pass
+`force_collect=True`. A valid response with no matching rows returns an empty
+result of the documented type. Wrong argument types raise `TypeError`; invalid
+values raise `ValueError`; request and source-data failures inside a call raise
+`RuntimeError`. A lazy query can raise a Polars error later at `.collect()`.
+
+Baseball Reference functions use a shared session and a process-local request
+limiter. The source can still block requests. A failed request raises an error.
+The package does not verify that every upstream page is available now.
+
+To convert an eager Polars `DataFrame` to pandas, call `.to_pandas()`:
 
 ```python
 import pybaseballstats.umpire_scorecards as us

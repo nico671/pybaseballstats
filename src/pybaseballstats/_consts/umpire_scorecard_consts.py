@@ -11,6 +11,7 @@ class UmpireScorecardTeams(Enum):
     CUBS = "CHC"
     REDS = "CIN"
     WHITE_SOX = "CWS"
+    GUARDIANS = "CLE"
     GAURDIANS = "CLE"
     ROCKIES = "COL"
     ASTROS = "HOU"
@@ -30,6 +31,7 @@ class UmpireScorecardTeams(Enum):
     CARDINALS = "STL"
     RAYS = "TB"
     RANGERS = "TEX"
+    TIGERS = "DET"
     BLUE_JAYS = "TOR"
     NATIONALS = "WSH"
 

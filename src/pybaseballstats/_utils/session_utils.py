@@ -6,6 +6,9 @@ from typing import Any
 
 from curl_cffi import requests
 from playwright.sync_api import (
+    Error as PlaywrightError,
+)
+from playwright.sync_api import (
     Response as PlaywrightResponse,
 )
 from playwright.sync_api import (
@@ -75,9 +78,7 @@ class PBSSessionManager:
             return True
         return False
 
-    def _solve_cloudflare_challenge(
-        self, url: str, verbose: bool
-    ) -> requests.Response | None:
+    def _solve_cloudflare_challenge(self, url: str, verbose: bool) -> requests.Response:
         """Spin up an ephemeral, stealthed Playwright instance to bypass Cloudflare."""
         if verbose:
             print(f"\n[DEBUG] === Initiating Cloudflare Bypass for {url} ===")
@@ -118,6 +119,7 @@ class PBSSessionManager:
 
                 max_clicks = 3
                 num_clicks = 0
+                click_error: PlaywrightError | None = None
 
                 while num_clicks < max_clicks:
                     # 1. Victory Check
@@ -227,7 +229,8 @@ class PBSSessionManager:
                             page.wait_for_timeout(5000 + random.randint(500, 1500))
                             continue
 
-                    except Exception as e:
+                    except PlaywrightError as e:
+                        click_error = e
                         if verbose:
                             print(f"[DEBUG] Exception during targeting/clicking: {e}")
 
@@ -235,13 +238,13 @@ class PBSSessionManager:
 
                 page_ready = page.locator("table, #footer").count() > 0
                 if not page_ready:
-                    print(
+                    raise RuntimeError(
                         "Cloudflare bypass did not reach a Baseball Reference page: "
                         f"url={url}, final_url={page.url}, "
                         f"navigation_statuses={page_statuses}, clicks={num_clicks}, "
                         f"challenge_iframes={iframe_count}, "
                         f"turnstile_inputs={shadow_count}"
-                    )
+                    ) from click_error
                 else:
                     if verbose:
                         print("[DEBUG] Extracting cookies...")
@@ -252,7 +255,9 @@ class PBSSessionManager:
                     if verbose:
                         print("[DEBUG] === Bypass Process Complete ===\n")
                     if not page_statuses:
-                        return None
+                        raise RuntimeError(
+                            f"Cloudflare bypass had no navigation response for {url}"
+                        )
                     page_status = page_statuses[-1]
                     response = requests.Response()
                     response.url = page.url
@@ -262,15 +267,12 @@ class PBSSessionManager:
                     response.raise_for_status()
                     return response
 
-        except PlaywrightTimeoutError:
-            print("\n[ERROR] Playwright timed out completely.")
-        except Exception as e:
-            print(f"\n[ERROR] Critical failure: {e}")
-        return None
+        except (PlaywrightTimeoutError, PlaywrightError) as exc:
+            raise RuntimeError(f"Cloudflare browser fallback failed for {url}") from exc
 
     def get(
         self, url: str, *, verbose: bool = False, **kwargs: Any
-    ) -> requests.Response | None:
+    ) -> requests.Response:
         """Make an HTTP request with optional debug logs and Cloudflare escalation."""
         self.rate_limiter.wait(verbose)
 
@@ -287,20 +289,18 @@ class PBSSessionManager:
                 # ATTEMPT 2: The Waterfall Escalation
                 self.rate_limiter.wait(verbose)
                 with self._lock:
-                    return self._solve_cloudflare_challenge(url, verbose)
+                    response = self._solve_cloudflare_challenge(url, verbose)
+                    if response is None:
+                        raise RuntimeError(
+                            f"Cloudflare browser fallback failed for {url}"
+                        )
+                    return response
 
             resp.raise_for_status()
             return resp
 
-        except requests.exceptions.HTTPError as e:
-            if e.response.status_code == 429:
-                print(f"Received 429 Too Many Requests for {url}. Backing off.")
-            else:
-                print(f"HTTP Error fetching {url}: {e}")
-        except Exception as e:
-            print(f"Error fetching {url}: {e}")
-
-        return None
+        except requests.exceptions.RequestException as exc:
+            raise RuntimeError(f"Baseball Reference request failed for {url}") from exc
 
 
 BREF_SESSION = PBSSessionManager(max_req_per_minute=5)
