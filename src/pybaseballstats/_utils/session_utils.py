@@ -5,6 +5,7 @@ from threading import Lock
 from typing import Any
 
 from curl_cffi import requests
+from curl_cffi.requests import exceptions
 from playwright.sync_api import (
     Error as PlaywrightError,
 )
@@ -299,7 +300,7 @@ class PBSSessionManager:
             resp.raise_for_status()
             return resp
 
-        except requests.exceptions.RequestException as exc:
+        except exceptions.RequestException as exc:
             raise RuntimeError(f"Baseball Reference request failed for {url}") from exc
 
 

@@ -64,7 +64,7 @@ Run static checks before a commit with:
 ```bash
 just format
 just lint
-just mypy
+just typecheck
 ```
 
 Git runs these checks and the offline test suite before every commit. Enable
@@ -90,7 +90,7 @@ git commit -m "Add new feature/fix bug in bref module"
 Once your feature or bug fix is complete and tested locally:
 
 1. Open a pull request from your feature branch into `dev`.
-2. GitHub Actions automatically runs CI (unit tests + `mypy`).
+2. GitHub Actions automatically runs CI (unit tests + `ty`).
 3. After checks pass and review is complete, your changes are merged into `dev`.
 
 ## 4. Release Pipeline (Maintainers Only)

@@ -72,6 +72,7 @@ dev = [
   "seaborn>=0.13.2",
   "ipywidgets>=8.1.8",
   "pytest-xdist>=3.8.0",
+  "ty>=0.0.84",
 ]
 
 [tool.setuptools]
@@ -84,3 +85,9 @@ pybaseballstats = ["py.typed", "*.pyi", "statcast_leaderboards/*.pyi"]
 addopts = "-ra --strict-markers -m 'not live'"
 markers = ["live: tests that contact external data sources"]
 pythonpath = ["."]
+
+[tool.ty.src]
+include = ["src/pybaseballstats"]
+
+[tool.ty.environment]
+python-version = "3.11"

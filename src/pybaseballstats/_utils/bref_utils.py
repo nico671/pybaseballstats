@@ -14,6 +14,7 @@ T = TypeVar("T")
 
 def _source_schema_errors(function: Callable[P, T]) -> Callable[P, T]:
     """Report Polars source-schema failures with the public operation name."""
+    function_name = getattr(function, "__name__", type(function).__name__)
 
     @wraps(function)
     def wrapped(*args: P.args, **kwargs: P.kwargs) -> T:
@@ -21,7 +22,7 @@ def _source_schema_errors(function: Callable[P, T]) -> Callable[P, T]:
             return function(*args, **kwargs)
         except pl.exceptions.PolarsError as exc:
             raise RuntimeError(
-                f"{function.__name__}: invalid Baseball Reference table"
+                f"{function_name}: invalid Baseball Reference table"
             ) from exc
 
     return wrapped

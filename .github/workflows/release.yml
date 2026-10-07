@@ -30,8 +30,8 @@ jobs:
       - name: Run offline tests
         run: uv run pytest tests/
 
-      - name: Run mypy
-        run: uv run mypy src/pybaseballstats/
+      - name: Run ty type checks
+        run: uv run ty check
 
       - name: Run Ruff lint checks
         run: uv run ruff check .

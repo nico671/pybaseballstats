@@ -18,13 +18,15 @@ T = TypeVar("T")
 
 
 def _park_errors(function: Callable[P, T]) -> Callable[P, T]:
+    function_name = getattr(function, "__name__", type(function).__name__)
+
     @wraps(function)
     def wrapped(*args: P.args, **kwargs: P.kwargs) -> T:
         try:
             return function(*args, **kwargs)
         except (PlaywrightError, pl.exceptions.PolarsError) as exc:
             raise RuntimeError(
-                f"{function.__name__}: park factor retrieval failed"
+                f"{function_name}: park factor retrieval failed"
             ) from exc
 
     return wrapped

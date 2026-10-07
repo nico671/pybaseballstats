@@ -4,16 +4,8 @@ default:
     #!/usr/bin/env fish
     just --list
 
-mypy:
-    #!/usr/bin/env fish
-    echo "Running mypy type checking..."
-    uv run mypy --config-file src/pybaseballstats/mypy.ini src/pybaseballstats/
-    if test $status -eq 0
-        echo "Mypy type checking passed!"
-    else
-        echo "Mypy type checking failed!"
-        exit 1
-    end
+typecheck:
+    uv run ty check
 
 lint:
     #!/usr/bin/env fish
@@ -93,10 +85,10 @@ release version commit_message:
         exit 1
     end
 
-    echo "Step 4: Running mypy type checking..."
-    just mypy
+    echo "Step 4: Running ty type checks..."
+    just typecheck
     if test $status -ne 0
-        echo "Release aborted: mypy type checking failed!"
+        echo "Release aborted: ty type checks failed!"
         exit 1
     end
     

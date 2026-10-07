@@ -2,7 +2,7 @@ import asyncio
 from datetime import date
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Literal, overload
+from typing import Literal
 
 import polars as pl
 
@@ -116,48 +116,6 @@ async def _async_single_player_pitch_by_pitch(
     finally:
         if source_dir:
             source_dir.cleanup()
-
-
-@overload
-def single_player_pitch_by_pitch(
-    player_id: int,
-    season: int,
-    player_type: Literal["batter", "pitcher"],
-    force_collect: Literal[False] = False,
-    *,
-    chunk_size_days: int = 7,
-    show_progress: bool = True,
-    concurrency: int | None = None,
-    verbose: bool = False,
-) -> pl.LazyFrame: ...
-
-
-@overload
-def single_player_pitch_by_pitch(
-    player_id: int,
-    season: int,
-    player_type: Literal["batter", "pitcher"],
-    force_collect: Literal[True],
-    *,
-    chunk_size_days: int = 7,
-    show_progress: bool = True,
-    concurrency: int | None = None,
-    verbose: bool = False,
-) -> pl.DataFrame: ...
-
-
-@overload
-def single_player_pitch_by_pitch(
-    player_id: int,
-    season: int,
-    player_type: Literal["batter", "pitcher"],
-    force_collect: bool = False,
-    *,
-    chunk_size_days: int = 7,
-    show_progress: bool = True,
-    concurrency: int | None = None,
-    verbose: bool = False,
-) -> pl.LazyFrame | pl.DataFrame: ...
 
 
 def single_player_pitch_by_pitch(

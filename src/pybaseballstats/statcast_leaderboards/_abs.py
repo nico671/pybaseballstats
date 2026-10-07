@@ -198,9 +198,9 @@ def abs_challenges_leaderboard(
     if opposing_teams_param_str:
         params["oppOrg[]"] = opposing_teams_param_str.split("|")
     if pitch_types_param_str:
-        params["pitchType[]"] = pitch_types_param_str.split("|")
+        params["pitchType[]"] = list[str](pitch_types_param_str.split("|"))
     if attack_zone_param_str:
-        params["shadowZones[]"] = attack_zone_param_str.split("|")
+        params["shadowZones[]"] = list[str](attack_zone_param_str.split("|"))
     if in_zone_param_str:
         params["ballStrike"] = in_zone_param_str
 

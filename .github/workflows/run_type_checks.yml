@@ -1,4 +1,4 @@
-name: Run mypy type checks
+name: Run ty type checks
 
 on:
   pull_request:
@@ -17,7 +17,7 @@ permissions:
   contents: write
 
 jobs:
-  mypy:
+  typecheck:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -35,5 +35,5 @@ jobs:
       - name: Install dependencies
         run: uv sync --locked --all-extras --dev
 
-      - name: Run mypy type checks
-        run: uv run mypy --config-file src/pybaseballstats/mypy.ini src/pybaseballstats/
+      - name: Run ty type checks
+        run: uv run ty check

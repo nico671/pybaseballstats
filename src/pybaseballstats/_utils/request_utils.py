@@ -13,6 +13,7 @@ T = TypeVar("T")
 
 def source_schema_errors(function: Callable[P, T]) -> Callable[P, T]:
     """Add operation context to source CSV schema failures."""
+    function_name = getattr(function, "__name__", type(function).__name__)
 
     @wraps(function)
     def wrapped(*args: P.args, **kwargs: P.kwargs) -> T:
@@ -20,12 +21,12 @@ def source_schema_errors(function: Callable[P, T]) -> Callable[P, T]:
             return function(*args, **kwargs)
         except pl.exceptions.PolarsError as exc:
             raise RuntimeError(
-                f"{function.__name__}: invalid Baseball Savant source columns"
+                f"{function_name}: invalid Baseball Savant source columns"
             ) from exc
         except RuntimeError as exc:
-            if str(exc).startswith(f"{function.__name__}:"):
+            if str(exc).startswith(f"{function_name}:"):
                 raise
-            raise RuntimeError(f"{function.__name__}: {exc}") from exc
+            raise RuntimeError(f"{function_name}: {exc}") from exc
 
     return wrapped
 

@@ -2,7 +2,7 @@ import asyncio
 from functools import wraps
 from typing import Any, Callable, Coroutine, Dict, ParamSpec, TypeVar
 
-import nest_asyncio  # type: ignore
+import nest_asyncio
 import polars as pl
 from bs4 import BeautifulSoup
 from playwright.async_api import Error as PlaywrightError
@@ -32,14 +32,14 @@ T = TypeVar("T")
 
 
 def _game_errors(function: Callable[P, T]) -> Callable[P, T]:
+    function_name = getattr(function, "__name__", type(function).__name__)
+
     @wraps(function)
     def wrapped(*args: P.args, **kwargs: P.kwargs) -> T:
         try:
             return function(*args, **kwargs)
         except (RuntimeError, pl.exceptions.PolarsError, PlaywrightError) as exc:
-            raise RuntimeError(
-                f"{function.__name__}: game data retrieval failed"
-            ) from exc
+            raise RuntimeError(f"{function_name}: game data retrieval failed") from exc
 
     return wrapped
 

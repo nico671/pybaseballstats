@@ -1,8 +1,9 @@
 import asyncio
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Literal, Optional, overload
+from typing import Optional
 
+import nest_asyncio
 import polars as pl
 
 from pybaseballstats._consts.statcast_consts import (
@@ -124,62 +125,6 @@ async def _async_pitch_by_pitch_data(
             source_dir.cleanup()
 
 
-@overload
-def pitch_by_pitch_data(
-    start_date: str,
-    end_date: str,
-    team: Optional[StatcastTeams] = None,
-    force_collect: Literal[False] = False,
-    *,
-    chunk_size_days: int = 3,
-    show_progress: bool = True,
-    concurrency: int | None = None,
-    verbose: bool = False,
-) -> pl.LazyFrame: ...
-
-
-@overload
-def pitch_by_pitch_data(
-    start_date: str,
-    end_date: str,
-    team: Optional[StatcastTeams],
-    force_collect: Literal[True],
-    *,
-    chunk_size_days: int = 3,
-    show_progress: bool = True,
-    concurrency: int | None = None,
-    verbose: bool = False,
-) -> pl.DataFrame: ...
-
-
-@overload
-def pitch_by_pitch_data(
-    start_date: str,
-    end_date: str,
-    team: Optional[StatcastTeams] = None,
-    *,
-    force_collect: Literal[True],
-    chunk_size_days: int = 3,
-    show_progress: bool = True,
-    concurrency: int | None = None,
-    verbose: bool = False,
-) -> pl.DataFrame: ...
-
-
-@overload
-def pitch_by_pitch_data(
-    start_date: str,
-    end_date: str,
-    team: Optional[StatcastTeams] = None,
-    force_collect: bool = False,
-    *,
-    chunk_size_days: int = 3,
-    show_progress: bool = True,
-    concurrency: int | None = None,
-    verbose: bool = False,
-) -> pl.LazyFrame | pl.DataFrame: ...
-
-
 def pitch_by_pitch_data(
     start_date: str,
     end_date: str,
@@ -251,7 +196,6 @@ def pitch_by_pitch_data(
         return asyncio.run(coro)
     else:
         # Event loop already running - Jupyter notebooks, existing async context
-        import nest_asyncio  # type: ignore [import-untyped]
 
         nest_asyncio.apply()
         return loop.run_until_complete(coro)
