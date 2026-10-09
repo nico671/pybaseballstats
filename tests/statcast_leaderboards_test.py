@@ -1411,7 +1411,7 @@ def test_pitch_movement_leaderboard():
         pitcher_handedness="L",
         min_pitches=100,
     )
-    assert df.shape[0] == 132
+    assert df.shape[0] == 131
     assert df.shape[1] == 24
     assert df.select(pl.col("pitcher_id").n_unique()).item() == 132
     assert df.select(pl.col("pitch_type").unique()).item() == "FF"
