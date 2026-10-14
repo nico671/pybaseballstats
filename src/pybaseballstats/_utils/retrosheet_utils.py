@@ -2,12 +2,12 @@ from functools import lru_cache
 from unicodedata import combining, normalize
 
 import polars as pl
-import requests
 
 from pybaseballstats._consts.retrosheet_consts import (
     PEOPLES_URL,
     RETROSHEET_KEEP_COLS,
 )
+from pybaseballstats._utils.request_utils import get_bytes
 
 
 @lru_cache(maxsize=1)
@@ -15,15 +15,23 @@ def _get_people_data() -> pl.DataFrame:
     """Fetch and cache people data from Retrosheet."""
     df_list = []
     for i in range(0, 10):
-        data = requests.get(PEOPLES_URL.format(num=i)).content
-        df = pl.read_csv(data)
-        df = df.select(pl.col(RETROSHEET_KEEP_COLS))
+        url = PEOPLES_URL.format(num=i)
+        try:
+            df = pl.read_csv(get_bytes(url)).select(pl.col(RETROSHEET_KEEP_COLS))
+        except (pl.exceptions.PolarsError, RuntimeError) as exc:
+            raise RuntimeError(
+                f"player_lookup: invalid Retrosheet shard {url}"
+            ) from exc
         df_list.append(df)
 
     for letter in ["a", "b", "c", "d", "f"]:
-        data = requests.get(PEOPLES_URL.format(num=letter)).content
-        df = pl.read_csv(data)
-        df = df.select(pl.col(RETROSHEET_KEEP_COLS))
+        url = PEOPLES_URL.format(num=letter)
+        try:
+            df = pl.read_csv(get_bytes(url)).select(pl.col(RETROSHEET_KEEP_COLS))
+        except (pl.exceptions.PolarsError, RuntimeError) as exc:
+            raise RuntimeError(
+                f"player_lookup: invalid Retrosheet shard {url}"
+            ) from exc
         df_list.append(df)
 
     df = pl.concat(df_list)
@@ -57,7 +65,7 @@ def _get_people_data() -> pl.DataFrame:
     return df
 
 
-def _clear_people_cache():
+def _clear_people_cache() -> None:
     """Clear the cached people data to force a refresh from Retrosheet."""
     _get_people_data.cache_clear()
 

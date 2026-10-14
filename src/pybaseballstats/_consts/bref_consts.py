@@ -35,7 +35,7 @@ class BREFTeams(Enum):
     NATIONALS = "WSN"
 
     @classmethod
-    def show_options(cls):
+    def show_options(cls) -> str:
         return "\n".join([f"{team.name}: {team.value}" for team in cls])
 
 

@@ -2,9 +2,11 @@
 
 This module provides functions to retrieve data from the [Umpire Scorecards](https://umpscorecards.com/) website. This site offers detailed statistics and performance metrics for MLB umpires.
 
+The source has data that starts in 2008. These package functions accept dates
+from 2015 onward.
+
 ## Available Functions
 
-- `game_type_options()`: Prints the game types for filtering.
 - `game_data(...)`: Fetches umpire performance data on a game by game basis over a specific date range and set of filters.
 - `umpire_data(...)`: Fetches umpire data for a specific date range and set of filters.
 - `team_data(...)`: Fetches team data for a specific date range and set of filters.
@@ -18,11 +20,12 @@ Parameter details are organized by function in the sections below.
 
 ### Seeing Available Teams
 
-This function doesn't return any data from the Umpire Scorecards website. Instead, it prints the available teams that can be used as filters in other functions.
+`UmpireScorecardTeams.show_options()` returns a string of available team options. Use `print()` to display it. It does not fetch source data.
 
 ```python
 import pybaseballstats.umpire_scorecards as us
-print(us.UmpireScorecardTeams.show_options()) # will print all of the available teams
+from pybaseballstats.enums import UmpireScorecardTeams
+print(UmpireScorecardTeams.show_options()) # will print all of the available teams
 """ 
 ALL: *
 DIAMONDBACKS: AZ
@@ -33,7 +36,8 @@ RED_SOX: BOS
 CUBS: CHC
 REDS: CIN
 WHITE_SOX: CWS
-GAURDIANS: CLE
+GUARDIANS: CLE
+TIGERS: DET
 ROCKIES: COL
 ASTROS: HOU
 ROYALS: KC
@@ -59,23 +63,10 @@ NATIONALS: WSH
 
 ### Understanding Game Type Options
 
-game_type is a filter that can be used in the `game_data`, `umpire_data`, and `team_data` functions. The following function prints the available game types.
-
-```python
-import pybaseballstats.umpire_scorecards as us
-us.game_type_options() # will print all of the available game types
-""" 
-Game Type Options:
-* : All games
-R : Regular Season
-A : All-Star Game
-P : All Postseason games
-F : Wild Card games
-D : Division Series games
-L : League Championship Series games
-W : World Series games
-"""
-```
+`game_type` filters `game_data`, `umpire_data`, `team_data`, and `player_data`.
+Use `"*"` for all games, `"R"` for regular season, `"A"` for the All-Star Game,
+`"P"` for all postseason games, `"F"` for Wild Card, `"D"` for Division Series,
+`"L"` for League Championship Series, or `"W"` for World Series.
 
 ### Fetching Game By Game Umpire Data
 
@@ -88,9 +79,9 @@ Note that only the `start_date` and `end_date` parameters are required. The othe
 - `start_date` (str): The start date for the data in "YYYY-MM-DD" format.
 - `end_date` (str): The end date for the data in "YYYY-MM-DD" format.
 - `umpire_name` (str): The umpire's name to filter by. Use "" to include all umpires.
-- `focus_team` (UmpireScorecardTeams): The team abbreviation to filter by. Use "*" to include all teams. See the "Seeing Available Teams" section above for a list of team abbreviations.
+- `focus_team` (UmpireScorecardTeams): Team filter. Use `UmpireScorecardTeams.ALL` to include all teams. See "Seeing Available Teams" for the enum options.
 - `focus_team_home_away` (str): Filter by whether the focus team is home or away. Use "*" to include both. Options are "h" for home, "a" for away, and "*" for both.
-- `opponent_team` (UmpireScorecardTeams): The opponent team abbreviation to filter by. Use "*" to include all teams. See the "Seeing Available Teams" section above for a list of team abbreviations.
+- `opponent_team` (UmpireScorecardTeams): Opponent team filter. Use `UmpireScorecardTeams.ALL` to include all opponents. See "Seeing Available Teams" for the enum options.
 - `game_type` (str): The type of game to filter by. Use "*" to include all game types. See the "Understanding Game Type Options" section above for a list of game types.
 
 #### Example 1: Fetch all game data for a specific date range
@@ -106,8 +97,9 @@ print(df)
 
 ```python
 import pybaseballstats.umpire_scorecards as us
+from pybaseballstats.enums import UmpireScorecardTeams
 # 2. Fetch game data for a specific umpire and team
-df = us.game_data(start_date="2023-04-01", end_date="2025-09-09", umpire_name="Brian O'Nora", focus_team=us.UmpireScorecardTeams.MARLINS)
+df = us.game_data(start_date="2023-04-01", end_date="2025-09-09", umpire_name="Brian O'Nora", focus_team=UmpireScorecardTeams.MARLINS)
 print(df)
 ```
 
@@ -115,13 +107,14 @@ print(df)
 
 ```python
 import pybaseballstats.umpire_scorecards as us
+from pybaseballstats.enums import UmpireScorecardTeams
 # 3. Fetch game data for a specific team when they are playing at home against a specific opponent
 df = us.game_data(
     start_date="2023-04-01",
     end_date="2025-04-30",
-    focus_team=us.UmpireScorecardTeams.DIAMONDBACKS,
+    focus_team=UmpireScorecardTeams.DIAMONDBACKS,
     focus_team_home_away="h",
-    opponent_team=us.UmpireScorecardTeams.CUBS
+    opponent_team=UmpireScorecardTeams.CUBS
 )
 print(df)
 ```
@@ -149,10 +142,12 @@ print(df)
 
 ```python
 import pybaseballstats.umpire_scorecards as us
+from pybaseballstats.enums import UmpireScorecardTeams
 # 2. Fetch umpire data for a specific team with a minimum number of games called
 df = us.umpire_data(
     start_date="2023-04-01",
-    end_date="2025-09-09",focus_team=us.UmpireScorecardTeams.MARLINS,
+    end_date="2025-09-09",
+    focus_team=UmpireScorecardTeams.MARLINS,
     min_games_called=10,
 )
 print(df)
@@ -160,11 +155,16 @@ print(df)
 
 ## Fetching Team Data
 
-If you want aggregated team data over a specific date range, you can use the `team_data` function. This function allows you to filter by date range, umpire, team, game type, and minimum games called.
+`team_data` returns aggregated team data for a date range. It supports game-type and team filters. It does not accept an umpire filter or a minimum-games filter.
 
 ### Understanding the team data function parameters
 
-The `team_data` function's parameters are all repeats of those in the other functions, please review those sections for an explanation of each parameter.
+`team_data(start_date, end_date, game_type="*", focus_team=UmpireScorecardTeams.ALL)`
+
+- `start_date` (str, required): Inclusive start date in `YYYY-MM-DD` format.
+- `end_date` (str, required): Inclusive end date in `YYYY-MM-DD` format.
+- `game_type` (str): One of `"*"`, `"R"`, `"A"`, `"P"`, `"F"`, `"D"`, `"L"`, or `"W"`. Defaults to `"*"` for all game types.
+- `focus_team` (UmpireScorecardTeams): Team filter. Defaults to `UmpireScorecardTeams.ALL`. The function applies this filter to the returned team rows.
 
 #### Example 1: Fetch all team data for a specific date range
 
@@ -175,12 +175,17 @@ df = us.team_data(start_date="2023-04-01", end_date="2023-04-30")
 print(df)
 ```
 
-#### Example 2: Fetch team data for a specific umpire and team
+#### Example 2: Fetch regular-season team data for the Marlins
 
 ```python
 import pybaseballstats.umpire_scorecards as us
-# 1. Fetch all team data for a specific date range  
-df = us.team_data(start_date="2023-04-01", end_date="2023-04-30")
+from pybaseballstats.enums import UmpireScorecardTeams
+df = us.team_data(
+    start_date="2023-04-01",
+    end_date="2023-04-30",
+    game_type="R",
+    focus_team=UmpireScorecardTeams.MARLINS,
+)
 print(df)
 ```
 
@@ -219,13 +224,14 @@ print(df)
 
 ```python
 import pybaseballstats.umpire_scorecards as us
+from pybaseballstats.enums import UmpireScorecardTeams
 
 df = us.player_data(
     start_date="2025-01-01",
     end_date="2025-10-01",
     player_type="C",
     game_type="R",
-    team=us.UmpireScorecardTeams.ANGELS,
+    team=UmpireScorecardTeams.ANGELS,
 )
 print(df)
 ```
@@ -245,6 +251,6 @@ print(df)
 
 ## Notes
 
-1. Please note that some of the restrictions you can enable through the parameters may result in no data being returned. For example, if you try to filter by an umpire name that does not exist in the data for the specified date range, a warning will be printed and all umpires will be returned instead. In other cases, this may not be caught and an empty DataFrame will be returned. Please ensure that your filters are valid for the date range you are querying. I recommend starting with a broader query and then narrowing down your filters as needed.
+1. A valid request with no matching umpire returns an empty DataFrame. The name filter uses exact equality. A failed request or invalid source response raises `RuntimeError`.
 2. Please refer to the [Umpire Scorecard glossary](https://umpscorecards.com/page/info/glossary) provided by Umpire Scorecards for definitions of the columns in the returned DataFrame. There will be some extra columns that are not in the glossary, as they aren't available publicly on the website rather they are present in the API response. These columns are left in because they do have some value in understanding the data.
 3. Team filters should use the `UmpireScorecardTeams` enum (view options via `UmpireScorecardTeams.show_options()`).

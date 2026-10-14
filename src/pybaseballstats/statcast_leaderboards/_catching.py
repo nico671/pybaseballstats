@@ -1,9 +1,7 @@
-import io
 from datetime import datetime
 from typing import List, Literal
 
 import polars as pl
-import requests
 
 from pybaseballstats._consts.statcast_leaderboard_consts import (
     CATCHER_BLOCKING_LEADERBOARD_URL,
@@ -13,8 +11,10 @@ from pybaseballstats._consts.statcast_leaderboard_consts import (
     POPTIME_LEADERBOARD_URL,
     StatcastLeaderboardsTeams,
 )
+from pybaseballstats._utils.request_utils import get_csv, source_schema_errors
 
 
+@source_schema_errors
 def catcher_blocking_leaderboard(
     start_season: int,
     end_season: int,
@@ -55,6 +55,8 @@ def catcher_blocking_leaderboard(
         - The website disables team and minimum-pitch filters for ``"Catching Team"``
           grouping, so this function follows that behavior.
     """
+    if type(start_season) is not int or type(end_season) is not int:
+        raise TypeError("start_season and end_season must be integers")
     current_year = datetime.now().year
     if not isinstance(start_season, int) or not 2018 <= start_season <= current_year:
         raise ValueError(f"start_season must be between 2018 and {current_year}")
@@ -108,10 +110,10 @@ def catcher_blocking_leaderboard(
         team=team_param,
         group_by=group_by_param,
     )
-    resp = requests.get(url)
-    return pl.read_csv(io.StringIO(resp.text))
+    return get_csv(url)
 
 
+@source_schema_errors
 def catcher_framing_leaderboard(
     start_season: int,
     end_season: int,
@@ -156,6 +158,8 @@ def catcher_framing_leaderboard(
     Notes:
         Catcher-framing data is available from 2018 onwards.
     """
+    if type(start_season) is not int or type(end_season) is not int:
+        raise TypeError("start_season and end_season must be integers")
     current_year = datetime.now().year
     if not isinstance(start_season, int) or not 2018 <= start_season <= current_year:
         raise ValueError(f"start_season must be between 2018 and {current_year}")
@@ -230,8 +234,7 @@ def catcher_framing_leaderboard(
         pitch_hand=pitch_hand_param,
         ball_strike=ball_strike_param,
     )
-    resp = requests.get(url)
-    df = pl.read_csv(io.StringIO(resp.text))
+    df = get_csv(url)
     if group_by in ["catcher", "batter", "pitcher"]:
         return df.rename({"id": "player_id", "name": "player_name"})
     if group_by in ["catching-team", "batting-team"]:
@@ -239,8 +242,9 @@ def catcher_framing_leaderboard(
     return df.rename({"id": "league_id", "name": "league_name"})
 
 
+@source_schema_errors
 def catcher_pop_time_leaderboard(
-    season: int = 2026,
+    season: int | None = None,
     team: StatcastLeaderboardsTeams | None = None,
     min_2b_attempts: int = 5,
     min_3b_attempts: int = 0,
@@ -248,8 +252,8 @@ def catcher_pop_time_leaderboard(
     """Return Baseball Savant catcher Pop Time leaderboard data.
 
     Args:
-        season (int, optional): Season year. Pop Time data is available from 2015
-            through the current year.
+        season (int | None, optional): Season year. Defaults to the current year.
+            Pop Time data is available from 2015 through the current year.
         team (StatcastLeaderboardsTeams | None, optional): Optional team filter.
         min_2b_attempts (int, optional): Minimum second-base attempts.
         min_3b_attempts (int, optional): Minimum third-base attempts.
@@ -262,16 +266,20 @@ def catcher_pop_time_leaderboard(
             throwing metrics.
     """
     current_year = datetime.now().year
-    if not isinstance(season, int) or not 2015 <= season <= current_year:
+    if season is None:
+        season = current_year
+    if not isinstance(season, int) or isinstance(season, bool):
+        raise TypeError("season must be an integer")
+    if not 2015 <= season <= current_year:
         raise ValueError(f"season must be between 2015 and {current_year}")
     if team is not None and not isinstance(team, StatcastLeaderboardsTeams):
-        raise ValueError(
-            "team must be an instance of StatcastLeaderboardsTeams or None"
-        )
+        raise TypeError("team must be an instance of StatcastLeaderboardsTeams or None")
     if not isinstance(min_2b_attempts, int) or isinstance(min_2b_attempts, bool):
-        raise ValueError("min_2b_attempts must be an integer")
+        raise TypeError("min_2b_attempts must be an integer")
     if not isinstance(min_3b_attempts, int) or isinstance(min_3b_attempts, bool):
-        raise ValueError("min_3b_attempts must be an integer")
+        raise TypeError("min_3b_attempts must be an integer")
+    if min_2b_attempts < 0 or min_3b_attempts < 0:
+        raise ValueError("attempt thresholds must be nonnegative")
 
     team_param = str(team.value) if team is not None else ""
     url = POPTIME_LEADERBOARD_URL.format(
@@ -280,10 +288,10 @@ def catcher_pop_time_leaderboard(
         min_2b_attempts=min_2b_attempts,
         min_3b_attempts=min_3b_attempts,
     )
-    resp = requests.get(url)
-    return pl.read_csv(io.StringIO(resp.text))
+    return get_csv(url)
 
 
+@source_schema_errors
 def catcher_stance_leaderboard(
     start_season: int,
     end_season: int,
@@ -333,6 +341,8 @@ def catcher_stance_leaderboard(
             ``player_id`` and ``player_name``; team groupings use ``team_id`` and
             ``team_name``; league groupings use ``league_id`` and ``league_name``.
     """
+    if type(start_season) is not int or type(end_season) is not int:
+        raise TypeError("start_season and end_season must be integers")
     current_year = datetime.now().year
     if not isinstance(start_season, int) or not 2020 <= start_season <= current_year:
         raise ValueError(f"start_season must be between 2020 and {current_year}")
@@ -435,8 +445,7 @@ def catcher_stance_leaderboard(
         start_date=date_params["start_date"],
         end_date=date_params["end_date"],
     )
-    resp = requests.get(url)
-    df = pl.read_csv(io.StringIO(resp.text))
+    df = get_csv(url)
     if group_by in ["catcher", "batter", "pitcher"]:
         return df.rename({"id": "player_id", "name": "player_name"})
     if group_by in ["catching-team", "batting-team"]:
@@ -444,6 +453,7 @@ def catcher_stance_leaderboard(
     return df.rename({"id": "league_id", "name": "league_name"})
 
 
+@source_schema_errors
 def catcher_throwing_leaderboard(
     start_season: int,
     end_season: int,
@@ -478,6 +488,8 @@ def catcher_throwing_leaderboard(
     Returns:
         pl.DataFrame: Catcher-throwing leaderboard data.
     """
+    if type(start_season) is not int or type(end_season) is not int:
+        raise TypeError("start_season and end_season must be integers")
     current_year = datetime.now().year
     if not isinstance(start_season, int) or not 2016 <= start_season <= current_year:
         raise ValueError(f"start_season must be between 2016 and {current_year}")
@@ -528,8 +540,7 @@ def catcher_throwing_leaderboard(
         with_team_only="1" if with_team_only else "0",
         target_base=target_base,
     )
-    resp = requests.get(url)
-    return pl.read_csv(io.StringIO(resp.text))
+    return get_csv(url)
 
 
 # endregion

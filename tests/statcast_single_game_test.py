@@ -25,9 +25,8 @@ def test_statcast_single_game_pitch_by_pitch():
     assert df.shape == (338, 119)
     assert df.select(pl.col("game_pk").unique()).item() == 776759
     assert df.select(pl.col("game_date").unique()).item() == "2025-08-13"
-    df2 = ssg.single_game_pitch_by_pitch(game_pk=0)
-    assert df2.is_empty()
-    assert df2.shape == (0, 119)
+    with pytest.raises(ValueError):
+        ssg.single_game_pitch_by_pitch(game_pk=0)
 
 
 def test_statcast_single_game_exit_velocity():
@@ -45,10 +44,8 @@ def test_statcast_single_game_exit_velocity():
     assert df.select(pl.col("num_pa").max()).item() == 89
     assert df.select(pl.col("inning").max()).item() == 9
     assert df.select(pl.col("exit_velo").max()).item() == 108.69999694824219
-    df2 = ssg.single_game_exit_velocity(game_date="2025-08-13", game_pk=0)
-
-    assert df2.is_empty()
-    assert df2.shape == (0, 0)
+    with pytest.raises(ValueError):
+        ssg.single_game_exit_velocity(game_date="2025-08-13", game_pk=0)
 
 
 def test_statcast_single_game_pitch_velocity():
@@ -71,9 +68,8 @@ def test_statcast_single_game_pitch_velocity():
     )
     assert df.select(pl.col("game_pitch_number").max()).item() == 338
     assert df.select(pl.col("inning").max()).item() == 9
-    df2 = ssg.single_game_pitch_velocity(game_date="2025-08-13", game_pk=0)
-    assert df2.is_empty()
-    assert df2.shape == (0, 0)
+    with pytest.raises(ValueError):
+        ssg.single_game_pitch_velocity(game_date="2025-08-13", game_pk=0)
 
 
 def test_statcast_single_game_win_probability():
@@ -85,6 +81,5 @@ def test_statcast_single_game_win_probability():
     assert df.select(pl.col("Away WP%").max()).item() == 100.0  # away team won
     assert df.select(pl.col("Home WP%").min()).item() == 0.0
 
-    df2 = ssg.single_game_win_probability(game_date="2025-08-13", game_pk=0)
-    assert df2.is_empty()
-    assert df2.shape == (0, 0)
+    with pytest.raises(ValueError):
+        ssg.single_game_win_probability(game_date="2025-08-13", game_pk=0)

@@ -6,7 +6,7 @@ import pybaseballstats.bref_managers as bm
 
 @pytest.mark.xdist_group(name="bref_test")
 def test_manager_basic_data_errors():
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         bm.managers_basic_data(year=None)
     with pytest.raises(TypeError):
         bm.managers_basic_data(year="2023")
@@ -29,7 +29,7 @@ def test_manager_basic_data():
 
 @pytest.mark.xdist_group(name="bref_test")
 def test_manager_tendencies_data_errors():
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         bm.managers_tendencies_data(year=None)
     with pytest.raises(TypeError):
         bm.managers_tendencies_data(year="2023")

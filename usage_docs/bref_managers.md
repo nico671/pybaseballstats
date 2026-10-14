@@ -4,14 +4,15 @@ This module provides functions for pulling MLB manager data from Baseball Refere
 
 ## Available Functions
 
-- `managers_basic_data(year)`: Returns manager-level season records (wins/losses, games managed, replay/challenge outcomes, and postseason summary fields).
-- `managers_tendencies_data(year)`: Returns manager tendencies (steal attempts, bunting, IBB usage, and pitching usage tendencies).
+- `managers_basic_data(year, verbose=False)`: Returns manager-level season records (wins/losses, games managed, replay/challenge outcomes, and postseason summary fields).
+- `managers_tendencies_data(year, verbose=False)`: Returns manager tendencies (steal attempts, bunting, IBB usage, and pitching usage tendencies).
 
 ## Function Parameters
 
-Both functions use the same parameter:
+Both functions accept these parameters:
 
 - `year` (int): MLB season year.
+- `verbose` (bool): Print request diagnostics. Defaults to `False`.
 
 Validation rules:
 
@@ -41,7 +42,7 @@ print(tendencies_df)
 
 ## Notes
 
-1. `managers_basic_data` uses Playwright and can be slower than simple HTTP scraping.
+1. Both functions use the shared BREF session, which can use a browser fallback when it detects a Cloudflare challenge.
 2. Both functions return Polars DataFrames.
-3. Baseball Reference rate limits are handled internally by the shared BREF session utilities.
+3. The shared session limits requests within this Python process. Baseball Reference can still block a request; a failed request raises `RuntimeError`.
 4. All functions take in a `verbose` parameter that, when set to True, will print debug information during the request process. This can be useful for troubleshooting Cloudflare blocks.

@@ -2,6 +2,7 @@ import polars as pl
 import pytest
 
 import pybaseballstats.umpire_scorecards as us
+from pybaseballstats.enums import UmpireScorecardTeams
 
 pytestmark = pytest.mark.live
 
@@ -9,9 +10,9 @@ pytestmark = pytest.mark.live
 
 
 def test_game_data_general():
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         us.game_data(start_date=None, end_date="2023-07-07")
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         us.game_data(start_date="2023-07-01", end_date=None)
     with pytest.raises(ValueError):
         us.game_data(start_date="2023-07-07", end_date="2023-07-01")
@@ -27,38 +28,38 @@ def test_game_data_general():
         us.game_data(
             start_date="2023-07-01",
             end_date="2023-07-07",
-            focus_team=us.UmpireScorecardTeams.ANGELS,
+            focus_team=UmpireScorecardTeams.ANGELS,
             focus_team_home_away="x",
         )
-    with pytest.raises(AssertionError):
+    with pytest.raises(TypeError):
         us.game_data(
             start_date="2023-07-01",
             end_date="2023-07-07",
             focus_team=None,
             focus_team_home_away="h",
         )
-    with pytest.raises(AssertionError):
+    with pytest.raises(TypeError):
         us.game_data(
             start_date="2023-07-01",
             end_date="2023-07-07",
-            focus_team=us.UmpireScorecardTeams.ANGELS,
+            focus_team=UmpireScorecardTeams.ANGELS,
             opponent_team=None,
         )
     with pytest.raises(ValueError):
         us.game_data(
             start_date="2023-07-01",
             end_date="2023-07-07",
-            focus_team=us.UmpireScorecardTeams.ANGELS,
+            focus_team=UmpireScorecardTeams.ANGELS,
             focus_team_home_away="h",
-            opponent_team=us.UmpireScorecardTeams.ANGELS,
+            opponent_team=UmpireScorecardTeams.ANGELS,
         )
     with pytest.raises(ValueError):
         us.game_data(
             start_date="2023-07-01",
             end_date="2028-07-07",
-            focus_team=us.UmpireScorecardTeams.ANGELS,
+            focus_team=UmpireScorecardTeams.ANGELS,
             focus_team_home_away="a",
-            opponent_team=us.UmpireScorecardTeams.ANGELS,
+            opponent_team=UmpireScorecardTeams.ANGELS,
         )
     # general test
     df = us.game_data(start_date="2026-01-01", end_date="2026-03-27")
@@ -91,7 +92,7 @@ def test_game_data_team_filtering():
     df = us.game_data(
         start_date="2026-01-01",
         end_date="2026-03-27",
-        focus_team=us.UmpireScorecardTeams.GIANTS,
+        focus_team=UmpireScorecardTeams.GIANTS,
         focus_team_home_away="h",
     )
     assert df.shape[0] == 2
@@ -101,9 +102,9 @@ def test_game_data_team_filtering():
     df = us.game_data(
         start_date="2023-04-01",
         end_date="2023-07-07",
-        focus_team=us.UmpireScorecardTeams.ANGELS,
+        focus_team=UmpireScorecardTeams.ANGELS,
         focus_team_home_away="h",
-        opponent_team=us.UmpireScorecardTeams.RANGERS,
+        opponent_team=UmpireScorecardTeams.RANGERS,
     )
     assert df.shape[0] == 3
     assert df.shape[1] == 47
@@ -115,9 +116,9 @@ def test_game_data_team_filtering():
     df = us.game_data(
         start_date="2023-04-01",
         end_date="2023-07-07",
-        focus_team=us.UmpireScorecardTeams.ANGELS,
+        focus_team=UmpireScorecardTeams.ANGELS,
         focus_team_home_away="a",
-        opponent_team=us.UmpireScorecardTeams.RANGERS,
+        opponent_team=UmpireScorecardTeams.RANGERS,
     )
     assert df.shape[0] == 3
     assert df.shape[1] == 47
@@ -172,7 +173,7 @@ def test_umpire_data_team_params():
         start_date="2025-01-01",
         end_date="2025-10-01",
         game_type="R",
-        focus_team=us.UmpireScorecardTeams.BRAVES,
+        focus_team=UmpireScorecardTeams.BRAVES,
     )
     assert df.shape[0] == 82
     assert df.shape[1] == 20
@@ -185,7 +186,7 @@ def test_umpire_data_team_params():
         start_date="2025-01-01",
         end_date="2025-10-01",
         game_type="R",
-        focus_team=us.UmpireScorecardTeams.BRAVES,
+        focus_team=UmpireScorecardTeams.BRAVES,
         focus_team_home_away="a",
     )
     assert df.shape[0] == 59
@@ -199,9 +200,9 @@ def test_umpire_data_team_params():
         start_date="2025-01-01",
         end_date="2025-10-01",
         game_type="R",
-        focus_team=us.UmpireScorecardTeams.BRAVES,
+        focus_team=UmpireScorecardTeams.BRAVES,
         focus_team_home_away="a",
-        opponent_team=us.UmpireScorecardTeams.NATIONALS,
+        opponent_team=UmpireScorecardTeams.NATIONALS,
     )
     assert df.shape[0] == 6
     assert df.shape[1] == 20
@@ -268,7 +269,7 @@ def test_team_data_focus_team():
         start_date="2025-01-01",
         end_date="2025-10-30",
         game_type="R",
-        focus_team=us.UmpireScorecardTeams.ANGELS,
+        focus_team=UmpireScorecardTeams.ANGELS,
     )
     assert df.shape[0] == 1
     assert df.shape[1] == 25
@@ -329,7 +330,7 @@ def test_player_data_general():
             end_date="2025-10-01",
             player_type="X",
         )
-    with pytest.raises(AssertionError):
+    with pytest.raises(TypeError):
         us.player_data(
             start_date="2025-01-01",
             end_date="2025-10-01",
@@ -415,14 +416,14 @@ def test_player_data_team_filtering():
         end_date="2025-10-01",
         player_type="P",
         game_type="R",
-        team=us.UmpireScorecardTeams.ALL,
+        team=UmpireScorecardTeams.ALL,
     )
     df_braves = us.player_data(
         start_date="2025-01-01",
         end_date="2025-10-01",
         player_type="P",
         game_type="R",
-        team=us.UmpireScorecardTeams.BRAVES,
+        team=UmpireScorecardTeams.BRAVES,
     )
 
     assert df_all.shape[0] == 872
@@ -438,7 +439,7 @@ def test_player_data_team_filtering():
         end_date="2025-10-01",
         player_type="B",
         game_type="R",
-        team=us.UmpireScorecardTeams.ANGELS,
+        team=UmpireScorecardTeams.ANGELS,
     )
     assert df_angels_batters.shape[0] == 29
     assert df_angels_batters.shape[1] == 11

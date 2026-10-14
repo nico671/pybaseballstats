@@ -1,16 +1,16 @@
-import io
 from datetime import datetime
 from typing import Literal
 
 import polars as pl
-import requests
 
 from pybaseballstats._consts.statcast_leaderboard_consts import (
     PERCENTILE_RANKINGS_LEADERBOARD_URL,
     StatcastLeaderboardsTeams,
 )
+from pybaseballstats._utils.request_utils import get_csv, source_schema_errors
 
 
+@source_schema_errors
 def percentile_rankings_leaderboard(
     season: int,
     player_type: Literal["batter", "pitcher"] = "batter",
@@ -44,6 +44,8 @@ def percentile_rankings_leaderboard(
         The CSV export may not include every metric shown on an individual player's
         Baseball Savant page.
     """
+    if type(season) is not int:
+        raise TypeError("season must be an integer")
     if season < 2015 or season > datetime.now().year:
         raise ValueError(f"season must be between 2015 and {datetime.now().year}")
     if player_type not in ["batter", "pitcher"]:
@@ -80,5 +82,4 @@ def percentile_rankings_leaderboard(
         position=position_params[position],
         team=team_param,
     )
-    resp = requests.get(url)
-    return pl.read_csv(io.StringIO(resp.text))
+    return get_csv(url)

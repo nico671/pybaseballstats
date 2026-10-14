@@ -80,7 +80,7 @@ Allowed `metric_type` values:
 
 All functions use:
 
-- `team` (`BREFTeams`) — team enum from `pybaseballstats.bref_teams.BREFTeams`
+- `team` (`BREFTeams`) — team enum from `pybaseballstats.enums.BREFTeams`
 - `year` (`int`) — MLB season year
 
 `batting(...)` additionally uses:
@@ -106,8 +106,8 @@ Allowed `position` values by metric type:
 
 Validation behavior:
 
-- If `team` is not a `BREFTeams` value, a `ValueError` is raised.
-- If the underlying page/table cannot be loaded, an error is raised (`ValueError` in most functions).
+- If `team` is not a `BREFTeams` value, a `TypeError` is raised.
+- If the underlying page/table cannot be loaded, `RuntimeError` is raised.
 - For `fielding(...)`, invalid `metric_type` or invalid `position` for that `metric_type` raises `ValueError`.
 - `position=""` or `position="all"` is only valid for `metric_type="standard"`.
 
@@ -123,16 +123,18 @@ import pybaseballstats.bref_teams as bt
 
 ```python
 import pybaseballstats.bref_teams as bt
+from pybaseballstats.enums import BREFTeams
 
-print(bt.BREFTeams.show_options())
+print(BREFTeams.show_options())
 ```
 
 ### Team page tables
 
 ```python
 import pybaseballstats.bref_teams as bt
+from pybaseballstats.enums import BREFTeams
 
-team = bt.BREFTeams.YANKEES
+team = BREFTeams.YANKEES
 year = 2025
 
 schedule_df = bt.game_by_game_schedule_results(team, year)
@@ -158,8 +160,9 @@ print(
 
 ```python
 import pybaseballstats.bref_teams as bt
+from pybaseballstats.enums import BREFTeams
 
-team = bt.BREFTeams.YANKEES
+team = BREFTeams.YANKEES
 year = 2025
 
 standard_bat_df = bt.batting(team, year, metric_type="standard")
@@ -174,8 +177,9 @@ wpa_pitch_df = bt.pitching(team, year, metric_type="win_probability")
 
 ```python
 import pybaseballstats.bref_teams as bt
+from pybaseballstats.enums import BREFTeams
 
-team = bt.BREFTeams.YANKEES
+team = BREFTeams.YANKEES
 year = 2025
 
 # standard fielding (all players)
