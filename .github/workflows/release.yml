@@ -8,7 +8,8 @@ on:
 jobs:
   release-checks:
     name: Required release checks
-    runs-on: ubuntu-latest
+    # Pin the OS because the locked Playwright version does not support Ubuntu 26.04.
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
       contents: read
