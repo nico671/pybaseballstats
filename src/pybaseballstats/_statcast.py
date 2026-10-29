@@ -159,7 +159,8 @@ def pitch_by_pitch_data(
         ``pl.DataFrame`` when ``force_collect=True``.
 
     Raises:
-        ValueError: If dates are missing.
+        TypeError: If dates are not strings.
+        ValueError: If the date format or date order is invalid.
         TypeError: If ``team`` is not a ``StatcastTeams`` enum value.
     """
     if not isinstance(team, StatcastTeams) and team is not None:

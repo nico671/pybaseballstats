@@ -229,6 +229,7 @@ def single_player_season_stats(
         ValueError: If ``player_type`` is not ``"batter"`` or ``"pitcher"``.
         RuntimeError: If Baseball Savant returns an invalid CSV response.
         RuntimeError: If the Baseball Savant CSV cannot be parsed.
+        RuntimeError: If no data is returned for the requested player season.
 
     Returns:
         pl.DataFrame: Baseball Savant grouped Statcast Search stats for the
@@ -263,12 +264,17 @@ def single_player_season_stats(
     )
 
     try:
-        df = get_csv(url)
+        df = get_csv(url, raise_if_empty=False)
     except RuntimeError as e:
         raise RuntimeError(
             "Unable to retrieve or parse Statcast single-player CSV for "
             f"{player_type} {player_id} in {season}."
         ) from e
+
+    if df.is_empty():
+        raise RuntimeError(
+            f"No Statcast single-player data found for {player_type} {player_id} in {season}"
+        )
 
     if verbose:
         print("Data retrieval complete.")

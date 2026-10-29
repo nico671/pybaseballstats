@@ -12,9 +12,9 @@ from pybaseballstats.enums import StatcastTeams
 @pytest.mark.live
 def test_pitch_by_pitch_data_errors():
     """Test error handling in pitch_by_pitch_data."""
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         sc.pitch_by_pitch_data(start_date=None, end_date="2023-07-01")
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         sc.pitch_by_pitch_data(start_date="2023-07-01", end_date=None)
 
     df = sc.pitch_by_pitch_data(start_date="2023-07-01", end_date="2023-07-02")

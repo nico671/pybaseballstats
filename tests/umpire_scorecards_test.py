@@ -283,9 +283,9 @@ def test_team_data_focus_team():
 
 
 def test_player_data_general():
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         us.player_data(start_date=None, end_date="2025-10-01", player_type="P")
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         us.player_data(start_date="2025-01-01", end_date=None, player_type="P")
     with pytest.raises(ValueError):
         us.player_data(
