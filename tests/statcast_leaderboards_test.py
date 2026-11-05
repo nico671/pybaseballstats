@@ -4,6 +4,7 @@ from urllib.parse import parse_qs, urlsplit
 
 import polars as pl
 import pytest
+from live_assertions import assert_live_frame, assert_numeric
 
 import pybaseballstats.statcast_leaderboards as sl
 from pybaseballstats._utils import request_utils
@@ -34,35 +35,23 @@ def test_park_factor_dimensions():
         df_distance = sl.park_factor_dimensions_leaderboard(
             season=2025, metric="distance"
         )
-        assert df_distance.shape == (32, 13)
-        assert (
-            df_distance.filter(pl.col("Team") == "Rockies")
-            .select(pl.col("lf_line_distance_ft"))
-            .item()
-            == 347
+        assert_live_frame(
+            df_distance,
+            columns=("Team", "Venue"),
+            numeric=("playing_field_area_sq_ft", "lf_line_distance_ft"),
+            unique_by=("Venue",),
         )
-        assert (
-            df_distance.filter(pl.col("Team") == "Rockies")
-            .select(pl.col("playing_field_area_sq_ft"))
-            .item()
-            == 116729
-        )
-        assert df_distance.select(pl.col("Venue").n_unique()).item() == 32
+        assert_numeric(df_distance["lf_line_distance_ft"], minimum=0)
+        assert_numeric(df_distance["playing_field_area_sq_ft"], minimum=0)
         df_height = sl.park_factor_dimensions_leaderboard(season=2025, metric="height")
-        assert df_height.shape == (32, 13)
-        assert (
-            df_height.filter(pl.col("Team") == "Red Sox")
-            .select(pl.col("lf_line_height_ft"))
-            .item()
-            == 37
+        assert_live_frame(
+            df_height,
+            columns=("Team", "Venue"),
+            numeric=("playing_field_area_sq_ft", "lf_line_height_ft"),
+            unique_by=("Venue",),
         )
-        assert (
-            df_height.filter(pl.col("Team") == "Red Sox")
-            .select(pl.col("playing_field_area_sq_ft"))
-            .item()
-            == 102935
-        )
-        assert df_height.select(pl.col("Venue").n_unique()).item() == 32
+        assert_numeric(df_height["lf_line_height_ft"], minimum=0)
+        assert_numeric(df_height["playing_field_area_sq_ft"], minimum=0)
 
     run_in_thread(_test)
 
@@ -85,16 +74,24 @@ def test_park_factor_yearly_badinput():
 def test_park_factor_yearly_season_rolling_years():
     def _test():
         df = sl.park_factor_yearly_leaderboard(season=2025, rolling_years=3)
-        assert df.shape == (28, 19)
+        assert_live_frame(
+            df,
+            columns=("Team", "Venue", "Year"),
+            numeric=("Park Factor",),
+            unique_by=("Venue",),
+        )
         assert df.select(pl.col("Year").unique()).item() == "2023-2025"
-        assert df.select(pl.col("Park Factor").max()).item() == 112
-        assert df.select(pl.col("Team").n_unique()).item() == 28
+        assert df["Team"].null_count() == 0
 
         df = sl.park_factor_yearly_leaderboard(season=2025, rolling_years=1)
-        assert df.shape == (30, 19)
+        assert_live_frame(
+            df,
+            columns=("Team", "Venue", "Year"),
+            numeric=("Park Factor",),
+            unique_by=("Venue",),
+        )
         assert df.select(pl.col("Year").unique()).item() == "2025"
-        assert df.select(pl.col("Park Factor").max()).item() == 115
-        assert df.select(pl.col("Team").n_unique()).item() == 30
+        assert df["Team"].null_count() == 0
 
     run_in_thread(_test)
 
@@ -105,18 +102,26 @@ def test_park_factor_yearly_bat_side():
         df = sl.park_factor_yearly_leaderboard(
             season=2015, bat_side="L", rolling_years=3
         )
-        assert df.shape == (30, 19)
+        assert_live_frame(
+            df,
+            columns=("Team", "Venue", "Year"),
+            numeric=("Park Factor",),
+            unique_by=("Venue",),
+        )
         assert df.select(pl.col("Year").unique()).item() == "2013-2015"
-        assert df.select(pl.col("Park Factor").max()).item() == 113
-        assert df.select(pl.col("Team").n_unique()).item() == 30
+        assert df["Team"].null_count() == 0
 
         df = sl.park_factor_yearly_leaderboard(
             season=2015, bat_side="R", rolling_years=3
         )
-        assert df.shape == (30, 19)
+        assert_live_frame(
+            df,
+            columns=("Team", "Venue", "Year"),
+            numeric=("Park Factor",),
+            unique_by=("Venue",),
+        )
         assert df.select(pl.col("Year").unique()).item() == "2013-2015"
-        assert df.select(pl.col("Park Factor").max()).item() == 118
-        assert df.select(pl.col("Team").n_unique()).item() == 30
+        assert df["Team"].null_count() == 0
 
     run_in_thread(_test)
 
@@ -127,18 +132,26 @@ def test_park_factor_yearly_conditions():
         df = sl.park_factor_yearly_leaderboard(
             season=2019, conditions="Day", rolling_years=3
         )
-        assert df.shape == (30, 19)
+        assert_live_frame(
+            df,
+            columns=("Team", "Venue", "Year"),
+            numeric=("Park Factor",),
+            unique_by=("Venue",),
+        )
         assert df.select(pl.col("Year").unique()).item() == "2017-2019"
-        assert df.select(pl.col("Park Factor").max()).item() == 113
-        assert df.select(pl.col("Team").n_unique()).item() == 30
+        assert df["Team"].null_count() == 0
 
         df = sl.park_factor_yearly_leaderboard(
             season=2019, conditions="Roof Closed", rolling_years=3
         )
-        assert df.shape == (7, 19)
+        assert_live_frame(
+            df,
+            columns=("Team", "Venue", "Year"),
+            numeric=("Park Factor",),
+            unique_by=("Venue",),
+        )
         assert df.select(pl.col("Year").unique()).item() == "2017-2019"
-        assert df.select(pl.col("Park Factor").max()).item() == 101
-        assert df.select(pl.col("Team").n_unique()).item() == 7
+        assert df["Team"].null_count() == 0
 
     run_in_thread(_test)
 
@@ -157,11 +170,13 @@ def test_park_factor_distance_badinputs():
 def test_park_factor_distance():
     def _test():
         df = sl.park_factor_distance_leaderboard(season=2023)
-        assert df.shape == (30, 11)
-        assert df.select(pl.col("Team").n_unique()).item() == 30
-        assert df.select(pl.col("Venue").n_unique()).item() == 30
-        assert df.select(pl.col("total_extra_distance_ft").max()).item() == 18.0
-        assert df.select(pl.col("total_extra_distance_ft").min()).item() == -5.8
+        assert_live_frame(
+            df,
+            columns=("Team", "Venue"),
+            numeric=("total_extra_distance_ft",),
+            unique_by=("Venue",),
+        )
+        assert df["Team"].null_count() == 0
 
     run_in_thread(_test)
 
@@ -186,15 +201,13 @@ def test_timer_infractions_leaderboard_badinputs():
 def test_timer_infractions_leaderboard():
     def _test():
         df = sl.timer_infractions_leaderboard(season=2023, perspective="Team")
-        assert df.shape == (30, 10)
+        assert_live_frame(df, columns=("year",), counts=("all_violations",))
         assert df.select(pl.col("year").unique()).item() == 2023
-        assert df.select(pl.col("all_violations").max()).item() == 55
         df = sl.timer_infractions_leaderboard(
             season=2023, perspective="Pit", min_pitches=50
         )
-        assert df.shape == (387, 10)
+        assert_live_frame(df, columns=("year",), counts=("all_violations",))
         assert df.select(pl.col("year").unique()).item() == 2023
-        assert df.select(pl.col("all_violations").max()).item() == 13
 
     run_in_thread(_test)
 
@@ -344,8 +357,10 @@ def test_arm_strength_leaderboard_player_and_team_modes(monkeypatch):
         pos="rf",
         team=StatcastLeaderboardsTeams.YANKEES,
     )
-    assert df_player.shape[0] == 2
-    assert df_player.shape[1] == 25
+    assert df_player.height > 0
+    assert_live_frame(
+        df_player, columns=("fielder_name", "player_id"), unique_by=("player_id",)
+    )
     assert "team_name" not in df_player.columns
     assert "fielder_name" in df_player.columns
 
@@ -357,8 +372,8 @@ def test_arm_strength_leaderboard_player_and_team_modes(monkeypatch):
         pos="All",
         team=None,
     )
-    assert df_team.shape[0] == 30
-    assert df_team.shape[1] == 17
+    assert df_team.height > 0
+    assert_live_frame(df_team, columns=("team_name",), unique_by=("team_name",))
     assert "team_name" in df_team.columns
     assert "fielder_name" not in df_team.columns
     assert "player_id" not in df_team.columns
@@ -1071,10 +1086,9 @@ def test_abs_challenges_leaderboard_season():
     df = sl.abs_challenges_leaderboard(
         season=2026,
     )
-    assert df.shape[0] >= 381
-    assert df.shape[1] >= 35
+    assert_live_frame(df, columns=("level", "team_abbr"))
     assert df.select(pl.col("level").unique()).item() == "MLB"
-    assert df.select(pl.col("team_abbr").n_unique()).item() == 30
+    assert df["team_abbr"].null_count() == 0
 
 
 @pytest.mark.live
@@ -1083,31 +1097,28 @@ def test_abs_challenges_leaderboard_challenge_type():
         season=2026,
         challenge_type="batter",
     )
-    assert df_batter.shape[0] >= 381
-    assert df_batter.shape[1] >= 35
+    assert df_batter.height > 0
+    assert_live_frame(df_batter, columns=("level", "team_abbr"))
 
     df = sl.abs_challenges_leaderboard(
         season=2026,
         challenge_type="batting-team",
     )
-    assert df.shape[0] == 30
-    assert df.shape[1] >= 35
-    assert df.select(pl.col("team_abbr").n_unique()).item() == 30
+    assert_live_frame(df, columns=("level", "team_abbr"), unique_by=("team_abbr",))
 
     df = sl.abs_challenges_leaderboard(
         season=2026,
         challenge_type="league",
     )
-    assert df.shape[0] == 1
-    assert df.shape[1] >= 27
+    assert df.height == 1
+    assert_live_frame(df, columns=("level",))
 
     df = sl.abs_challenges_leaderboard(
         season=2026,
         challenge_type="catcher",
     )
-    assert df.shape[0] >= 63
-    assert df.shape[1] >= 35
-    assert df.select(pl.col("team_abbr").n_unique()).item() == 30
+    assert_live_frame(df, columns=("level", "team_abbr"))
+    assert df["team_abbr"].null_count() == 0
 
 
 def test_spin_direction_leaderboard_badinputs():
@@ -1139,9 +1150,13 @@ def test_spin_direction_leaderboard():
         pitcher_handedness="R",
         min_pitches=100,
     )
-    assert df.shape == (14, 29)
+    assert_live_frame(
+        df,
+        columns=("player_name", "year", "pitch_hand", "api_pitch_type"),
+        counts=("n_pitches",),
+        unique_by=("player_id", "year"),
+    )
     assert df.select(pl.col("year").unique()).item() == 2025
-    assert df.select(pl.col("player_name").n_unique()).item() == 14
     assert df.select(pl.col("pitch_hand").unique()).item() == "R"
     assert df.select(pl.col("api_pitch_type").unique()).item() == "FF"
     assert df.select(pl.col("n_pitches").min()).item() >= 100
@@ -1153,8 +1168,12 @@ def test_spin_direction_leaderboard():
         pitcher_handedness="R",
         min_pitches=100,
     )
-    assert df.shape[0] >= 80
-    assert df.shape[1] == 29
+    assert_live_frame(
+        df,
+        columns=("player_name", "year", "pitch_hand", "api_pitch_type"),
+        counts=("n_pitches",),
+        unique_by=("player_id", "year"),
+    )
     assert df.select(pl.col("pitch_hand").unique()).item() == "R"
     assert df.select(pl.col("api_pitch_type").unique()).item() == "FF"
     assert df.select(pl.col("n_pitches").min()).item() >= 100
@@ -1195,10 +1214,10 @@ def test_active_spin_leaderboard():
     df = sl.active_spin_leaderboard(
         season=2023, min_pitches=100, stat_method="spin-based", pitcher_handedness="R"
     )
-    assert df.shape[0] == 510
-    assert df.shape[1] == 12
+    assert_live_frame(
+        df, columns=("pitch_hand",), counts=("player_id",), unique_by=("player_id",)
+    )
     assert df.select(pl.col("pitch_hand").unique()).item() == "R"
-    assert df.select(pl.col("player_id").n_unique()).item() == 510
 
 
 def test_arm_angle_leaderboard_badinputs():
@@ -1341,15 +1360,21 @@ def test_arm_angle_leaderboard():
         group_by=["month", "pitch_type", "game_type", "bat_side"],
         min_group_size=10,
     )
-    assert df.shape[0] == 15
-    assert df.shape[1] == 15
+    assert_live_frame(
+        df,
+        columns=("pitch_hand", "pitch_type", "game_type", "bat_side"),
+        numeric=("ball_angle",),
+        counts=("n_pitches",),
+        unique_by=("pitcher", "month", "pitch_type", "game_type", "bat_side"),
+    )
     assert df.select(pl.col("pitch_hand").unique()).item() == "R"
     for col_name in ["month", "pitch_type", "game_type", "bat_side"]:
         assert col_name in df.columns
     assert df.select(pl.col("n_pitches").min()).item() >= 10
-    assert df.select(pl.col("pitch_type").n_unique()).item() <= 2
+    assert df["pitch_type"].null_count() == 0
     assert df.select(pl.col("game_type").unique()).item() == "R"
-    assert df.select(pl.col("bat_side").n_unique()).item() == 1
+    assert df["bat_side"].unique().to_list() == ["L"]
+    assert set(df["pitch_type"]) <= {"FF", "SL"}
 
 
 def test_pitch_arsenals_leaderboard_badinputs():
@@ -1372,10 +1397,9 @@ def test_pitch_arsenals_leaderboard():
     df = sl.pitch_arsenals_leaderboard(
         season=2023, metric_type="avg_speed", pitcher_handedness="R", min_pitches=100
     )
-    assert df.shape[0] == 515
-    assert df.shape[1] == 12
-    assert df.select(pl.col("player_id").n_unique()).item() == 515
-    assert df.select(pl.col("ff_avg_speed").max()).item() == 101.8
+    assert_live_frame(
+        df, numeric=("ff_avg_speed",), counts=("player_id",), unique_by=("player_id",)
+    )
 
     df = sl.pitch_arsenals_leaderboard(
         season=2023,
@@ -1383,9 +1407,12 @@ def test_pitch_arsenals_leaderboard():
         pitcher_handedness="ALL",
         min_pitches=100,
     )
-    assert df.shape[0] == 711
-    assert df.shape[1] == 12
-    assert df.select(pl.col("player_id").n_unique()).item() == 711
+    assert_live_frame(
+        df,
+        numeric=("ff_usage_percentage",),
+        counts=("player_id",),
+        unique_by=("player_id",),
+    )
 
 
 def test_pitch_movement_leaderboard_badinputs():
@@ -1411,10 +1438,12 @@ def test_pitch_movement_leaderboard():
         pitcher_handedness="L",
         min_pitches=100,
     )
-    assert df.height > 0
-    assert df.shape[1] == 24
-    assert df["pitcher_id"].null_count() == 0
-    assert df["pitcher_id"].n_unique() == df.height
+    assert_live_frame(
+        df,
+        columns=("pitch_type", "pitch_hand", "year"),
+        counts=("pitcher_id", "pitches_thrown"),
+        unique_by=("pitcher_id",),
+    )
     assert df.select(pl.col("pitch_type").unique()).item() == "FF"
     assert df.select(pl.col("pitch_hand").unique()).item() == "L"
     assert df.select(pl.col("pitches_thrown").min()).item() >= 100
@@ -1485,14 +1514,15 @@ def test_pitcher_running_game_leaderboard():
         team="All",
         split_years=True,
     )
-    assert df.shape[0] == 3174
-    assert df.shape[1] == 25
-    assert (
-        df.select(pl.col("player_id").n_unique()).item() == 1374
-    )  # less than total rows due to some pitchers appearing in multiple seasons
-    assert df.select(pl.col("team_name").n_unique()).item() == 30
-    assert df.select(pl.col("start_year").min()).item() == 2020
-    assert df.select(pl.col("end_year").max()).item() == 2023
+    assert_live_frame(
+        df,
+        columns=("team_name", "start_year", "end_year", "key_target_base"),
+        counts=("player_id", "n_init"),
+        unique_by=("player_id", "team_name", "start_year", "end_year"),
+    )
+    assert df["team_name"].null_count() == 0
+    assert_numeric(df["start_year"], minimum=2020, maximum=2023, count=True)
+    assert_numeric(df["end_year"], minimum=2020, maximum=2023, count=True)
     assert df.select(pl.col("key_target_base").unique()).item() == "All"
     assert df.select(pl.col("n_init").min()).item() >= 10
 

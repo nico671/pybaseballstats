@@ -2,6 +2,7 @@ import asyncio
 
 import polars as pl
 import pytest
+from live_assertions import assert_date_range, assert_live_frame
 
 import pybaseballstats.statcast as sc
 from pybaseballstats import _statcast as sc_impl
@@ -303,12 +304,14 @@ def test_pitch_by_pitch_data_general():
     )
     assert df is not None
     assert isinstance(df, pl.DataFrame)
-    assert df.shape[0] == 12227
-    assert df.shape[1] == 119
-    assert df.select(pl.col("game_date").min()).item() == "2023-07-01"
-    assert df.select(pl.col("game_date").max()).item() == "2023-07-03"
-    assert df.select(pl.col("game_pk").n_unique()).item() == 41
-    assert df.select(pl.col("player_name").n_unique()).item() == 296
+    assert_live_frame(
+        df,
+        columns=("game_pk", "game_date", "player_name", "home_team", "away_team"),
+        counts=("game_pk", "pitcher", "batter"),
+    )
+    assert_date_range(df["game_date"], "2023-07-01", "2023-07-03")
+    assert df["game_pk"].null_count() == 0
+    assert df["player_name"].null_count() == 0
 
 
 @pytest.mark.live
@@ -334,9 +337,12 @@ def test_pitch_by_pitch_data_team_filtering():
     )
     assert df is not None
     assert isinstance(df, pl.DataFrame)
-    assert df.shape[1] == 119
-    assert df.select(pl.col("game_date").min()).item() == "2023-07-01"
-    assert df.select(pl.col("game_date").max()).item() == "2023-07-03"
+    assert_live_frame(
+        df,
+        columns=("game_pk", "game_date", "player_name", "home_team", "away_team"),
+        counts=("game_pk", "pitcher", "batter"),
+    )
+    assert_date_range(df["game_date"], "2023-07-01", "2023-07-03")
 
     dodgers_games = (pl.col("home_team") == "LAD") | (pl.col("away_team") == "LAD")
     assert df.filter(

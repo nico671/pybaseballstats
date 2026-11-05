@@ -758,5 +758,5 @@ def pitcher_running_game_leaderboard(
         team=team_param,
         group_by=group_by_param,
     )
-    df = get_csv(url)
+    df = get_csv(url, infer_schema_length=None)
     return df

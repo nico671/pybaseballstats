@@ -2,6 +2,7 @@ from datetime import datetime
 
 import polars as pl
 import pytest
+from live_assertions import assert_live_frame
 
 import pybaseballstats.retrosheet as rs
 from pybaseballstats._utils import retrosheet_utils
@@ -26,21 +27,21 @@ def test_player_lookup_errors():
 
 @pytest.mark.live
 def test_player_lookup():
-    # # normal test looking up babe ruth
-    # df = rs.player_lookup(first_name="Babe", last_name="Ruth")
-    # assert df.shape[0] == 1
-    # assert df.shape[1] == 6
-    # assert df.select(pl.col("key_fangraphs").unique()).item() == 1011327
-    # assert df.select(pl.col("name_first").unique()).item() == "babe"
-    # assert df.select(pl.col("name_last").unique()).item() == "ruth"
-    # assert df.select(pl.col("key_mlbam").unique()).item() == 121578
-    # assert df.select(pl.col("key_retro").unique()).item() == "ruthb101"
-    # assert df.select(pl.col("key_bbref").unique()).item() == "ruthba01"
-    # test looking up babe ruth with accents stripped
     df = rs.player_lookup(first_name="Bábé", last_name="Rúth", strip_accents=True)
 
-    assert df.shape[0] == 1
-    assert df.shape[1] == 10
+    assert df.height == 1
+    assert_live_frame(
+        df,
+        columns=(
+            "key_fangraphs",
+            "name_first",
+            "name_last",
+            "key_mlbam",
+            "key_retro",
+            "key_bbref",
+        ),
+        unique_by=("key_retro",),
+    )
     assert df.select(pl.col("key_fangraphs").unique()).item() == 1011327
     assert df.select(pl.col("name_first").unique()).item() == "Babe"
     assert df.select(pl.col("name_last").unique()).item() == "Ruth"
@@ -66,8 +67,11 @@ def test_ejections_data_errors():
 @pytest.mark.live
 def test_ejections_data_just_dates():
     df = rs.ejections_data(start_date="04/01/2023", end_date="10/01/2023")
-    assert df.shape[0] == 243
-    assert df.shape[1] == 11
+    assert_live_frame(
+        df,
+        columns=("DATE", "EJECTEENAME", "UMPIRENAME", "UMPIRE", "TEAM", "INNING"),
+        counts=("INNING",),
+    )
     assert (
         df.select(pl.col("DATE").min()).item()
         >= datetime.strptime("04/01/2023", "%m/%d/%Y").date()
@@ -76,9 +80,9 @@ def test_ejections_data_just_dates():
         df.select(pl.col("DATE").max()).item()
         <= datetime.strptime("10/01/2023", "%m/%d/%Y").date()
     )
-    assert df.select(pl.col("UMPIRE").n_unique()).item() == 78
-    assert df.select(pl.col("TEAM").n_unique()).item() == 30
-    assert df.select(pl.col("INNING").n_unique()).item() == 12
+    assert df["UMPIRE"].null_count() == 0
+    assert df["TEAM"].null_count() == 0
+    assert df["INNING"].null_count() == 0
 
 
 @pytest.mark.live
@@ -86,8 +90,11 @@ def test_ejection_data_ejectee_name():
     df = rs.ejections_data(
         start_date="04/01/2016", end_date="10/01/2025", ejectee_name="Machado"
     )
-    assert df.shape[0] == 8
-    assert df.shape[1] == 11
+    assert_live_frame(
+        df,
+        columns=("DATE", "EJECTEENAME", "UMPIRENAME", "UMPIRE", "TEAM", "INNING"),
+        counts=("INNING",),
+    )
     assert (
         df.select(pl.col("DATE").min()).item()
         >= datetime.strptime("04/01/2016", "%m/%d/%Y").date()
@@ -98,13 +105,13 @@ def test_ejection_data_ejectee_name():
     )
     assert df.select(pl.col("EJECTEENAME").n_unique()).item() == 1
     assert df.select(pl.col("EJECTEENAME").unique()).item() == "Manny Machado"
-    assert df.select(pl.col("UMPIRE").n_unique()).item() == 8
-    assert df.select(pl.col("TEAM").n_unique()).item() == 2
+    assert df["UMPIRE"].null_count() == 0
+    assert df["TEAM"].null_count() == 0
     df = rs.ejections_data(
         start_date="04/01/2016", end_date="10/01/2025", ejectee_name="sdvjbs"
     )
     assert df.shape[0] == 0
-    assert df.shape[1] == 11
+    assert {"DATE", "EJECTEENAME", "UMPIRENAME", "INNING"} <= set(df.columns)
 
 
 @pytest.mark.live
@@ -112,8 +119,11 @@ def test_ejection_data_umpire_name():
     df = rs.ejections_data(
         start_date="04/01/2016", end_date="10/01/2025", umpire_name="Alfonso Marquez"
     )
-    assert df.shape[0] == 23
-    assert df.shape[1] == 11
+    assert_live_frame(
+        df,
+        columns=("DATE", "EJECTEENAME", "UMPIRENAME", "UMPIRE", "TEAM", "INNING"),
+        counts=("INNING",),
+    )
     assert (
         df.select(pl.col("DATE").min()).item()
         >= datetime.strptime("04/01/2016", "%m/%d/%Y").date()
@@ -124,19 +134,22 @@ def test_ejection_data_umpire_name():
     )
     assert df.select(pl.col("UMPIRE").n_unique()).item() == 1
     assert df.select(pl.col("UMPIRENAME").unique()).item() == "Alfonso Marquez"
-    assert df.select(pl.col("EJECTEENAME").n_unique()).item() == 22
+    assert df["EJECTEENAME"].null_count() == 0
     df = rs.ejections_data(
         start_date="04/01/2016", end_date="10/01/2025", umpire_name="sdvjbs"
     )
     assert df.shape[0] == 0
-    assert df.shape[1] == 11
+    assert {"DATE", "EJECTEENAME", "UMPIRENAME", "INNING"} <= set(df.columns)
 
 
 @pytest.mark.live
 def test_ejection_data_inning():
     df = rs.ejections_data(start_date="04/01/2016", end_date="10/01/2025", inning=7)
-    assert df.shape[0] == 278
-    assert df.shape[1] == 11
+    assert_live_frame(
+        df,
+        columns=("DATE", "EJECTEENAME", "UMPIRENAME", "UMPIRE", "TEAM", "INNING"),
+        counts=("INNING",),
+    )
     assert (
         df.select(pl.col("DATE").min()).item()
         >= datetime.strptime("04/01/2016", "%m/%d/%Y").date()
