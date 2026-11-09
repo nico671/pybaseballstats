@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 from functools import wraps
 from typing import Callable, Literal, ParamSpec, TypeVar
@@ -116,8 +117,9 @@ def park_factor_dimensions_leaderboard(
                     and "venue-info-dist-col" in th_class
                 ):
                     continue
-            table_data[th.text.strip()] = []
-            index_to_stat_mapping[len(table_data) - 1] = th.text.strip()
+            stat_name = re.sub(r"\s+", "", th.text)
+            table_data[stat_name] = []
+            index_to_stat_mapping[len(table_data) - 1] = stat_name
     if not table_data:
         raise RuntimeError("park factor table has no supported columns")
     tbody = table.find("tbody")
@@ -162,16 +164,16 @@ def park_factor_dimensions_leaderboard(
     if metric == "distance":
         df = df.rename(
             {
-                "LF Line": "lf_line_distance_ft",
-                "LF Gap": "lf_gap_distance_ft",
+                "LFLine": "lf_line_distance_ft",
+                "LFGap": "lf_gap_distance_ft",
                 "CF": "cf_distance_ft",
-                "RF Gap": "rf_gap_distance_ft",
-                "RF Line": "rf_line_distance_ft",
-                "DeepestPointDeepest point of park. May or may not be one of 5 standard points displayed.": "deepest_point_distance_ft",
-                "Playing FieldArea (sq. ft.)Fair Territory Only": "playing_field_area_sq_ft",
-                "Avg. Fence  Distance": "avg_fence_distance_ft",
-                "Avg. Fence Height": "avg_fence_height_ft",
-                "Avg. HREstimated by averaging the (fence distance + fence height) throughout the entire outfield.": "avg_hr_distance_ft",
+                "RFGap": "rf_gap_distance_ft",
+                "RFLine": "rf_line_distance_ft",
+                "DeepestPointDeepestpointofpark.Mayormaynotbeoneof5standardpointsdisplayed.": "deepest_point_distance_ft",
+                "PlayingFieldArea(sq.ft.)FairTerritoryOnly": "playing_field_area_sq_ft",
+                "Avg.FenceDistance": "avg_fence_distance_ft",
+                "Avg.FenceHeight": "avg_fence_height_ft",
+                "Avg.HREstimatedbyaveragingthe(fencedistance+fenceheight)throughouttheentireoutfield.": "avg_hr_distance_ft",
             }
         )
         df = df.with_columns(
@@ -204,16 +206,16 @@ def park_factor_dimensions_leaderboard(
     elif metric == "height":
         df = df.rename(
             {
-                "LF Line": "lf_line_height_ft",
-                "LF Gap": "lf_gap_height_ft",
+                "LFLine": "lf_line_height_ft",
+                "LFGap": "lf_gap_height_ft",
                 "CF": "cf_height_ft",
-                "RF Gap": "rf_gap_height_ft",
-                "RF Line": "rf_line_height_ft",
-                "HighestPointHighest height of the fence. May or may not be one of 5 standard points displayed.": "highest_point_height_ft",
-                "Playing FieldArea (sq. ft.)Fair Territory Only": "playing_field_area_sq_ft",
-                "Avg. Fence  Distance": "avg_fence_distance_ft",
-                "Avg. Fence Height": "avg_fence_height_ft",
-                "Avg. HREstimated by averaging the (fence distance + fence height) throughout the entire outfield.": "avg_hr_distance_ft",
+                "RFGap": "rf_gap_height_ft",
+                "RFLine": "rf_line_height_ft",
+                "HighestPointHighestheightofthefence.Mayormaynotbeoneof5standardpointsdisplayed.": "highest_point_height_ft",
+                "PlayingFieldArea(sq.ft.)FairTerritoryOnly": "playing_field_area_sq_ft",
+                "Avg.FenceDistance": "avg_fence_distance_ft",
+                "Avg.FenceHeight": "avg_fence_height_ft",
+                "Avg.HREstimatedbyaveragingthe(fencedistance+fenceheight)throughouttheentireoutfield.": "avg_hr_distance_ft",
             }
         )
         df = df.with_columns(

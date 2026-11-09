@@ -25,6 +25,101 @@ def run_in_thread(func, *args, **kwargs):
         return future.result()
 
 
+@pytest.mark.parametrize("metric", ["distance", "height"])
+@pytest.mark.parametrize("spacing", ["", "\n \t"])
+def test_park_factor_dimensions_header_whitespace(monkeypatch, metric, spacing):
+    columns = [
+        ("Team", "Test Team", ""),
+        ("Venue", "Test Park", ""),
+        ("Season", "2025", ""),
+        ("LF Line", "330", "venue-info-dist-col"),
+        ("LF Gap", "365", "venue-info-dist-col"),
+        ("CF", "400", "venue-info-dist-col"),
+        ("RF Gap", "370", "venue-info-dist-col"),
+        ("RF Line", "335", "venue-info-dist-col"),
+        (
+            f'Deepest<br>Point{spacing}<div class="th-tooltip">'
+            "Deepest point of park. May or may not be one of 5 standard points displayed."
+            "</div>",
+            "410",
+            "venue-info-dist-col",
+        ),
+        ("LF Line", "8", "venue-info-height-col"),
+        ("LF Gap", "9", "venue-info-height-col"),
+        ("CF", "10", "venue-info-height-col"),
+        ("RF Gap", "11", "venue-info-height-col"),
+        ("RF Line", "12", "venue-info-height-col"),
+        (
+            f'Highest<br>Point{spacing}<div class="th-tooltip">'
+            "Highest height of the fence. May or may not be one of 5 standard points displayed."
+            "</div>",
+            "13",
+            "venue-info-height-col",
+        ),
+        (
+            f'Playing Field<br>Area (sq. ft.){spacing}<div class="th-tooltip">'
+            "Fair Territory Only</div>",
+            "110,000",
+            "",
+        ),
+        ("Avg. Fence <br> Distance", "370", ""),
+        ("Avg. Fence <br>Height", "9.5", ""),
+        (
+            f'Avg. HR{spacing}<div class="th-tooltip">'
+            "Estimated by averaging the (fence distance + fence height) throughout the entire outfield."
+            "</div>",
+            "380",
+            "",
+        ),
+    ]
+    headers = "".join(
+        f'<th class="{css}">{spacing}{header}{spacing}</th>'
+        for header, _, css in columns
+    )
+    cells = "".join(
+        f'<td class="tr-data {css}">{value}</td>' for _, value, css in columns
+    )
+    html = (
+        '<table><thead><tr class="tr-component-row"><th>Rk.</th>'
+        f'{headers}</tr></thead><tbody><tr class="default-table-row">'
+        f"<td>1</td>{cells}</tr></tbody></table>"
+    )
+    monkeypatch.setattr(_park, "_park_table_html", lambda *args, **kwargs: html)
+
+    df = sl.park_factor_dimensions_leaderboard(season=2025, metric=metric)
+
+    expected = {
+        "Team": "Test Team",
+        "Venue": "Test Park",
+        "Season": 2025,
+        "playing_field_area_sq_ft": 110000,
+        "avg_fence_distance_ft": 370,
+        "avg_fence_height_ft": 9.5,
+        "avg_hr_distance_ft": 380,
+    }
+    if metric == "distance":
+        expected.update(
+            lf_line_distance_ft=330,
+            lf_gap_distance_ft=365,
+            cf_distance_ft=400,
+            rf_gap_distance_ft=370,
+            rf_line_distance_ft=335,
+            deepest_point_distance_ft=410,
+        )
+    else:
+        expected.update(
+            lf_line_height_ft=8,
+            lf_gap_height_ft=9,
+            cf_height_ft=10,
+            rf_gap_height_ft=11,
+            rf_line_height_ft=12,
+            highest_point_height_ft=13,
+        )
+    assert df.to_dicts() == [expected]
+    assert df.schema["Season"] == pl.Int64
+    assert df.schema["avg_fence_height_ft"] == pl.Float64
+
+
 @pytest.mark.live
 def test_park_factor_dimensions():
     def _test():
