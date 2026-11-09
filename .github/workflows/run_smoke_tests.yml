@@ -16,13 +16,42 @@ permissions:
   contents: read
 
 jobs:
-  smoke:
+  smoke-dev:
     # Pin the OS because the locked Playwright version does not support Ubuntu 26.04.
     runs-on: ubuntu-24.04
     timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: dev
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install
+
+      - name: Install dependencies
+        run: uv sync --locked --all-extras --dev
+
+      - name: Install Playwright browser
+        run: uv run playwright install --with-deps chromium
+
+      - name: Run unique-page smoke tests
+        run: uv run pytest tests/ -m live -n auto --dist loadgroup -q
+
+  smoke-main:
+    # Pin the OS because the locked Playwright version does not support Ubuntu 26.04.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
 
       - name: Install uv
         uses: astral-sh/setup-uv@v7
