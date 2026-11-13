@@ -19,7 +19,7 @@ from pybaseballstats._consts.bref_consts import (
     TEAM_YEAR_DRAFT_URL,
 )
 from pybaseballstats._utils.bref_utils import _extract_table, get_bref_table_html
-from pybaseballstats._utils.session_utils import PBSSessionManager
+from pybaseballstats._utils.session_utils import BREF_SESSION
 
 pytestmark = [pytest.mark.live, pytest.mark.xdist_group("bref")]
 
@@ -175,9 +175,7 @@ PAGE_CONTRACTS = (
 
 @pytest.fixture(scope="module")
 def bref_session():
-    session = PBSSessionManager.instance(max_req_per_minute=5)  # type: ignore[attr-defined]
-    session.request_timestamps.clear()
-    return session
+    return BREF_SESSION
 
 
 @pytest.mark.parametrize("contract", PAGE_CONTRACTS, ids=lambda case: case.name)

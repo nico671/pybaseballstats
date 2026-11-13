@@ -2,6 +2,7 @@ import polars as pl
 import pytest
 
 import pybaseballstats.bref_draft as bd
+from pybaseballstats.enums import BREFTeams
 
 
 @pytest.mark.xdist_group(name="bref_test")
@@ -23,13 +24,13 @@ def test_draft_order_by_year_round():
 
 @pytest.mark.xdist_group(name="bref_test")
 def test_franchise_draft_order():
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         bd.franchise_draft_order(team="XXX", year=2023)
     with pytest.raises(ValueError):
-        bd.franchise_draft_order(team=bd.BREFTeams.ANGELS, year=1964)
-    with pytest.raises(ValueError):
+        bd.franchise_draft_order(team=BREFTeams.ANGELS, year=1964)
+    with pytest.raises(TypeError):
         bd.franchise_draft_order(team=None, year=2025)
-    df = bd.franchise_draft_order(team=bd.BREFTeams.ANGELS, year=2023)
+    df = bd.franchise_draft_order(team=BREFTeams.ANGELS, year=2023)
     assert df.shape[0] == 19
     assert df.shape[1] == 23
     assert df.select(pl.col("year_ID").unique()).item() == 2023

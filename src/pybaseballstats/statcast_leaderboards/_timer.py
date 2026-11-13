@@ -1,15 +1,15 @@
-import io
 from datetime import datetime
 from typing import Literal
 
 import polars as pl
-import requests
 
 from pybaseballstats._consts.statcast_leaderboard_consts import (
     TIMER_INFRACTIONS_LEADERBOARD_URL,
 )
+from pybaseballstats._utils.request_utils import get_csv, source_schema_errors
 
 
+@source_schema_errors
 def timer_infractions_leaderboard(
     season: int,
     perspective: Literal["Pit", "Bat", "Cat", "Team"] = "Pit",
@@ -31,6 +31,12 @@ def timer_infractions_leaderboard(
     Returns:
         pl.DataFrame: Timer-infraction leaderboard data.
     """
+    if type(season) is not int:
+        raise TypeError("season must be an integer")
+    if type(min_pitches) is not int:
+        raise TypeError("min_pitches must be an integer")
+    if not isinstance(perspective, str):
+        raise TypeError("perspective must be a string")
     if perspective not in ["Pit", "Bat", "Cat", "Team"]:
         raise ValueError("perspective must be one of 'Pit', 'Bat', 'Cat', or 'Team'")
     if min_pitches < 1:
@@ -41,12 +47,11 @@ def timer_infractions_leaderboard(
     if season < 2023 or season > curr_season:
         raise ValueError(f"Season must be between 2023 and {curr_season}")
 
-    resp = requests.get(
+    df = get_csv(
         TIMER_INFRACTIONS_LEADERBOARD_URL.format(
             perspective=perspective, season=season, min_pitches=min_pitches
         )
     )
-    df = pl.read_csv(io.StringIO(resp.text))
     df = df.rename(
         {
             "entity_name": "player_name"

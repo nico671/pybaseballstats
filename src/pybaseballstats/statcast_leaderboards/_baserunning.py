@@ -1,9 +1,7 @@
-import io
 from datetime import datetime
 from typing import Literal
 
 import polars as pl
-import requests
 
 from pybaseballstats._consts.statcast_leaderboard_consts import (
     BASERUNNING_RUN_VALUE_LEADERBOARD_URL,
@@ -14,8 +12,10 @@ from pybaseballstats._consts.statcast_leaderboard_consts import (
     SPRINT_SPEED_TEAM_LEADERBOARD_URL,
     StatcastLeaderboardsTeams,
 )
+from pybaseballstats._utils.request_utils import get_csv, source_schema_errors
 
 
+@source_schema_errors
 def baserunning_run_value_leaderboard(
     start_season: int,
     end_season: int,
@@ -56,6 +56,8 @@ def baserunning_run_value_leaderboard(
     Notes:
         Baserunning run-value data is available from 2016 onwards.
     """
+    if type(start_season) is not int or type(end_season) is not int:
+        raise TypeError("start_season and end_season must be integers")
     current_year = datetime.now().year
     if (
         not isinstance(start_season, int)
@@ -113,8 +115,7 @@ def baserunning_run_value_leaderboard(
         team=team_param,
         group_by=group_by_params[group_by],
     )
-    resp = requests.get(url)
-    df = pl.read_csv(io.StringIO(resp.text))
+    df = get_csv(url)
     if group_by == "Runners":
         return df.rename({"entity_name": "player_name"})
     if group_by in ["Running Team", "Pitching Team"]:
@@ -128,6 +129,7 @@ def baserunning_run_value_leaderboard(
     return df.rename({"player_id": "league_id", "entity_name": "league_name"})
 
 
+@source_schema_errors
 def basestealing_run_value_leaderboard(
     start_season: int,
     end_season: int,
@@ -180,6 +182,8 @@ def basestealing_run_value_leaderboard(
         column-expansion control changes presentation only and is not a table-data
         filter, so it is not exposed here.
     """
+    if type(start_season) is not int or type(end_season) is not int:
+        raise TypeError("start_season and end_season must be integers")
     current_year = datetime.now().year
     if (
         not isinstance(start_season, int)
@@ -256,10 +260,10 @@ def basestealing_run_value_leaderboard(
         team=team_param,
         group_by=group_by_params[group_by],
     )
-    resp = requests.get(url)
-    return pl.read_csv(io.StringIO(resp.text))
+    return get_csv(url)
 
 
+@source_schema_errors
 def extra_bases_taken_run_value_leaderboard(
     start_season: int,
     end_season: int,
@@ -329,6 +333,8 @@ def extra_bases_taken_run_value_leaderboard(
         presentation controls are not exposed because they do not change the CSV
         table request.
     """
+    if type(start_season) is not int or type(end_season) is not int:
+        raise TypeError("start_season and end_season must be integers")
     current_year = datetime.now().year
     if (
         not isinstance(start_season, int)
@@ -414,8 +420,7 @@ def extra_bases_taken_run_value_leaderboard(
         team=team_param,
         group_by=group_by_params[group_by],
     )
-    resp = requests.get(url)
-    df = pl.read_csv(io.StringIO(resp.text))
+    df = get_csv(url)
     if group_by in ["Runners", "Fielders", "Pitchers"]:
         return df.rename({"entity_id": "player_id", "entity_name": "player_name"})
     if group_by in ["Batting Team", "Fielding Team"]:
@@ -429,6 +434,7 @@ def extra_bases_taken_run_value_leaderboard(
     return df.rename({"entity_id": "league_id", "entity_name": "league_name"})
 
 
+@source_schema_errors
 def sprint_speed_leaderboard(
     start_season: int,
     end_season: int,
@@ -485,6 +491,8 @@ def sprint_speed_leaderboard(
         split-years view returns all available team seasons, so the requested
         season bounds are not applied in that mode.
     """
+    if type(start_season) is not int or type(end_season) is not int:
+        raise TypeError("start_season and end_season must be integers")
     current_year = datetime.now().year
     if (
         not isinstance(start_season, int)
@@ -551,8 +559,7 @@ def sprint_speed_leaderboard(
             team=team_param,
         )
 
-    resp = requests.get(url)
-    df = pl.read_csv(io.StringIO(resp.text))
+    df = get_csv(url)
     if group_by == "Player":
         return df.rename(
             {
@@ -563,6 +570,7 @@ def sprint_speed_leaderboard(
     return df.rename({"team": "team_name", "home_to_first": "hp_to_1b"})
 
 
+@source_schema_errors
 def running_splits_leaderboard(
     season: int,
     position: Literal[
@@ -610,6 +618,8 @@ def running_splits_leaderboard(
         comparison selectors are visualization controls and are not table filters,
         so they are not exposed here.
     """
+    if type(season) is not int:
+        raise TypeError("season must be an integer")
     current_year = datetime.now().year
     if (
         not isinstance(season, int)
@@ -666,8 +676,7 @@ def running_splits_leaderboard(
         team=team_param,
         min_opportunities=min_opportunities,
     )
-    resp = requests.get(url)
-    df = pl.read_csv(io.StringIO(resp.text))
+    df = get_csv(url)
     return df.rename(
         {
             "last_name, first_name": "player_name",

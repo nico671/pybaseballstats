@@ -3,14 +3,15 @@ import re
 from typing import List, Literal
 
 import polars as pl
-import requests
 
 from pybaseballstats._consts.statcast_leaderboard_consts import (
     ABS_CHALLENGES_LEADERBOARD_URL,
     StatcastLeaderboardsTeams,
 )
+from pybaseballstats._utils.request_utils import get_text, source_schema_errors
 
 
+@source_schema_errors
 def abs_challenges_leaderboard(
     season: int,
     challenge_type: Literal[
@@ -65,6 +66,8 @@ def abs_challenges_leaderboard(
     Returns:
         pl.DataFrame: ABS challenges leaderboard data.
     """
+    if type(season) is not int:
+        raise TypeError("season must be an integer")
     # Validate inputs
 
     # season must be greater than 2025
@@ -195,15 +198,14 @@ def abs_challenges_leaderboard(
     if opposing_teams_param_str:
         params["oppOrg[]"] = opposing_teams_param_str.split("|")
     if pitch_types_param_str:
-        params["pitchType[]"] = pitch_types_param_str.split("|")
+        params["pitchType[]"] = list[str](pitch_types_param_str.split("|"))
     if attack_zone_param_str:
-        params["shadowZones[]"] = attack_zone_param_str.split("|")
+        params["shadowZones[]"] = list[str](attack_zone_param_str.split("|"))
     if in_zone_param_str:
         params["ballStrike"] = in_zone_param_str
 
-    response = requests.get(ABS_CHALLENGES_LEADERBOARD_URL, params=params)
-    response.raise_for_status()
-    match = re.search(r"const absData = (.*?);", response.text, re.DOTALL)
+    page = get_text(ABS_CHALLENGES_LEADERBOARD_URL, params=params)
+    match = re.search(r"const absData = (.*?);", page, re.DOTALL)
     if match is None:
         raise ValueError("ABS leaderboard page did not include leaderboard data")
     return pl.DataFrame(json.loads(match.group(1)))

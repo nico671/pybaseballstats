@@ -22,3 +22,5 @@ deprecated_or_broken/
 *.md
 !README.md
 !contributing.md
+.nvim-agent-comments.json
+.vibe-wise/

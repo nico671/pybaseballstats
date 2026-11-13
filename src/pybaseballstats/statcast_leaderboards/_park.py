@@ -1,8 +1,11 @@
+import re
 from datetime import datetime
-from typing import Literal
+from functools import wraps
+from typing import Callable, Literal, ParamSpec, TypeVar
 
 import polars as pl
 from bs4 import BeautifulSoup
+from playwright.sync_api import Error as PlaywrightError
 from playwright.sync_api import sync_playwright
 
 from pybaseballstats._consts.statcast_leaderboard_consts import (
@@ -11,10 +14,49 @@ from pybaseballstats._consts.statcast_leaderboard_consts import (
     PARK_FACTOR_YEARLY_URL,
 )
 
+P = ParamSpec("P")
+T = TypeVar("T")
 
+
+def _park_errors(function: Callable[P, T]) -> Callable[P, T]:
+    function_name = getattr(function, "__name__", type(function).__name__)
+
+    @wraps(function)
+    def wrapped(*args: P.args, **kwargs: P.kwargs) -> T:
+        try:
+            return function(*args, **kwargs)
+        except (PlaywrightError, pl.exceptions.PolarsError) as exc:
+            raise RuntimeError(
+                f"{function_name}: park factor retrieval failed"
+            ) from exc
+
+    return wrapped
+
+
+def _park_table_html(
+    url: str, *, wait_until: Literal["domcontentloaded"] | None = None
+) -> str:
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch()
+        try:
+            page = browser.new_page()
+            try:
+                if wait_until is None:
+                    page.goto(url)
+                else:
+                    page.goto(url, wait_until=wait_until)
+                page.wait_for_selector("#parkFactors")
+                return page.inner_html("#parkFactors")
+            finally:
+                page.close()
+        finally:
+            browser.close()
+
+
+@_park_errors
 def park_factor_dimensions_leaderboard(
     season: int, metric: Literal["distance", "height"] = "distance"
-):
+) -> pl.DataFrame:
     """Return Baseball Savant park-dimension leaderboard data.
 
     Args:
@@ -28,6 +70,10 @@ def park_factor_dimensions_leaderboard(
     Returns:
         pl.DataFrame: Park-dimension leaderboard data.
     """
+    if type(season) is not int:
+        raise TypeError("season must be an integer")
+    if not isinstance(metric, str):
+        raise TypeError("metric must be a string")
     if metric not in ["distance", "height"]:
         raise ValueError("Metric must be either 'distance' or 'height'")
     curr_season = (
@@ -36,26 +82,18 @@ def park_factor_dimensions_leaderboard(
     if season < 2015 or season > curr_season:
         raise ValueError(f"Season must be between 2015 and {curr_season}")
     url = PARK_FACTOR_DIMENSIONS_URL.format(season=season, metric_type=metric)
-    with sync_playwright() as p:
-        browser = p.chromium.launch()
-        page = browser.new_page()
-        try:
-            page.goto(url, wait_until="domcontentloaded")
-            page.wait_for_selector("#parkFactors")
-
-            table_html = page.inner_html("#parkFactors")
-        finally:
-            page.close()
-            browser.close()
+    table_html = _park_table_html(url, wait_until="domcontentloaded")
 
     table_soup = BeautifulSoup(table_html, "html.parser")
 
     table = table_soup.find("table")
-    assert table is not None, "Could not find data table on page"
+    if table is None:
+        raise RuntimeError("park factor response is missing its table")
     table_data: dict[str, list[str]] = {}
     index_to_stat_mapping = {}
     thead = table.find("thead")
-    assert thead is not None, "Could not find table header element"
+    if thead is None:
+        raise RuntimeError("park factor table is missing its header")
     for tr in thead.find_all("tr"):
         tr_class = tr.get("class")
         if tr_class != ["tr-component-row"]:
@@ -79,10 +117,14 @@ def park_factor_dimensions_leaderboard(
                     and "venue-info-dist-col" in th_class
                 ):
                     continue
-            table_data[th.text.strip()] = []
-            index_to_stat_mapping[len(table_data) - 1] = th.text.strip()
+            stat_name = re.sub(r"\s+", "", th.text)
+            table_data[stat_name] = []
+            index_to_stat_mapping[len(table_data) - 1] = stat_name
+    if not table_data:
+        raise RuntimeError("park factor table has no supported columns")
     tbody = table.find("tbody")
-    assert tbody is not None, "Could not find table body element"
+    if tbody is None:
+        raise RuntimeError("park factor table is missing its body")
     for row in tbody.find_all("tr"):
         row_class = row.get("class")
         if (
@@ -122,16 +164,16 @@ def park_factor_dimensions_leaderboard(
     if metric == "distance":
         df = df.rename(
             {
-                "LF Line": "lf_line_distance_ft",
-                "LF Gap": "lf_gap_distance_ft",
+                "LFLine": "lf_line_distance_ft",
+                "LFGap": "lf_gap_distance_ft",
                 "CF": "cf_distance_ft",
-                "RF Gap": "rf_gap_distance_ft",
-                "RF Line": "rf_line_distance_ft",
-                "DeepestPointDeepest point of park. May or may not be one of 5 standard points displayed.": "deepest_point_distance_ft",
-                "Playing FieldArea (sq. ft.)Fair Territory Only": "playing_field_area_sq_ft",
-                "Avg. Fence  Distance": "avg_fence_distance_ft",
-                "Avg. Fence Height": "avg_fence_height_ft",
-                "Avg. HREstimated by averaging the (fence distance + fence height) throughout the entire outfield.": "avg_hr_distance_ft",
+                "RFGap": "rf_gap_distance_ft",
+                "RFLine": "rf_line_distance_ft",
+                "DeepestPointDeepestpointofpark.Mayormaynotbeoneof5standardpointsdisplayed.": "deepest_point_distance_ft",
+                "PlayingFieldArea(sq.ft.)FairTerritoryOnly": "playing_field_area_sq_ft",
+                "Avg.FenceDistance": "avg_fence_distance_ft",
+                "Avg.FenceHeight": "avg_fence_height_ft",
+                "Avg.HREstimatedbyaveragingthe(fencedistance+fenceheight)throughouttheentireoutfield.": "avg_hr_distance_ft",
             }
         )
         df = df.with_columns(
@@ -164,16 +206,16 @@ def park_factor_dimensions_leaderboard(
     elif metric == "height":
         df = df.rename(
             {
-                "LF Line": "lf_line_height_ft",
-                "LF Gap": "lf_gap_height_ft",
+                "LFLine": "lf_line_height_ft",
+                "LFGap": "lf_gap_height_ft",
                 "CF": "cf_height_ft",
-                "RF Gap": "rf_gap_height_ft",
-                "RF Line": "rf_line_height_ft",
-                "HighestPointHighest height of the fence. May or may not be one of 5 standard points displayed.": "highest_point_height_ft",
-                "Playing FieldArea (sq. ft.)Fair Territory Only": "playing_field_area_sq_ft",
-                "Avg. Fence  Distance": "avg_fence_distance_ft",
-                "Avg. Fence Height": "avg_fence_height_ft",
-                "Avg. HREstimated by averaging the (fence distance + fence height) throughout the entire outfield.": "avg_hr_distance_ft",
+                "RFGap": "rf_gap_height_ft",
+                "RFLine": "rf_line_height_ft",
+                "HighestPointHighestheightofthefence.Mayormaynotbeoneof5standardpointsdisplayed.": "highest_point_height_ft",
+                "PlayingFieldArea(sq.ft.)FairTerritoryOnly": "playing_field_area_sq_ft",
+                "Avg.FenceDistance": "avg_fence_distance_ft",
+                "Avg.FenceHeight": "avg_fence_height_ft",
+                "Avg.HREstimatedbyaveragingthe(fencedistance+fenceheight)throughouttheentireoutfield.": "avg_hr_distance_ft",
             }
         )
         df = df.with_columns(
@@ -206,6 +248,7 @@ def park_factor_dimensions_leaderboard(
     return df
 
 
+@_park_errors
 def park_factor_yearly_leaderboard(
     season: int,
     bat_side: Literal["L", "R", ""] = "",
@@ -230,6 +273,14 @@ def park_factor_yearly_leaderboard(
     Returns:
         pl.DataFrame: Park-factor leaderboard data.
     """
+    if type(season) is not int:
+        raise TypeError("season must be an integer")
+    if type(rolling_years) is not int:
+        raise TypeError("rolling_years must be an integer")
+    if not isinstance(bat_side, str):
+        raise TypeError("bat_side must be a string")
+    if not isinstance(conditions, str):
+        raise TypeError("conditions must be a string")
     if bat_side not in ["L", "R", ""]:
         raise ValueError("bat_side must be 'L', 'R', or ''")
     if conditions not in ["All", "Day", "Night", "Open Air", "Roof Closed"]:
@@ -250,26 +301,18 @@ def park_factor_yearly_leaderboard(
         condition=conditions,
         rolling_years=rolling_years,
     )
-    with sync_playwright() as p:
-        browser = p.chromium.launch()
-        page = browser.new_page()
-        try:
-            page.goto(url)
-            page.wait_for_selector("#parkFactors")
-
-            table_html = page.inner_html("#parkFactors")
-        finally:
-            page.close()
-            browser.close()
+    table_html = _park_table_html(url)
 
     table_soup = BeautifulSoup(table_html, "html.parser")
 
     table = table_soup.find("table")
-    assert table is not None, "Could not find data table on page"
+    if table is None:
+        raise RuntimeError("park factor response is missing its table")
     table_data: dict[str, list[str | None]] = {}
     index_to_stat_mapping = {}
     thead = table.find("thead")
-    assert thead is not None, "Could not find table header element"
+    if thead is None:
+        raise RuntimeError("park factor table is missing its header")
     for tr in thead.find_all("tr"):
         tr_class = tr.get("class")
         if tr_class != ["tr-component-row"]:
@@ -279,8 +322,11 @@ def park_factor_yearly_leaderboard(
                 continue
             table_data[th.text.strip()] = []
             index_to_stat_mapping[len(table_data) - 1] = th.text.strip()
+    if not table_data:
+        raise RuntimeError("park factor table has no supported columns")
     tbody = table.find("tbody")
-    assert tbody is not None, "Could not find table body element"
+    if tbody is None:
+        raise RuntimeError("park factor table is missing its body")
     for row in tbody.find_all("tr"):
         row_class = row.get("class")
         if (
@@ -310,6 +356,7 @@ def park_factor_yearly_leaderboard(
     return df
 
 
+@_park_errors
 def park_factor_distance_leaderboard(season: int) -> pl.DataFrame:
     """Return Baseball Savant park-factor distance leaderboard data.
 
@@ -322,6 +369,8 @@ def park_factor_distance_leaderboard(season: int) -> pl.DataFrame:
     Returns:
         pl.DataFrame: Park-factor distance leaderboard data.
     """
+    if type(season) is not int:
+        raise TypeError("season must be an integer")
     curr_season = (
         datetime.now().year if datetime.now().month >= 3 else datetime.now().year - 1
     )
@@ -329,21 +378,12 @@ def park_factor_distance_leaderboard(season: int) -> pl.DataFrame:
         raise ValueError(f"Season must be between 2016 and {curr_season}")
 
     url = PARK_FACTOR_DISTANCE_URL.format(season=season)
-    with sync_playwright() as p:
-        browser = p.chromium.launch()
-        page = browser.new_page()
-        try:
-            page.goto(url)
-            page.wait_for_selector("#parkFactors")
-
-            table_html = page.inner_html("#parkFactors")
-        finally:
-            page.close()
-            browser.close()
+    table_html = _park_table_html(url)
 
     table_soup = BeautifulSoup(table_html, "html.parser")
     thead = table_soup.find("thead")
-    assert thead is not None, "Could not find table header element"
+    if thead is None:
+        raise RuntimeError("park factor table is missing its header")
     table_data: dict[str, list[str | None]] = {}
     index_to_stat_mapping = {}
     for tr in thead.find_all("tr", {"class": "tr-component-row"}):
@@ -356,8 +396,11 @@ def park_factor_distance_leaderboard(season: int) -> pl.DataFrame:
                 col_name = th.text.strip()
             table_data[col_name] = []
             index_to_stat_mapping[len(table_data) - 1] = col_name
+    if not table_data:
+        raise RuntimeError("park factor table has no supported columns")
     tbody = table_soup.find("tbody")
-    assert tbody is not None, "Could not find table body element"
+    if tbody is None:
+        raise RuntimeError("park factor table is missing its body")
 
     for row in tbody.find_all("tr"):
         row_class = row.get("class")

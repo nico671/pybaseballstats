@@ -8,7 +8,8 @@ on:
 jobs:
   release-checks:
     name: Required release checks
-    runs-on: ubuntu-latest
+    # Pin the OS because the locked Playwright version does not support Ubuntu 26.04.
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
       contents: read
@@ -30,8 +31,8 @@ jobs:
       - name: Run offline tests
         run: uv run pytest tests/
 
-      - name: Run mypy
-        run: uv run mypy src/pybaseballstats/
+      - name: Run ty type checks
+        run: uv run ty check
 
       - name: Run Ruff lint checks
         run: uv run ruff check .

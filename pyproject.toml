@@ -33,7 +33,8 @@ dependencies = [
   "rich>=14.0.0",
 ]
 authors = [{ name = "Nicolas Carbone", email = "carbone.nicolas0@gmail.com" }]
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE"]
 maintainers = [
   { name = "Nicolas Carbone", email = "carbone.nicolas0@gmail.com" },
 ]
@@ -55,7 +56,7 @@ pybaseballstats = { workspace = true }
 select = ["E4", "E7", "E9", "F", "I"]
 
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools>=77.0.3", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [dependency-groups]
@@ -71,15 +72,22 @@ dev = [
   "seaborn>=0.13.2",
   "ipywidgets>=8.1.8",
   "pytest-xdist>=3.8.0",
+  "ty>=0.0.84",
 ]
 
 [tool.setuptools]
 packages = { find = { where = ["src/"] } }
 
 [tool.setuptools.package-data]
-pybaseballstats = ["py.typed"]
+pybaseballstats = ["py.typed", "*.pyi", "statcast_leaderboards/*.pyi"]
 
 [tool.pytest.ini_options]
 addopts = "-ra --strict-markers -m 'not live'"
 markers = ["live: tests that contact external data sources"]
 pythonpath = ["."]
+
+[tool.ty.src]
+include = ["src/pybaseballstats"]
+
+[tool.ty.environment]
+python-version = "3.11"

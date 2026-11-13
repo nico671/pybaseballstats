@@ -1,7 +1,3 @@
-from pybaseballstats._consts.statcast_leaderboard_consts import (
-    StatcastLeaderboardsTeams as StatcastLeaderboardsTeams,
-)
-
 from ._abs import abs_challenges_leaderboard as abs_challenges_leaderboard
 from ._baserunning import (
     baserunning_run_value_leaderboard as baserunning_run_value_leaderboard,

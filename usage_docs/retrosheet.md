@@ -38,7 +38,7 @@ import polars as pl
 player_info = rs.player_lookup(first_name="Mike", last_name="Trout")
 key_bbref = player_info.select(pl.col("key_bbref")).to_series()[0]  
 # Use the player ID to get more detailed information from Baseball Reference
-bsp.single_player_standard_batting(player_code=key_bbref)
+bsp.single_player_batting(player_code=key_bbref, metric_type="standard")
 ```
 
 ```python

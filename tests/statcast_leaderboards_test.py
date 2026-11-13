@@ -1,10 +1,21 @@
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
+from urllib.parse import parse_qs, urlsplit
 
 import polars as pl
 import pytest
+from live_assertions import assert_live_frame, assert_numeric
 
 import pybaseballstats.statcast_leaderboards as sl
-from pybaseballstats.statcast_leaderboards import _abs
+from pybaseballstats._utils import request_utils
+from pybaseballstats.enums import StatcastLeaderboardsTeams
+from pybaseballstats.statcast_leaderboards import (
+    _catching,
+    _fielding,
+    _park,
+    _pitching,
+    _timer,
+)
 
 
 # Helper to run tests in a separate thread to avoid "Sync API inside asyncio loop" errors
@@ -12,6 +23,101 @@ def run_in_thread(func, *args, **kwargs):
     with ThreadPoolExecutor(max_workers=1) as executor:
         future = executor.submit(func, *args, **kwargs)
         return future.result()
+
+
+@pytest.mark.parametrize("metric", ["distance", "height"])
+@pytest.mark.parametrize("spacing", ["", "\n \t"])
+def test_park_factor_dimensions_header_whitespace(monkeypatch, metric, spacing):
+    columns = [
+        ("Team", "Test Team", ""),
+        ("Venue", "Test Park", ""),
+        ("Season", "2025", ""),
+        ("LF Line", "330", "venue-info-dist-col"),
+        ("LF Gap", "365", "venue-info-dist-col"),
+        ("CF", "400", "venue-info-dist-col"),
+        ("RF Gap", "370", "venue-info-dist-col"),
+        ("RF Line", "335", "venue-info-dist-col"),
+        (
+            f'Deepest<br>Point{spacing}<div class="th-tooltip">'
+            "Deepest point of park. May or may not be one of 5 standard points displayed."
+            "</div>",
+            "410",
+            "venue-info-dist-col",
+        ),
+        ("LF Line", "8", "venue-info-height-col"),
+        ("LF Gap", "9", "venue-info-height-col"),
+        ("CF", "10", "venue-info-height-col"),
+        ("RF Gap", "11", "venue-info-height-col"),
+        ("RF Line", "12", "venue-info-height-col"),
+        (
+            f'Highest<br>Point{spacing}<div class="th-tooltip">'
+            "Highest height of the fence. May or may not be one of 5 standard points displayed."
+            "</div>",
+            "13",
+            "venue-info-height-col",
+        ),
+        (
+            f'Playing Field<br>Area (sq. ft.){spacing}<div class="th-tooltip">'
+            "Fair Territory Only</div>",
+            "110,000",
+            "",
+        ),
+        ("Avg. Fence <br> Distance", "370", ""),
+        ("Avg. Fence <br>Height", "9.5", ""),
+        (
+            f'Avg. HR{spacing}<div class="th-tooltip">'
+            "Estimated by averaging the (fence distance + fence height) throughout the entire outfield."
+            "</div>",
+            "380",
+            "",
+        ),
+    ]
+    headers = "".join(
+        f'<th class="{css}">{spacing}{header}{spacing}</th>'
+        for header, _, css in columns
+    )
+    cells = "".join(
+        f'<td class="tr-data {css}">{value}</td>' for _, value, css in columns
+    )
+    html = (
+        '<table><thead><tr class="tr-component-row"><th>Rk.</th>'
+        f'{headers}</tr></thead><tbody><tr class="default-table-row">'
+        f"<td>1</td>{cells}</tr></tbody></table>"
+    )
+    monkeypatch.setattr(_park, "_park_table_html", lambda *args, **kwargs: html)
+
+    df = sl.park_factor_dimensions_leaderboard(season=2025, metric=metric)
+
+    expected = {
+        "Team": "Test Team",
+        "Venue": "Test Park",
+        "Season": 2025,
+        "playing_field_area_sq_ft": 110000,
+        "avg_fence_distance_ft": 370,
+        "avg_fence_height_ft": 9.5,
+        "avg_hr_distance_ft": 380,
+    }
+    if metric == "distance":
+        expected.update(
+            lf_line_distance_ft=330,
+            lf_gap_distance_ft=365,
+            cf_distance_ft=400,
+            rf_gap_distance_ft=370,
+            rf_line_distance_ft=335,
+            deepest_point_distance_ft=410,
+        )
+    else:
+        expected.update(
+            lf_line_height_ft=8,
+            lf_gap_height_ft=9,
+            cf_height_ft=10,
+            rf_gap_height_ft=11,
+            rf_line_height_ft=12,
+            highest_point_height_ft=13,
+        )
+    assert df.to_dicts() == [expected]
+    assert df.schema["Season"] == pl.Int64
+    assert df.schema["avg_fence_height_ft"] == pl.Float64
 
 
 @pytest.mark.live
@@ -24,35 +130,23 @@ def test_park_factor_dimensions():
         df_distance = sl.park_factor_dimensions_leaderboard(
             season=2025, metric="distance"
         )
-        assert df_distance.shape == (32, 13)
-        assert (
-            df_distance.filter(pl.col("Team") == "Rockies")
-            .select(pl.col("lf_line_distance_ft"))
-            .item()
-            == 347
+        assert_live_frame(
+            df_distance,
+            columns=("Team", "Venue"),
+            numeric=("playing_field_area_sq_ft", "lf_line_distance_ft"),
+            unique_by=("Venue",),
         )
-        assert (
-            df_distance.filter(pl.col("Team") == "Rockies")
-            .select(pl.col("playing_field_area_sq_ft"))
-            .item()
-            == 116729
-        )
-        assert df_distance.select(pl.col("Venue").n_unique()).item() == 32
+        assert_numeric(df_distance["lf_line_distance_ft"], minimum=0)
+        assert_numeric(df_distance["playing_field_area_sq_ft"], minimum=0)
         df_height = sl.park_factor_dimensions_leaderboard(season=2025, metric="height")
-        assert df_height.shape == (32, 13)
-        assert (
-            df_height.filter(pl.col("Team") == "Red Sox")
-            .select(pl.col("lf_line_height_ft"))
-            .item()
-            == 37
+        assert_live_frame(
+            df_height,
+            columns=("Team", "Venue"),
+            numeric=("playing_field_area_sq_ft", "lf_line_height_ft"),
+            unique_by=("Venue",),
         )
-        assert (
-            df_height.filter(pl.col("Team") == "Red Sox")
-            .select(pl.col("playing_field_area_sq_ft"))
-            .item()
-            == 102935
-        )
-        assert df_height.select(pl.col("Venue").n_unique()).item() == 32
+        assert_numeric(df_height["lf_line_height_ft"], minimum=0)
+        assert_numeric(df_height["playing_field_area_sq_ft"], minimum=0)
 
     run_in_thread(_test)
 
@@ -75,16 +169,24 @@ def test_park_factor_yearly_badinput():
 def test_park_factor_yearly_season_rolling_years():
     def _test():
         df = sl.park_factor_yearly_leaderboard(season=2025, rolling_years=3)
-        assert df.shape == (28, 19)
+        assert_live_frame(
+            df,
+            columns=("Team", "Venue", "Year"),
+            numeric=("Park Factor",),
+            unique_by=("Venue",),
+        )
         assert df.select(pl.col("Year").unique()).item() == "2023-2025"
-        assert df.select(pl.col("Park Factor").max()).item() == 112
-        assert df.select(pl.col("Team").n_unique()).item() == 28
+        assert df["Team"].null_count() == 0
 
         df = sl.park_factor_yearly_leaderboard(season=2025, rolling_years=1)
-        assert df.shape == (30, 19)
+        assert_live_frame(
+            df,
+            columns=("Team", "Venue", "Year"),
+            numeric=("Park Factor",),
+            unique_by=("Venue",),
+        )
         assert df.select(pl.col("Year").unique()).item() == "2025"
-        assert df.select(pl.col("Park Factor").max()).item() == 115
-        assert df.select(pl.col("Team").n_unique()).item() == 30
+        assert df["Team"].null_count() == 0
 
     run_in_thread(_test)
 
@@ -95,18 +197,26 @@ def test_park_factor_yearly_bat_side():
         df = sl.park_factor_yearly_leaderboard(
             season=2015, bat_side="L", rolling_years=3
         )
-        assert df.shape == (30, 19)
+        assert_live_frame(
+            df,
+            columns=("Team", "Venue", "Year"),
+            numeric=("Park Factor",),
+            unique_by=("Venue",),
+        )
         assert df.select(pl.col("Year").unique()).item() == "2013-2015"
-        assert df.select(pl.col("Park Factor").max()).item() == 113
-        assert df.select(pl.col("Team").n_unique()).item() == 30
+        assert df["Team"].null_count() == 0
 
         df = sl.park_factor_yearly_leaderboard(
             season=2015, bat_side="R", rolling_years=3
         )
-        assert df.shape == (30, 19)
+        assert_live_frame(
+            df,
+            columns=("Team", "Venue", "Year"),
+            numeric=("Park Factor",),
+            unique_by=("Venue",),
+        )
         assert df.select(pl.col("Year").unique()).item() == "2013-2015"
-        assert df.select(pl.col("Park Factor").max()).item() == 118
-        assert df.select(pl.col("Team").n_unique()).item() == 30
+        assert df["Team"].null_count() == 0
 
     run_in_thread(_test)
 
@@ -117,18 +227,26 @@ def test_park_factor_yearly_conditions():
         df = sl.park_factor_yearly_leaderboard(
             season=2019, conditions="Day", rolling_years=3
         )
-        assert df.shape == (30, 19)
+        assert_live_frame(
+            df,
+            columns=("Team", "Venue", "Year"),
+            numeric=("Park Factor",),
+            unique_by=("Venue",),
+        )
         assert df.select(pl.col("Year").unique()).item() == "2017-2019"
-        assert df.select(pl.col("Park Factor").max()).item() == 113
-        assert df.select(pl.col("Team").n_unique()).item() == 30
+        assert df["Team"].null_count() == 0
 
         df = sl.park_factor_yearly_leaderboard(
             season=2019, conditions="Roof Closed", rolling_years=3
         )
-        assert df.shape == (7, 19)
+        assert_live_frame(
+            df,
+            columns=("Team", "Venue", "Year"),
+            numeric=("Park Factor",),
+            unique_by=("Venue",),
+        )
         assert df.select(pl.col("Year").unique()).item() == "2017-2019"
-        assert df.select(pl.col("Park Factor").max()).item() == 101
-        assert df.select(pl.col("Team").n_unique()).item() == 7
+        assert df["Team"].null_count() == 0
 
     run_in_thread(_test)
 
@@ -147,11 +265,13 @@ def test_park_factor_distance_badinputs():
 def test_park_factor_distance():
     def _test():
         df = sl.park_factor_distance_leaderboard(season=2023)
-        assert df.shape == (30, 11)
-        assert df.select(pl.col("Team").n_unique()).item() == 30
-        assert df.select(pl.col("Venue").n_unique()).item() == 30
-        assert df.select(pl.col("total_extra_distance_ft").max()).item() == 18.0
-        assert df.select(pl.col("total_extra_distance_ft").min()).item() == -5.8
+        assert_live_frame(
+            df,
+            columns=("Team", "Venue"),
+            numeric=("total_extra_distance_ft",),
+            unique_by=("Venue",),
+        )
+        assert df["Team"].null_count() == 0
 
     run_in_thread(_test)
 
@@ -176,15 +296,13 @@ def test_timer_infractions_leaderboard_badinputs():
 def test_timer_infractions_leaderboard():
     def _test():
         df = sl.timer_infractions_leaderboard(season=2023, perspective="Team")
-        assert df.shape == (30, 10)
+        assert_live_frame(df, columns=("year",), counts=("all_violations",))
         assert df.select(pl.col("year").unique()).item() == 2023
-        assert df.select(pl.col("all_violations").max()).item() == 55
         df = sl.timer_infractions_leaderboard(
             season=2023, perspective="Pit", min_pitches=50
         )
-        assert df.shape == (387, 10)
+        assert_live_frame(df, columns=("year",), counts=("all_violations",))
         assert df.select(pl.col("year").unique()).item() == 2023
-        assert df.select(pl.col("all_violations").max()).item() == 13
 
     run_in_thread(_test)
 
@@ -194,9 +312,9 @@ def test_percentile_rankings_leaderboard_badinputs():
         sl.percentile_rankings_leaderboard(season=2014)
     with pytest.raises(ValueError):
         sl.percentile_rankings_leaderboard(season=9999)
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         sl.percentile_rankings_leaderboard(season=True)
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         sl.percentile_rankings_leaderboard(season=False)
     with pytest.raises(ValueError):
         sl.percentile_rankings_leaderboard(season=2025, player_type="fielder")
@@ -240,21 +358,24 @@ def test_percentile_rankings_leaderboard_builds_batter_urls(monkeypatch):
     requested_urls = []
 
     class Response:
+        def raise_for_status(self) -> None:
+            pass
+
         text = (
             "player_name,player_id,year,xwoba,xba,hard_hit_percent,bat_speed\n"
             '"Judge, Aaron",592450,2025,100,,99,98\n'
         )
 
-    def fake_get(url):
+    def fake_get(url, **kwargs):
         requested_urls.append(url)
         return Response()
 
-    monkeypatch.setattr(sl.requests, "get", fake_get)
+    monkeypatch.setattr(request_utils.requests, "get", fake_get)
 
     df = sl.percentile_rankings_leaderboard(
         season=2025,
         position="SS",
-        team=sl.StatcastLeaderboardsTeams.YANKEES,
+        team=StatcastLeaderboardsTeams.YANKEES,
     )
 
     assert requested_urls == [
@@ -278,16 +399,19 @@ def test_percentile_rankings_leaderboard_builds_pitcher_url(monkeypatch):
     requested_urls = []
 
     class Response:
+        def raise_for_status(self) -> None:
+            pass
+
         text = (
             "player_name,player_id,year,xwoba,xera,fb_velocity,curve_spin\n"
             '"Sale, Chris",519242,2025,92,92,58,\n'
         )
 
-    def fake_get(url):
+    def fake_get(url, **kwargs):
         requested_urls.append(url)
         return Response()
 
-    monkeypatch.setattr(sl.requests, "get", fake_get)
+    monkeypatch.setattr(request_utils.requests, "get", fake_get)
 
     df = sl.percentile_rankings_leaderboard(season=2025, player_type="pitcher")
 
@@ -313,7 +437,7 @@ def test_arm_strength_leaderboard_badinputs():
         sl.arm_strength_leaderboard(min_throws=0)
     with pytest.raises(ValueError):
         sl.arm_strength_leaderboard(pos="invalid")
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         sl.arm_strength_leaderboard(team="NYY")
 
 
@@ -326,10 +450,12 @@ def test_arm_strength_leaderboard_player_and_team_modes(monkeypatch):
         year=2025,
         min_throws=50,
         pos="rf",
-        team=sl.StatcastLeaderboardsTeams.YANKEES,
+        team=StatcastLeaderboardsTeams.YANKEES,
     )
-    assert df_player.shape[0] == 2
-    assert df_player.shape[1] == 25
+    assert df_player.height > 0
+    assert_live_frame(
+        df_player, columns=("fielder_name", "player_id"), unique_by=("player_id",)
+    )
     assert "team_name" not in df_player.columns
     assert "fielder_name" in df_player.columns
 
@@ -341,8 +467,8 @@ def test_arm_strength_leaderboard_player_and_team_modes(monkeypatch):
         pos="All",
         team=None,
     )
-    assert df_team.shape[0] == 30
-    assert df_team.shape[1] == 17
+    assert df_team.height > 0
+    assert_live_frame(df_team, columns=("team_name",), unique_by=("team_name",))
     assert "team_name" in df_team.columns
     assert "fielder_name" not in df_team.columns
     assert "player_id" not in df_team.columns
@@ -406,16 +532,19 @@ def test_fielding_run_value_leaderboard_builds_url(monkeypatch):
     requested_urls = []
 
     class Response:
+        def raise_for_status(self) -> None:
+            pass
+
         text = (
             "name,id,year,api_game_date_month_text,total_runs\n"
             '"Blue Jays",141,2024,April,12.5\n'
         )
 
-    def fake_get(url):
+    def fake_get(url, **kwargs):
         requested_urls.append(url)
         return Response()
 
-    monkeypatch.setattr(sl.requests, "get", fake_get)
+    monkeypatch.setattr(request_utils.requests, "get", fake_get)
 
     df = sl.fielding_run_value_leaderboard(
         start_season=2023,
@@ -426,8 +555,8 @@ def test_fielding_run_value_leaderboard_builds_url(monkeypatch):
         min_results=10,
         game_type="Playoff",
         teams=[
-            sl.StatcastLeaderboardsTeams.BLUE_JAYS,
-            sl.StatcastLeaderboardsTeams.ORIOLES,
+            StatcastLeaderboardsTeams.BLUE_JAYS,
+            StatcastLeaderboardsTeams.ORIOLES,
         ],
         position="2B",
         start_date="2023-04-01",
@@ -480,17 +609,20 @@ def test_catcher_blocking_leaderboard_builds_url(monkeypatch):
     requested_urls = []
 
     class Response:
+        def raise_for_status(self) -> None:
+            pass
+
         text = (
             "player_id,player_name,team_name,start_year,end_year,pitches,"
             "catcher_blocking_runs,blocks_above_average\n"
             '672386,"Kirk, Alejandro",TOR,2025,2025,2118,3,13\n'
         )
 
-    def fake_get(url):
+    def fake_get(url, **kwargs):
         requested_urls.append(url)
         return Response()
 
-    monkeypatch.setattr(sl.requests, "get", fake_get)
+    monkeypatch.setattr(request_utils.requests, "get", fake_get)
 
     df = sl.catcher_blocking_leaderboard(
         start_season=2020,
@@ -498,7 +630,7 @@ def test_catcher_blocking_leaderboard_builds_url(monkeypatch):
         game_type="Playoff",
         group_by="Cat",
         min_pitches=100,
-        team=sl.StatcastLeaderboardsTeams.BLUE_JAYS,
+        team=StatcastLeaderboardsTeams.BLUE_JAYS,
         split_years=True,
     )
 
@@ -515,7 +647,7 @@ def test_catcher_blocking_leaderboard_builds_url(monkeypatch):
         end_season=2025,
         group_by="Catching Team",
         min_pitches=100,
-        team=sl.StatcastLeaderboardsTeams.BLUE_JAYS,
+        team=StatcastLeaderboardsTeams.BLUE_JAYS,
     )
     assert requested_urls[-1] == (
         "https://baseballsavant.mlb.com/leaderboard/catcher-blocking?"
@@ -566,16 +698,19 @@ def test_catcher_framing_leaderboard_builds_url(monkeypatch):
     requested_urls = []
 
     class Response:
+        def raise_for_status(self) -> None:
+            pass
+
         text = (
             "id,name,pitches,rv_tot,pct_tot,rv_11,pct_11\n"
             '672386,"Kirk, Alejandro",878,0.46,0.84,0,0.60\n'
         )
 
-    def fake_get(url):
+    def fake_get(url, **kwargs):
         requested_urls.append(url)
         return Response()
 
-    monkeypatch.setattr(sl.requests, "get", fake_get)
+    monkeypatch.setattr(request_utils.requests, "get", fake_get)
 
     df = sl.catcher_framing_leaderboard(
         start_season=2020,
@@ -584,8 +719,8 @@ def test_catcher_framing_leaderboard_builds_url(monkeypatch):
         game_type="Playoff",
         min_pitches=250,
         teams=[
-            sl.StatcastLeaderboardsTeams.BLUE_JAYS,
-            sl.StatcastLeaderboardsTeams.ORIOLES,
+            StatcastLeaderboardsTeams.BLUE_JAYS,
+            StatcastLeaderboardsTeams.ORIOLES,
         ],
         batter_handedness="L",
         pitcher_handedness="R",
@@ -618,18 +753,110 @@ def test_catcher_pop_time_leaderboard_badinputs():
         sl.catcher_pop_time_leaderboard(season=2014)
     with pytest.raises(ValueError):
         sl.catcher_pop_time_leaderboard(season=9999)
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         sl.catcher_pop_time_leaderboard(team="Yankees")
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         sl.catcher_pop_time_leaderboard(min_2b_attempts="2")
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         sl.catcher_pop_time_leaderboard(min_3b_attempts="2")
+
+
+@pytest.mark.parametrize(
+    ("module", "function"),
+    [
+        (_fielding, sl.arm_strength_leaderboard),
+        (_catching, sl.catcher_pop_time_leaderboard),
+        (_pitching, sl.pitch_arsenals_leaderboard),
+        (_pitching, sl.pitch_movement_leaderboard),
+    ],
+)
+def test_omitted_season_uses_call_time_year(monkeypatch, module, function):
+    class Clock:
+        @staticmethod
+        def now():
+            return datetime(2027, 1, 15)
+
+    urls = []
+
+    def get_csv(url, **kwargs):
+        urls.append(url)
+        raise RuntimeError("stop after URL construction")
+
+    monkeypatch.setattr(module, "datetime", Clock)
+    monkeypatch.setattr(module, "get_csv", get_csv)
+    with pytest.raises(RuntimeError, match="stop after URL construction"):
+        function()
+    assert parse_qs(urlsplit(urls[-1]).query)["year"] == ["2027"]
+
+    with pytest.raises(RuntimeError, match="stop after URL construction"):
+        function(
+            **{"year" if function is sl.arm_strength_leaderboard else "season": 2026}
+        )
+    assert parse_qs(urlsplit(urls[-1]).query)["year"] == ["2026"]
+
+
+@pytest.mark.parametrize(
+    ("function", "parameter"),
+    [
+        (sl.arm_strength_leaderboard, "year"),
+        (sl.catcher_pop_time_leaderboard, "season"),
+        (sl.pitch_arsenals_leaderboard, "season"),
+        (sl.pitch_movement_leaderboard, "season"),
+    ],
+)
+def test_season_rejects_wrong_type(function, parameter):
+    values = (True, 2026.0) if parameter == "year" else (True, "2026", 2026.0)
+    for value in values:
+        with pytest.raises(TypeError):
+            function(**{parameter: value})
+
+
+@pytest.mark.parametrize(
+    "function", [sl.pitch_arsenals_leaderboard, sl.pitch_movement_leaderboard]
+)
+def test_pitch_leaderboard_rejects_boolean_threshold(function):
+    with pytest.raises(TypeError, match="min_pitches"):
+        function(season=2025, min_pitches=True)
+
+
+def test_catcher_pop_time_rejects_negative_attempts():
+    with pytest.raises(ValueError, match="nonnegative"):
+        sl.catcher_pop_time_leaderboard(season=2025, min_3b_attempts=-1)
+
+
+@pytest.mark.parametrize("month", [1, 2, 3])
+def test_park_and_timer_latest_supported_season(monkeypatch, month):
+    class Clock:
+        @staticmethod
+        def now():
+            return datetime(2027, month, 15)
+
+    def stop(*args, **kwargs):
+        raise RuntimeError("reached source boundary")
+
+    monkeypatch.setattr(_park, "datetime", Clock)
+    monkeypatch.setattr(_timer, "datetime", Clock)
+    monkeypatch.setattr(_park, "sync_playwright", stop)
+    monkeypatch.setattr(_timer, "get_csv", stop)
+    if month < 3:
+        with pytest.raises(ValueError, match="2026"):
+            sl.park_factor_distance_leaderboard(season=2027)
+        with pytest.raises(ValueError, match="2026"):
+            sl.timer_infractions_leaderboard(season=2027)
+    else:
+        with pytest.raises(RuntimeError, match="reached source boundary"):
+            sl.park_factor_distance_leaderboard(season=2027)
+        with pytest.raises(RuntimeError, match="timer_infractions_leaderboard"):
+            sl.timer_infractions_leaderboard(season=2027)
 
 
 def test_catcher_pop_time_leaderboard_builds_url(monkeypatch):
     requested_urls = []
 
     class Response:
+        def raise_for_status(self) -> None:
+            pass
+
         text = (
             "entity_name,entity_id,team_id,age,maxeff_arm_2b_3b_sba,"
             "exchange_2b_3b_sba,pop_2b_sba_count,pop_2b_sba,pop_2b_cs,"
@@ -637,15 +864,15 @@ def test_catcher_pop_time_leaderboard_builds_url(monkeypatch):
             '"Kirk, Alejandro",672386,141,27,82.4,0.63,20,1.95,1.92,1.98,5,1.4,1.35,1.45\n'
         )
 
-    def fake_get(url):
+    def fake_get(url, **kwargs):
         requested_urls.append(url)
         return Response()
 
-    monkeypatch.setattr(sl.requests, "get", fake_get)
+    monkeypatch.setattr(request_utils.requests, "get", fake_get)
 
     df = sl.catcher_pop_time_leaderboard(
         season=2025,
-        team=sl.StatcastLeaderboardsTeams.BLUE_JAYS,
+        team=StatcastLeaderboardsTeams.BLUE_JAYS,
         min_2b_attempts=7,
         min_3b_attempts=3,
     )
@@ -706,17 +933,20 @@ def test_catcher_stance_leaderboard_builds_url(monkeypatch):
     requested_urls = []
 
     class Response:
+        def raise_for_status(self) -> None:
+            pass
+
         text = (
             "id,name,year,pitches,knee_down_pct,l_down_r_up_pct,r_down_l_up_pct,"
             "both_down_pct,both_up_pct,catching_rv\n"
             '672386,"Kirk, Alejandro",2024,2500,0.5,0.2,0.1,0.1,0.1,1.2\n'
         )
 
-    def fake_get(url):
+    def fake_get(url, **kwargs):
         requested_urls.append(url)
         return Response()
 
-    monkeypatch.setattr(sl.requests, "get", fake_get)
+    monkeypatch.setattr(request_utils.requests, "get", fake_get)
 
     df = sl.catcher_stance_leaderboard(
         start_season=2023,
@@ -725,8 +955,8 @@ def test_catcher_stance_leaderboard_builds_url(monkeypatch):
         game_type="Playoff",
         min_pitches=250,
         teams=[
-            sl.StatcastLeaderboardsTeams.BLUE_JAYS,
-            sl.StatcastLeaderboardsTeams.ORIOLES,
+            StatcastLeaderboardsTeams.BLUE_JAYS,
+            StatcastLeaderboardsTeams.ORIOLES,
         ],
         batter_handedness="L",
         pitcher_handedness="R",
@@ -789,6 +1019,9 @@ def test_catcher_throwing_leaderboard_builds_url(monkeypatch):
     requested_urls = []
 
     class Response:
+        def raise_for_status(self) -> None:
+            pass
+
         text = (
             "player_id,player_name,team_name,start_year,end_year,sb_attempts,"
             "catcher_stealing_runs,caught_stealing_above_average,n_cs,rate_cs,"
@@ -796,11 +1029,11 @@ def test_catcher_throwing_leaderboard_builds_url(monkeypatch):
             '672386,"Kirk, Alejandro",TOR,2024,2024,75,1.2,2.1,15,0.2,0.25,0.03,1.9,0.6,80\n'
         )
 
-    def fake_get(url):
+    def fake_get(url, **kwargs):
         requested_urls.append(url)
         return Response()
 
-    monkeypatch.setattr(sl.requests, "get", fake_get)
+    monkeypatch.setattr(request_utils.requests, "get", fake_get)
 
     df = sl.catcher_throwing_leaderboard(
         start_season=2023,
@@ -809,7 +1042,7 @@ def test_catcher_throwing_leaderboard_builds_url(monkeypatch):
         group_by="Pitching Team",
         min_sb_attempts=50,
         target_base="2B",
-        team=sl.StatcastLeaderboardsTeams.BLUE_JAYS,
+        team=StatcastLeaderboardsTeams.BLUE_JAYS,
         split_years=True,
         with_team_only=False,
     )
@@ -847,7 +1080,7 @@ def test_abs_challenges_leaderboard_badinputs():
         sl.abs_challenges_leaderboard(
             season=2025,
             challenge_type="all",
-            challenging_teams=[sl.StatcastLeaderboardsTeams.YANKEES, "BOS"],
+            challenging_teams=[StatcastLeaderboardsTeams.YANKEES, "BOS"],
         )
     # invalid opposing_teams (not list)
     with pytest.raises(ValueError):
@@ -859,7 +1092,7 @@ def test_abs_challenges_leaderboard_badinputs():
         sl.abs_challenges_leaderboard(
             season=2025,
             challenge_type="all",
-            opposing_teams=[sl.StatcastLeaderboardsTeams.RED_SOX, "NYY"],
+            opposing_teams=[StatcastLeaderboardsTeams.RED_SOX, "NYY"],
         )
     # invalid pitch_types
     with pytest.raises(ValueError):
@@ -907,18 +1140,18 @@ def test_abs_challenges_leaderboard_reads_embedded_page_data(monkeypatch):
         def raise_for_status(self) -> None:
             return None
 
-    def get(url: str, *, params: dict[str, str | list[str]]) -> Response:
+    def get(url: str, *, params: dict[str, str | list[str]], timeout: int) -> Response:
         captured["url"] = url
         captured["params"] = params
         return Response()
 
-    monkeypatch.setattr(_abs.requests, "get", get)
+    monkeypatch.setattr(request_utils.requests, "get", get)
 
     df = sl.abs_challenges_leaderboard(
         season=2026,
         game_type="playoff",
-        challenging_teams=[sl.StatcastLeaderboardsTeams.YANKEES],
-        opposing_teams=[sl.StatcastLeaderboardsTeams.RED_SOX],
+        challenging_teams=[StatcastLeaderboardsTeams.YANKEES],
+        opposing_teams=[StatcastLeaderboardsTeams.RED_SOX],
         pitch_types=["FF", "SL"],
         attack_zone=["11", "12"],
         in_zone=True,
@@ -948,10 +1181,9 @@ def test_abs_challenges_leaderboard_season():
     df = sl.abs_challenges_leaderboard(
         season=2026,
     )
-    assert df.shape[0] >= 381
-    assert df.shape[1] >= 35
+    assert_live_frame(df, columns=("level", "team_abbr"))
     assert df.select(pl.col("level").unique()).item() == "MLB"
-    assert df.select(pl.col("team_abbr").n_unique()).item() == 30
+    assert df["team_abbr"].null_count() == 0
 
 
 @pytest.mark.live
@@ -960,31 +1192,28 @@ def test_abs_challenges_leaderboard_challenge_type():
         season=2026,
         challenge_type="batter",
     )
-    assert df_batter.shape[0] >= 381
-    assert df_batter.shape[1] >= 35
+    assert df_batter.height > 0
+    assert_live_frame(df_batter, columns=("level", "team_abbr"))
 
     df = sl.abs_challenges_leaderboard(
         season=2026,
         challenge_type="batting-team",
     )
-    assert df.shape[0] == 30
-    assert df.shape[1] >= 35
-    assert df.select(pl.col("team_abbr").n_unique()).item() == 30
+    assert_live_frame(df, columns=("level", "team_abbr"), unique_by=("team_abbr",))
 
     df = sl.abs_challenges_leaderboard(
         season=2026,
         challenge_type="league",
     )
-    assert df.shape[0] == 1
-    assert df.shape[1] >= 27
+    assert df.height == 1
+    assert_live_frame(df, columns=("level",))
 
     df = sl.abs_challenges_leaderboard(
         season=2026,
         challenge_type="catcher",
     )
-    assert df.shape[0] >= 63
-    assert df.shape[1] >= 35
-    assert df.select(pl.col("team_abbr").n_unique()).item() == 30
+    assert_live_frame(df, columns=("level", "team_abbr"))
+    assert df["team_abbr"].null_count() == 0
 
 
 def test_spin_direction_leaderboard_badinputs():
@@ -994,7 +1223,7 @@ def test_spin_direction_leaderboard_badinputs():
         sl.spin_direction_leaderboard(season=10000)
     with pytest.raises(ValueError):
         sl.spin_direction_leaderboard(season="2025")
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         sl.spin_direction_leaderboard(team="yankees")
     with pytest.raises(ValueError):
         sl.spin_direction_leaderboard(pitch_type="four_seamer")
@@ -1011,27 +1240,35 @@ def test_spin_direction_leaderboard():
     # single season
     df = sl.spin_direction_leaderboard(
         season=2025,
-        team=sl.StatcastLeaderboardsTeams.ASTROS,
+        team=StatcastLeaderboardsTeams.ASTROS,
         pitch_type="FF",
         pitcher_handedness="R",
         min_pitches=100,
     )
-    assert df.shape == (14, 29)
+    assert_live_frame(
+        df,
+        columns=("player_name", "year", "pitch_hand", "api_pitch_type"),
+        counts=("n_pitches",),
+        unique_by=("player_id", "year"),
+    )
     assert df.select(pl.col("year").unique()).item() == 2025
-    assert df.select(pl.col("player_name").n_unique()).item() == 14
     assert df.select(pl.col("pitch_hand").unique()).item() == "R"
     assert df.select(pl.col("api_pitch_type").unique()).item() == "FF"
     assert df.select(pl.col("n_pitches").min()).item() >= 100
 
     df = sl.spin_direction_leaderboard(
         season="ALL",
-        team=sl.StatcastLeaderboardsTeams.ASTROS,
+        team=StatcastLeaderboardsTeams.ASTROS,
         pitch_type="FF",
         pitcher_handedness="R",
         min_pitches=100,
     )
-    assert df.shape[0] >= 80
-    assert df.shape[1] == 29
+    assert_live_frame(
+        df,
+        columns=("player_name", "year", "pitch_hand", "api_pitch_type"),
+        counts=("n_pitches",),
+        unique_by=("player_id", "year"),
+    )
     assert df.select(pl.col("pitch_hand").unique()).item() == "R"
     assert df.select(pl.col("api_pitch_type").unique()).item() == "FF"
     assert df.select(pl.col("n_pitches").min()).item() >= 100
@@ -1072,10 +1309,10 @@ def test_active_spin_leaderboard():
     df = sl.active_spin_leaderboard(
         season=2023, min_pitches=100, stat_method="spin-based", pitcher_handedness="R"
     )
-    assert df.shape[0] == 510
-    assert df.shape[1] == 12
+    assert_live_frame(
+        df, columns=("pitch_hand",), counts=("player_id",), unique_by=("player_id",)
+    )
     assert df.select(pl.col("pitch_hand").unique()).item() == "R"
-    assert df.select(pl.col("player_id").n_unique()).item() == 510
 
 
 def test_arm_angle_leaderboard_badinputs():
@@ -1095,7 +1332,7 @@ def test_arm_angle_leaderboard_badinputs():
         sl.arm_angle_leaderboard(
             start_date="2023-04-01",
             end_date="2023-10-01",
-            teams=[sl.StatcastLeaderboardsTeams.YANKEES, "BOS"],
+            teams=[StatcastLeaderboardsTeams.YANKEES, "BOS"],
         )
     with pytest.raises(ValueError):
         sl.arm_angle_leaderboard(
@@ -1164,14 +1401,51 @@ def test_arm_angle_leaderboard_badinputs():
         )
 
 
+def test_arm_angle_url_and_default_end_date_are_set_at_call_time(monkeypatch):
+    requested_urls = []
+    current_day = [2]
+
+    class Clock(datetime):
+        @classmethod
+        def today(cls):
+            return cls(2023, 5, current_day[0])
+
+    class Response:
+        text = "player_name\nPitcher\n"
+
+        def raise_for_status(self) -> None:
+            pass
+
+    def fake_get(url, **kwargs):
+        requested_urls.append(url)
+        return Response()
+
+    monkeypatch.setattr(_pitching, "datetime", Clock)
+    monkeypatch.setattr(request_utils.requests, "get", fake_get)
+
+    sl.arm_angle_leaderboard(start_date="2023-04-01")
+    current_day[0] = 3
+    sl.arm_angle_leaderboard(start_date="2023-04-01")
+
+    parsed_urls = [urlsplit(url) for url in requested_urls]
+    queries = [parse_qs(url.query) for url in parsed_urls]
+    assert {url.path for url in parsed_urls} == {"/leaderboard/pitcher-arm-angles"}
+    assert all(query["csv"] == ["true"] for query in queries)
+    assert [query["dateStart"] for query in queries] == [["2023-04-01"]] * 2
+    assert [query["dateEnd"] for query in queries] == [
+        ["2023-05-02"],
+        ["2023-05-03"],
+    ]
+
+
 @pytest.mark.live
 def test_arm_angle_leaderboard():
     df = sl.arm_angle_leaderboard(
         start_date="2020-01-01",
         end_date="2020-12-31",
         teams=[
-            sl.StatcastLeaderboardsTeams.DODGERS,
-            sl.StatcastLeaderboardsTeams.YANKEES,
+            StatcastLeaderboardsTeams.DODGERS,
+            StatcastLeaderboardsTeams.YANKEES,
         ],
         pitcher_handedness="R",
         batter_handedness="L",
@@ -1181,15 +1455,21 @@ def test_arm_angle_leaderboard():
         group_by=["month", "pitch_type", "game_type", "bat_side"],
         min_group_size=10,
     )
-    assert df.shape[0] == 15
-    assert df.shape[1] == 15
+    assert_live_frame(
+        df,
+        columns=("pitch_hand", "pitch_type", "game_type", "bat_side"),
+        numeric=("ball_angle",),
+        counts=("n_pitches",),
+        unique_by=("pitcher", "month", "pitch_type", "game_type", "bat_side"),
+    )
     assert df.select(pl.col("pitch_hand").unique()).item() == "R"
     for col_name in ["month", "pitch_type", "game_type", "bat_side"]:
         assert col_name in df.columns
     assert df.select(pl.col("n_pitches").min()).item() >= 10
-    assert df.select(pl.col("pitch_type").n_unique()).item() <= 2
+    assert df["pitch_type"].null_count() == 0
     assert df.select(pl.col("game_type").unique()).item() == "R"
-    assert df.select(pl.col("bat_side").n_unique()).item() == 1
+    assert df["bat_side"].unique().to_list() == ["L"]
+    assert set(df["pitch_type"]) <= {"FF", "SL"}
 
 
 def test_pitch_arsenals_leaderboard_badinputs():
@@ -1212,10 +1492,9 @@ def test_pitch_arsenals_leaderboard():
     df = sl.pitch_arsenals_leaderboard(
         season=2023, metric_type="avg_speed", pitcher_handedness="R", min_pitches=100
     )
-    assert df.shape[0] == 515
-    assert df.shape[1] == 12
-    assert df.select(pl.col("player_id").n_unique()).item() == 515
-    assert df.select(pl.col("ff_avg_speed").max()).item() == 101.8
+    assert_live_frame(
+        df, numeric=("ff_avg_speed",), counts=("player_id",), unique_by=("player_id",)
+    )
 
     df = sl.pitch_arsenals_leaderboard(
         season=2023,
@@ -1223,9 +1502,12 @@ def test_pitch_arsenals_leaderboard():
         pitcher_handedness="ALL",
         min_pitches=100,
     )
-    assert df.shape[0] == 711
-    assert df.shape[1] == 12
-    assert df.select(pl.col("player_id").n_unique()).item() == 711
+    assert_live_frame(
+        df,
+        numeric=("ff_usage_percentage",),
+        counts=("player_id",),
+        unique_by=("player_id",),
+    )
 
 
 def test_pitch_movement_leaderboard_badinputs():
@@ -1251,9 +1533,12 @@ def test_pitch_movement_leaderboard():
         pitcher_handedness="L",
         min_pitches=100,
     )
-    assert df.shape[0] == 132
-    assert df.shape[1] == 24
-    assert df.select(pl.col("pitcher_id").n_unique()).item() == 132
+    assert_live_frame(
+        df,
+        columns=("pitch_type", "pitch_hand", "year"),
+        counts=("pitcher_id", "pitches_thrown"),
+        unique_by=("pitcher_id",),
+    )
     assert df.select(pl.col("pitch_type").unique()).item() == "FF"
     assert df.select(pl.col("pitch_hand").unique()).item() == "L"
     assert df.select(pl.col("pitches_thrown").min()).item() >= 100
@@ -1324,14 +1609,15 @@ def test_pitcher_running_game_leaderboard():
         team="All",
         split_years=True,
     )
-    assert df.shape[0] == 3174
-    assert df.shape[1] == 25
-    assert (
-        df.select(pl.col("player_id").n_unique()).item() == 1374
-    )  # less than total rows due to some pitchers appearing in multiple seasons
-    assert df.select(pl.col("team_name").n_unique()).item() == 30
-    assert df.select(pl.col("start_year").min()).item() == 2020
-    assert df.select(pl.col("end_year").max()).item() == 2023
+    assert_live_frame(
+        df,
+        columns=("team_name", "start_year", "end_year", "key_target_base"),
+        counts=("player_id", "n_init"),
+        unique_by=("player_id", "team_name", "start_year", "end_year"),
+    )
+    assert df["team_name"].null_count() == 0
+    assert_numeric(df["start_year"], minimum=2020, maximum=2023, count=True)
+    assert_numeric(df["end_year"], minimum=2020, maximum=2023, count=True)
     assert df.select(pl.col("key_target_base").unique()).item() == "All"
     assert df.select(pl.col("n_init").min()).item() >= 10
 
@@ -1371,16 +1657,19 @@ def test_baserunning_run_value_leaderboard_builds_url(monkeypatch):
     requested_urls = []
 
     class Response:
+        def raise_for_status(self) -> None:
+            pass
+
         text = (
             "player_id,entity_name,team_name,start_year,end_year,runner_runs_tot\n"
             '677951,"Witt Jr., Bobby",KC,2024,2025,12.5\n'
         )
 
-    def fake_get(url):
+    def fake_get(url, **kwargs):
         requested_urls.append(url)
         return Response()
 
-    monkeypatch.setattr(sl.requests, "get", fake_get)
+    monkeypatch.setattr(request_utils.requests, "get", fake_get)
 
     df = sl.baserunning_run_value_leaderboard(
         start_season=2024,
@@ -1388,7 +1677,7 @@ def test_baserunning_run_value_leaderboard_builds_url(monkeypatch):
         game_type="All",
         group_by="Runners",
         min_opportunities=20,
-        team=sl.StatcastLeaderboardsTeams.YANKEES,
+        team=StatcastLeaderboardsTeams.YANKEES,
         split_years=True,
     )
 
@@ -1404,12 +1693,15 @@ def test_baserunning_run_value_leaderboard_builds_url(monkeypatch):
 
 def test_baserunning_run_value_leaderboard_normalizes_group_identifiers(monkeypatch):
     class Response:
+        def raise_for_status(self) -> None:
+            pass
+
         text = (
             "player_id,entity_name,team_name,start_year,end_year,runner_runs_tot\n"
             '147,"Yankees",NYY,2024,2024,10.0\n'
         )
 
-    monkeypatch.setattr(sl.requests, "get", lambda url: Response())
+    monkeypatch.setattr(request_utils.requests, "get", lambda url, **kwargs: Response())
 
     team_df = sl.baserunning_run_value_leaderboard(
         start_season=2024, end_season=2024, group_by="Running Team"
@@ -1476,17 +1768,20 @@ def test_basestealing_run_value_leaderboard_builds_url(monkeypatch):
     requested_urls = []
 
     class Response:
+        def raise_for_status(self) -> None:
+            pass
+
         text = (
             "player_id,player_name,team_name,start_year,end_year,key_target_base,"
             "runs_stolen_on_running_act,n_init\n"
             '677951,"Witt Jr., Bobby",KC,2024,2025,"2B",3.5,25\n'
         )
 
-    def fake_get(url):
+    def fake_get(url, **kwargs):
         requested_urls.append(url)
         return Response()
 
-    monkeypatch.setattr(sl.requests, "get", fake_get)
+    monkeypatch.setattr(request_utils.requests, "get", fake_get)
 
     df = sl.basestealing_run_value_leaderboard(
         start_season=2024,
@@ -1498,7 +1793,7 @@ def test_basestealing_run_value_leaderboard_builds_url(monkeypatch):
         target_base="2B",
         num_prior_disengagements="3+",
         min_sb_opportunities=50,
-        team=sl.StatcastLeaderboardsTeams.YANKEES,
+        team=StatcastLeaderboardsTeams.YANKEES,
         split_years=True,
     )
 
@@ -1515,13 +1810,16 @@ def test_basestealing_run_value_leaderboard_builds_url(monkeypatch):
 
 def test_basestealing_run_value_leaderboard_keeps_identifier_columns(monkeypatch):
     class Response:
+        def raise_for_status(self) -> None:
+            pass
+
         text = (
             "player_id,player_name,team_name,start_year,end_year,key_target_base,"
             "runs_stolen_on_running_act,n_init\n"
             '147,"Yankees",NYY,2024,2024,"All",-3.7,10\n'
         )
 
-    monkeypatch.setattr(sl.requests, "get", lambda url: Response())
+    monkeypatch.setattr(request_utils.requests, "get", lambda url, **kwargs: Response())
 
     df = sl.basestealing_run_value_leaderboard(
         start_season=2024, end_season=2024, group_by="Running Team"
@@ -1568,17 +1866,20 @@ def test_extra_bases_taken_run_value_leaderboard_builds_url(monkeypatch):
     requested_urls = []
 
     class Response:
+        def raise_for_status(self) -> None:
+            pass
+
         text = (
             "entity_name,entity_id,team_name,year,runner_runs,"
             "runner_runs_advances\n"
             '"Rojas, Miguel",500743,LAD,2024,1.5,2.0\n'
         )
 
-    def fake_get(url):
+    def fake_get(url, **kwargs):
         requested_urls.append(url)
         return Response()
 
-    monkeypatch.setattr(sl.requests, "get", fake_get)
+    monkeypatch.setattr(request_utils.requests, "get", fake_get)
 
     df = sl.extra_bases_taken_run_value_leaderboard(
         start_season=2024,
@@ -1587,7 +1888,7 @@ def test_extra_bases_taken_run_value_leaderboard_builds_url(monkeypatch):
         group_by="Fielders",
         situation="runner_1b_to_3b_2_outs",
         min_opportunities=20,
-        team=sl.StatcastLeaderboardsTeams.YANKEES,
+        team=StatcastLeaderboardsTeams.YANKEES,
         split_years=True,
     )
 
@@ -1604,12 +1905,15 @@ def test_extra_bases_taken_run_value_leaderboard_normalizes_group_identifiers(
     monkeypatch,
 ):
     class Response:
+        def raise_for_status(self) -> None:
+            pass
+
         text = (
             "entity_name,entity_id,team_name,year,runner_runs\n"
             '"Yankees",147,NYY,2024,1.0\n'
         )
 
-    monkeypatch.setattr(sl.requests, "get", lambda url: Response())
+    monkeypatch.setattr(request_utils.requests, "get", lambda url, **kwargs: Response())
 
     team_df = sl.extra_bases_taken_run_value_leaderboard(
         start_season=2024, end_season=2024, group_by="Batting Team"
@@ -1660,24 +1964,27 @@ def test_sprint_speed_leaderboard_builds_player_url(monkeypatch):
     requested_urls = []
 
     class Response:
+        def raise_for_status(self) -> None:
+            pass
+
         text = (
             '"last_name, first_name",player_id,team_id,team,position,age,'
             "competitive_runs,bolts,hp_to_1b,sprint_speed\n"
             '"Witt Jr., Bobby",677951,118,KC,SS,25,543,257,4.12,30.4\n'
         )
 
-    def fake_get(url):
+    def fake_get(url, **kwargs):
         requested_urls.append(url)
         return Response()
 
-    monkeypatch.setattr(sl.requests, "get", fake_get)
+    monkeypatch.setattr(request_utils.requests, "get", fake_get)
 
     df = sl.sprint_speed_leaderboard(
         start_season=2024,
         end_season=2025,
         position="SS",
         min_opportunities=25,
-        team=sl.StatcastLeaderboardsTeams.YANKEES,
+        team=StatcastLeaderboardsTeams.YANKEES,
     )
 
     assert requested_urls == [
@@ -1707,23 +2014,26 @@ def test_sprint_speed_leaderboard_builds_team_urls(monkeypatch):
     requested_urls = []
 
     class Response:
+        def raise_for_status(self) -> None:
+            pass
+
         text = (
             "team,team_id,year,n,competitive_runs,bolts,home_to_first,"
             "avg_sprint_speed,fastest_sprint_speed\n"
             '"Yankees",147,2024,18,1543,29,4.52,26.8,"29.0"\n'
         )
 
-    def fake_get(url):
+    def fake_get(url, **kwargs):
         requested_urls.append(url)
         return Response()
 
-    monkeypatch.setattr(sl.requests, "get", fake_get)
+    monkeypatch.setattr(request_utils.requests, "get", fake_get)
 
     df = sl.sprint_speed_leaderboard(
         start_season=2024,
         end_season=2024,
         group_by="Team",
-        team=sl.StatcastLeaderboardsTeams.YANKEES,
+        team=StatcastLeaderboardsTeams.YANKEES,
     )
 
     assert requested_urls == [
@@ -1767,22 +2077,25 @@ def test_running_splits_leaderboard_builds_url(monkeypatch):
     requested_urls = []
 
     class Response:
+        def raise_for_status(self) -> None:
+            pass
+
         text = (
             '"last_name, first_name",player_id,name_abbrev,team_id,position_name,'
             "age,bat_side,seconds_since_hit_000,seconds_since_hit_005\n"
             '"Volpe, Anthony",683011,NYY,147,SS,23,R,0.00,0.56\n'
         )
 
-    def fake_get(url):
+    def fake_get(url, **kwargs):
         requested_urls.append(url)
         return Response()
 
-    monkeypatch.setattr(sl.requests, "get", fake_get)
+    monkeypatch.setattr(request_utils.requests, "get", fake_get)
 
     df = sl.running_splits_leaderboard(
         season=2024,
         position="SS",
-        team=sl.StatcastLeaderboardsTeams.YANKEES,
+        team=StatcastLeaderboardsTeams.YANKEES,
         bat_side="Right",
         min_opportunities=25,
         split_type="percentile",

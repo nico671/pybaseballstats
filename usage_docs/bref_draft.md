@@ -6,7 +6,6 @@ This module retrieves MLB draft data from [Baseball Reference Draft](https://www
 
 - `draft_order_by_year_round(year, draft_round)`: Fetches draft data for one year/round combination.
 - `franchise_draft_order(team, year)`: Fetches draft data for one franchise/year combination.
-- `BREFTeams.show_options()`: Shows valid enum values for franchise filtering.
 
 ## Function Parameters
 
@@ -28,7 +27,8 @@ This function doesn't return any data from the Baseball Reference Draft website.
 
 ```python
 import pybaseballstats.bref_draft as bd
-print(bd.BREFTeams.show_options()) # will print all of the available teams
+from pybaseballstats.enums import BREFTeams
+print(BREFTeams.show_options()) # will print all of the available teams
 """
 ANGELS: ANA
 DIAMONDBACKS: ARI
@@ -80,9 +80,10 @@ To get draft picks for a specific franchise and year, use `franchise_draft_order
 
 ```python
 import pybaseballstats.bref_draft as bd
+from pybaseballstats.enums import BREFTeams
 
 # Fetch draft picks for a specific franchise and year
-print(bd.franchise_draft_order(bd.BREFTeams.ANGELS, 2020))  # will print all draft picks for the 2020 Angels
+print(bd.franchise_draft_order(BREFTeams.ANGELS, 2020))  # will print all draft picks for the 2020 Angels
 ```
 
 ## Notes
@@ -91,5 +92,5 @@ print(bd.franchise_draft_order(bd.BREFTeams.ANGELS, 2020))  # will print all dra
 2. `draft_order_by_year_round` requires `draft_round` between 1 and 60.
 3. `franchise_draft_order` requires `team` to be a valid `BREFTeams` enum value.
 4. This package uses the `polars` library for data manipulation. If you wish to convert the returned DataFrame to a pandas DataFrame, you can use the `.to_pandas()` method on the returned DataFrame to convert it.
-5. All functions will automatically handle Baseball Reference rate limiting via shared session utilities.
-6. All functions take in a `verbose` parameter that, when set to True, will print debug information during the request process. This can be useful for troubleshooting Cloudflare blocks.
+5. The shared session limits requests within this Python process. Baseball Reference can still block a request; a failed request raises `RuntimeError`.
+6. Both functions accept `verbose` for request diagnostics.

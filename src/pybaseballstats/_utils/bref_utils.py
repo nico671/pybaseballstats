@@ -1,10 +1,34 @@
 import re
-from typing import Any
+from functools import wraps
+from typing import Any, Callable, ParamSpec, TypeVar
 
 import polars as pl
-from bs4 import BeautifulSoup, Comment
+from bs4 import BeautifulSoup, Comment, Tag
 
 from pybaseballstats._consts.bref_consts import BREF_TEAM_CODE_SWITCHES, BREFTeams
+from pybaseballstats._utils.session_utils import BREF_SESSION
+
+P = ParamSpec("P")
+T = TypeVar("T")
+
+
+def _source_schema_errors(function: Callable[P, T]) -> Callable[P, T]:
+    """Report Polars source-schema failures with the public operation name."""
+    function_name = getattr(function, "__name__", type(function).__name__)
+
+    @wraps(function)
+    def wrapped(*args: P.args, **kwargs: P.kwargs) -> T:
+        try:
+            return function(*args, **kwargs)
+        except pl.exceptions.PolarsError as exc:
+            raise RuntimeError(
+                f"{function_name}: invalid Baseball Reference table"
+            ) from exc
+
+    return wrapped
+
+
+# region shared
 
 
 def get_bref_table_html(html_content: str, table_id: str) -> str | None:
@@ -30,8 +54,14 @@ def get_bref_table_html(html_content: str, table_id: str) -> str | None:
             if hidden_table:
                 return str(hidden_table)
 
-    print(f"Table with id '{table_id}' not found in DOM or comments.")
     return None
+
+
+def _required_table(html_content: str, table_id: str, operation: str) -> pl.DataFrame:
+    table_html = get_bref_table_html(html_content, table_id)
+    if table_html is None:
+        raise RuntimeError(f"{operation}: missing Baseball Reference table {table_id}")
+    return pl.DataFrame(_extract_table(BeautifulSoup(table_html, "html.parser")))
 
 
 _INT_PATTERN = re.compile(r"^[+-]?\d+$")
@@ -103,13 +133,15 @@ def _infer_series_dtype(values: list[str | int | float | None]) -> Any:
     return pl.Utf8
 
 
-def _extract_table(table):
+def _extract_table(table: Tag) -> dict[str, pl.Series]:
     """Extracts data from an HTML table into a dictionary of lists.
 
     Works specifically for Baseball Reference Tables
     """
+    if table.tbody is None:
+        raise RuntimeError("Baseball Reference table is missing a body")
     trs = table.tbody.find_all("tr")
-    row_data: dict[str, list[str | int | float | None]] = {}
+    rows: list[dict[str, str | int | float | None]] = []
 
     for tr in trs:
         if tr.has_attr("class") and "thead" in tr["class"]:
@@ -118,33 +150,45 @@ def _extract_table(table):
         tds.extend(tr.find_all("td"))
         if len(tds) == 0:
             continue
-        used_data_stats: set[str] = set()
+        row: dict[str, str | int | float | None] = {}
         for td in tds:
-            data_stat = td.attrs["data-stat"]
-            if data_stat in used_data_stats:
+            data_stat = td.get("data-stat")
+            if not isinstance(data_stat, str):
                 continue
-            if data_stat not in row_data:
-                row_data[data_stat] = []
-            if td.find("a") and data_stat != "player":  # special case for bref_draft
-                raw_value = td.find("a").text
-            elif td.find("a") and data_stat == "player":
+            if data_stat in row:
+                continue
+            anchor = td.find("a")
+            span = td.find("span")
+            strong = td.find("strong")
+            if anchor and data_stat != "player":  # special case for bref_draft
+                raw_value = anchor.text
+            elif anchor and data_stat == "player":
                 raw_value = td.text
-            elif td.find("span"):
-                raw_value = td.find("span").string
-            elif td.find("strong"):
-                raw_value = td.find("strong").string
+            elif span:
+                raw_value = span.string
+            elif strong:
+                raw_value = strong.string
             elif (
                 data_stat == "homeORvis"
             ):  # special case for schedule/results table to determine home vs away
-                if td.text.strip() == "@":
-                    row_data[data_stat].append("away")
-                else:
-                    row_data[data_stat].append("home")
+                row[data_stat] = "away" if td.text.strip() == "@" else "home"
                 continue
             else:
                 raw_value = td.string
-            used_data_stats.add(data_stat)
-            row_data[data_stat].append(_safe_parse_cell_value(raw_value))
+            row[data_stat] = _safe_parse_cell_value(raw_value)
+        if row:
+            rows.append(row)
+
+    columns = dict.fromkeys(column for row in rows for column in row)
+    if not rows:
+        columns = dict.fromkeys(
+            stat
+            for header in table.select("thead [data-stat]")
+            if isinstance(stat := header.get("data-stat"), str)
+        )
+        if not columns:
+            raise RuntimeError("Baseball Reference table has no columns")
+    row_data = {column: [row.get(column) for row in rows] for column in columns}
 
     typed_row_data: dict[str, pl.Series] = {}
     for column_name, values in row_data.items():
@@ -192,3 +236,27 @@ def resolve_bref_team_code(team: BREFTeams, year: int) -> str:
     raise ValueError(
         f"No Baseball Reference team code mapping found for {team.name} in {year}."
     )
+
+
+# endregion
+
+
+# region bref_draft
+def _clean_draft_dataframes(draft_df: pl.DataFrame) -> pl.DataFrame:
+    return draft_df.drop("draft_abb").with_columns(
+        pl.col("player").str.replace_all(r"\s+\(minors\)$", "").alias("player")
+    )
+
+
+def _get_draft_dataframe(url: str, verbose: bool = False) -> pl.DataFrame | None:
+    """Fetch and clean a Baseball Reference draft table, if present."""
+    resp = BREF_SESSION.get(url, verbose=verbose)
+    table_html = get_bref_table_html(resp.text, "draft_stats")
+    if table_html is None:
+        return None
+
+    polars_data = _extract_table(BeautifulSoup(table_html, "html.parser"))
+    try:
+        return _clean_draft_dataframes(pl.DataFrame(polars_data))
+    except pl.exceptions.PolarsError as exc:
+        raise RuntimeError(f"draft: invalid Baseball Reference table at {url}") from exc

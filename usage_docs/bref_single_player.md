@@ -90,7 +90,7 @@ Validation behavior:
 - If `metric_type` is invalid, `single_player_pitching(...)` raises `ValueError`.
 - If `metric_type` is invalid, `single_player_fielding(...)` raises `ValueError`.
 - If `position` is missing/invalid/misused for `single_player_fielding(...)`, a `ValueError` is raised.
-- If the requested page/table cannot be loaded, an error is raised (`ValueError` for batting/pitching/fielding).
+- If the requested page/table cannot be loaded, `RuntimeError` is raised.
 
 ## Usage examples
 
