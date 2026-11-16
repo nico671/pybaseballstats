@@ -10,6 +10,7 @@ from pybaseballstats._consts.retrosheet_consts import (
 from pybaseballstats._utils.request_utils import get_bytes
 
 
+# TODO: implement using lazyframes
 @lru_cache(maxsize=1)
 def _get_people_data() -> pl.DataFrame:
     """Fetch and cache people data from Retrosheet."""

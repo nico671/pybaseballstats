@@ -1,10 +1,30 @@
 import asyncio
 from contextlib import asynccontextmanager
 from datetime import datetime
-from typing import AsyncIterator
+from functools import wraps
+from typing import AsyncIterator, Callable, ParamSpec, TypeVar
 
+import polars as pl
 from playwright.async_api import Error as PlaywrightError
 from playwright.async_api import Page, async_playwright
+
+from pybaseballstats._consts.statcast_consts import STATCAST_DATE_FORMAT
+
+P = ParamSpec("P")
+T = TypeVar("T")
+
+
+def _game_errors(function: Callable[P, T]) -> Callable[P, T]:
+    function_name = getattr(function, "__name__", type(function).__name__)
+
+    @wraps(function)
+    def wrapped(*args: P.args, **kwargs: P.kwargs) -> T:
+        try:
+            return function(*args, **kwargs)
+        except (RuntimeError, pl.exceptions.PolarsError, PlaywrightError) as exc:
+            raise RuntimeError(f"{function_name}: game data retrieval failed") from exc
+
+    return wrapped
 
 
 @asynccontextmanager
@@ -56,10 +76,10 @@ def _handle_single_game_date(game_date: str) -> str:
     if not isinstance(game_date, str):
         raise TypeError("game_date must be a YYYY-MM-DD string")
     try:
-        dt_object = datetime.strptime(game_date, "%Y-%m-%d")
+        dt_object = datetime.strptime(game_date, STATCAST_DATE_FORMAT)
     except ValueError:
         raise ValueError("Incorrect date format. Please use YYYY-MM-DD format.")
-    if dt_object.strftime("%Y-%m-%d") != game_date:
+    if dt_object.strftime(STATCAST_DATE_FORMAT) != game_date:
         raise ValueError("Incorrect date format. Please use YYYY-MM-DD format.")
     formatted_date = f"{dt_object.month}/{dt_object.day}/{dt_object.year}"
     return formatted_date.replace("/", "%2F")

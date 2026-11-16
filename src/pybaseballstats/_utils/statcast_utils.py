@@ -11,9 +11,12 @@ import polars as pl
 from rich.progress import MofNCompleteColumn, Progress, SpinnerColumn, TimeElapsedColumn
 
 from pybaseballstats._consts.statcast_consts import (
+    STATCAST_DATE_FORMAT,
     STATCAST_YEAR_RANGES,
 )
 
+# TODO: Replace process-lifetime CSV retention with prompt cleanup or opt-in caching.
+# Returned lazy frames still need these files for later collection.
 _LAZY_SOURCE_DIRS: list[TemporaryDirectory] = []
 
 
@@ -174,10 +177,28 @@ async def _fetch_all_data(
     show_progress: bool = True,
     output_dir: Path | None = None,
 ) -> List[pl.DataFrame | Path]:
+    """Download all chunks and return them in request order.
+
+    Await every request before return, even when the caller will use lazy scans.
+    Without output_dir, parse chunks into DataFrames in memory. With output_dir,
+    stream chunks to CSV files and validate every row. The directory must exist;
+    chunk-NNNNNN.csv names are overwritten, so use a separate directory per call.
+    The caller owns cleanup, including files left after failure, and must keep
+    successful files available for later lazy scans. Header-only CSVs succeed
+    and retain their columns; empty bodies and invalid CSVs are failures.
+
+    Limit active requests with concurrency. The default is 25 for requested
+    ranges of up to 30 inclusive days, or 15 for longer ranges. Each chunk has
+    up to three attempts for HTTP, transport, or parse failures; file errors
+    stop that chunk immediately. Connection and read timeouts are 15 and 45
+    seconds per request; there is no total timeout for the complete download.
+
+    Raise RuntimeError if any chunk fails after retries. Never return partial
+    data, and preserve the first failed chunk's cause when one is available.
+    show_progress reports completed chunks, including chunks that fail after
+    all retries. It does not report final frame collection.
     """
-    Orchestrates the fetching of all URLs.
-    """
-    # Tuning concurrency (caller may override).
+    # Use fewer concurrent requests for longer date ranges.
     if concurrency is None:
         concurrency = 25 if date_range_total_days <= 30 else 15
 
@@ -271,36 +292,43 @@ async def _fetch_all_data(
 def _load_all_data(
     responses: List[pl.DataFrame | Path], *, show_progress: bool = True
 ) -> List[pl.LazyFrame]:
-    """Join downloaded chunks while retaining columns across schema changes."""
+    """Prepare lazy chunks with optional progress, then align their columns.
+
+    Progress counts prepared chunks; it does not measure later collection.
+    """
     if not responses:
         return []
     try:
-        if all(isinstance(response, Path) for response in responses):
-            scans = [
-                pl.scan_csv(
-                    response,
-                    null_values=["null", "NULL", "NA"],
-                    infer_schema_length=10000,
-                )
-                for response in responses
-                if isinstance(response, Path)
-            ]
-            non_empty = [
-                scan for scan in scans if not scan.limit(1).collect().is_empty()
-            ]
-        elif all(isinstance(response, pl.DataFrame) for response in responses):
-            scans = [
-                response.lazy()
-                for response in responses
-                if isinstance(response, pl.DataFrame)
-            ]
-            non_empty = [
-                response.lazy()
-                for response in responses
-                if isinstance(response, pl.DataFrame) and not response.is_empty()
-            ]
-        else:
+        if not (
+            all(isinstance(response, Path) for response in responses)
+            or all(isinstance(response, pl.DataFrame) for response in responses)
+        ):
             raise RuntimeError("Statcast download returned mixed chunk formats")
+        scans: list[pl.LazyFrame] = []
+        non_empty: list[pl.LazyFrame] = []
+        with Progress(
+            SpinnerColumn(),
+            *Progress.get_default_columns(),
+            MofNCompleteColumn(),
+            TimeElapsedColumn(),
+            disable=not show_progress,
+        ) as progress:
+            task_id = progress.add_task("Preparing chunks...", total=len(responses))
+            for response in responses:
+                if isinstance(response, Path):
+                    scan = pl.scan_csv(
+                        response,
+                        null_values=["null", "NULL", "NA"],
+                        infer_schema_length=10000,
+                    )
+                    has_rows = not scan.limit(1).collect().is_empty()
+                else:
+                    scan = response.lazy()
+                    has_rows = not response.is_empty()
+                scans.append(scan)
+                if has_rows:
+                    non_empty.append(scan)
+                progress.update(task_id, advance=1)
         if not non_empty:
             return [pl.concat(scans, how="diagonal_relaxed")]
         combined = pl.concat(non_empty, how="diagonal_relaxed")
@@ -335,13 +363,13 @@ def _handle_dates(start_date_str: str, end_date_str: str) -> Tuple[date, date]:
     if not isinstance(start_date_str, str) or not isinstance(end_date_str, str):
         raise TypeError("start_date and end_date must be YYYY-MM-DD strings")
     try:
-        start_dt = datetime.strptime(start_date_str, "%Y-%m-%d")
-        end_dt = datetime.strptime(end_date_str, "%Y-%m-%d")
+        start_dt = datetime.strptime(start_date_str, STATCAST_DATE_FORMAT)
+        end_dt = datetime.strptime(end_date_str, STATCAST_DATE_FORMAT)
     except ValueError as e:
         raise ValueError(f"Invalid date format: {e}") from e
     if (
-        start_dt.strftime("%Y-%m-%d") != start_date_str
-        or end_dt.strftime("%Y-%m-%d") != end_date_str
+        start_dt.strftime(STATCAST_DATE_FORMAT) != start_date_str
+        or end_dt.strftime(STATCAST_DATE_FORMAT) != end_date_str
     ):
         raise ValueError("Dates must use YYYY-MM-DD format")
     start_dt_date = start_dt.date()

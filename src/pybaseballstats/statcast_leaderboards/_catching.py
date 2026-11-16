@@ -3,6 +3,7 @@ from typing import List, Literal
 
 import polars as pl
 
+from pybaseballstats._consts.statcast_consts import STATCAST_DATE_FORMAT
 from pybaseballstats._consts.statcast_leaderboard_consts import (
     CATCHER_BLOCKING_LEADERBOARD_URL,
     CATCHER_FRAMING_LEADERBOARD_URL,
@@ -419,7 +420,7 @@ def catcher_stance_leaderboard(
             date_params[name] = ""
             continue
         try:
-            date_value = datetime.strptime(value, "%Y-%m-%d").date()
+            date_value = datetime.strptime(value, STATCAST_DATE_FORMAT).date()
         except (TypeError, ValueError):
             raise ValueError(f"{name} must be in YYYY-MM-DD format")
         if date_value < earliest_date:
@@ -541,6 +542,3 @@ def catcher_throwing_leaderboard(
         target_base=target_base,
     )
     return get_csv(url)
-
-
-# endregion

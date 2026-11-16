@@ -3,7 +3,11 @@ import pytest
 from bs4 import BeautifulSoup
 
 from pybaseballstats._consts.bref_consts import BREFTeams
-from pybaseballstats._utils.bref_utils import _extract_table, resolve_bref_team_code
+from pybaseballstats._utils.bref_utils import (
+    _extract_table,
+    _normalize_bref_columns,
+    resolve_bref_team_code,
+)
 
 
 def test_extract_table_parses_numeric_types_and_percentages():
@@ -109,3 +113,32 @@ def test_resolve_team_code_switches():
     assert resolve_bref_team_code(BREFTeams.BRAVES, 1952) == "BSN"
     assert resolve_bref_team_code(BREFTeams.BRAVES, 1953) == "MLN"
     assert resolve_bref_team_code(BREFTeams.BRAVES, 1966) == "ATL"
+
+
+@pytest.mark.parametrize("prefix", ["b_", "p_", "f_"])
+def test_column_cleanup_preserves_internal_text(prefix):
+    names = [
+        f"{prefix}gb_perc",
+        f"{prefix}fb_perc",
+        f"{prefix}gb_fb_ratio",
+        "team_name_abbr",
+        "home_run_fb_perc",
+        "club_abbr_detail",
+        "other_p_stat",
+    ]
+    frame = pl.DataFrame({name: [index] for index, name in enumerate(names)})
+
+    result = _normalize_bref_columns(frame, prefix)
+
+    assert result.columns == [
+        "gb_perc",
+        "fb_perc",
+        "gb_fb_ratio",
+        "team_name",
+        "home_run_fb_perc",
+        "club_abbr_detail",
+        "other_p_stat",
+    ]
+    assert result.rows() == frame.rows()
+    assert result.dtypes == frame.dtypes
+    assert frame.columns == names

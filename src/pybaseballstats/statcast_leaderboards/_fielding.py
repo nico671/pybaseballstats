@@ -4,6 +4,7 @@ from typing import Literal
 
 import polars as pl
 
+from pybaseballstats._consts.statcast_consts import STATCAST_DATE_FORMAT
 from pybaseballstats._consts.statcast_leaderboard_consts import (
     ARM_STRENGTH_LEADERBOARD_URL,
     ARM_STRENGTH_POS_INPUT_MAP,
@@ -190,7 +191,7 @@ def fielding_run_value_leaderboard(
             date_params[name] = ""
             continue
         try:
-            date_value = datetime.strptime(value, "%Y-%m-%d").date()
+            date_value = datetime.strptime(value, STATCAST_DATE_FORMAT).date()
         except (TypeError, ValueError):
             raise ValueError(f"{name} must be in YYYY-MM-DD format")
         if date_value < earliest_date:

@@ -27,7 +27,7 @@ def test_single_player_batting_valid_metric_types():
     assert df.head(4).select(pl.col("team_ID").unique()).item() == "CHC"
     assert df.head(4).select(pl.col("age").min()).item() == 27
     assert (
-        df.head(4).select(pl.col("home_run_fperc").max()).item() == 13.100000381469727
+        df.head(4).select(pl.col("home_run_fb_perc").max()).item() == 13.100000381469727
     )
 
     df = bsp.single_player_batting("suzukse01", metric_type="cumulative")

@@ -14,7 +14,9 @@ from pybaseballstats._consts.bref_consts import (
     BREFTeams,
 )
 from pybaseballstats._utils.bref_utils import (
+    _check_team_year,
     _extract_table,
+    _normalize_bref_columns,
     _required_table,
     _source_schema_errors,
     resolve_bref_team_code,
@@ -32,18 +34,7 @@ __all__ = [
 ]
 
 
-def _check_team_year(team: BREFTeams, year: int) -> None:
-    if not isinstance(team, BREFTeams):
-        raise TypeError("team must be a BREFTeams value")
-    if type(year) is not int:
-        raise TypeError("year must be an integer")
-    if year < 1871:
-        raise ValueError("year must be at least 1871")
-
-
-# region random functions
-
-
+# TODO: clean up this function
 @_source_schema_errors
 def batting_orders(team: BREFTeams, year: int, verbose: bool = False) -> pl.DataFrame:
     """Return a per-game batting-orders table for a team season.
@@ -205,8 +196,8 @@ def game_by_game_schedule_results(
     """
     _check_team_year(team, year)
     team_code = resolve_bref_team_code(team=team, year=year)
-    url = BREF_TEAMS_SCHEDULE_RESULTS_URL.format(team_code=team_code, year=year)
-    resp = session.get(url, verbose=verbose)
+    request_url = BREF_TEAMS_SCHEDULE_RESULTS_URL.format(team_code=team_code, year=year)
+    resp = session.get(request_url, verbose=verbose)
 
     soup = BeautifulSoup(resp.content, "html.parser")
     table = soup.find("table", id="team_schedule")
@@ -216,9 +207,9 @@ def game_by_game_schedule_results(
         )
     data = _extract_table(table)
     df = pl.DataFrame(data)
-    df = df.drop(
-        "boxscore"
-    )  # drop boxscore column since it just has a link to the boxscore page which isn't useful for our purposes
+    # drop boxscore column since it just has a link to the boxscore page which isn't useful for our purposes
+    df = df.drop("boxscore")
+
     return df
 
 
@@ -242,17 +233,13 @@ def roster_and_appearances(
     """
     _check_team_year(team, year)
     team_code = resolve_bref_team_code(team=team, year=year)
-    url = BREF_TEAMS_ROSTER_URL.format(team_code=team_code, year=year)
-    resp = session.get(url, verbose=verbose)
+    request_url = BREF_TEAMS_ROSTER_URL.format(team_code=team_code, year=year)
+    resp = session.get(request_url, verbose=verbose)
     df = _required_table(resp.text, "appearances", "roster_and_appearances")
     df = df.drop("ranker")
     return df
 
 
-# endregion
-
-
-# region batting functions
 @_source_schema_errors
 def batting(
     team: BREFTeams,
@@ -311,27 +298,21 @@ def batting(
             "Invalid metric type. Must be one of: 'standard', 'value', 'advanced', 'sabermetric', 'ratio', 'win_probability', 'baserunning', 'situational', 'pitches', 'cumulative'."
         )
 
-    url = BREF_TEAMS_BATTING_BASE_URL.format(
+    request_url = BREF_TEAMS_BATTING_BASE_URL.format(
         team_code=resolve_bref_team_code(team, year=year), year=year
     )
     table_id = f"players_{metric_type}_batting"
-    resp = session.get(url, verbose=verbose)
+    resp = session.get(request_url, verbose=verbose)
     df = _required_table(resp.text, table_id, "batting")
     if "ranker" in df.columns:
         df = df.drop("ranker")  # drop index column
-    df = df.select(pl.all().name.map(lambda col_name: col_name.replace("b_", "")))
-    df = df.select(pl.all().name.map(lambda col_name: col_name.replace("_abbr", "")))
+    df = _normalize_bref_columns(df, "b_")
     if "name_display" in df.columns:
         df = df.rename({"name_display": "player_name"})
     if "player" in df.columns:
         df = df.rename({"player": "player_name"})
     df = df.filter(pl.col("player_name") != "League Average")
     return df
-
-
-# endregion
-
-# region pitching functions
 
 
 @_source_schema_errors
@@ -406,17 +387,16 @@ def pitching(
 
     table_id = table_ids[metric_type]
 
-    url = BREF_TEAMS_PITCHING_BASE_URL.format(
+    request_url = BREF_TEAMS_PITCHING_BASE_URL.format(
         team_code=resolve_bref_team_code(team, year=year), year=year
     )
-    resp = session.get(url, verbose=verbose)
+    resp = session.get(request_url, verbose=verbose)
     df = _required_table(resp.text, table_id, "pitching")
 
     if "ranker" in df.columns:
         df = df.drop("ranker")
 
-    df = df.select(pl.all().name.map(lambda col_name: col_name.replace("p_", "")))
-    df = df.select(pl.all().name.map(lambda col_name: col_name.replace("_abbr", "")))
+    df = _normalize_bref_columns(df, "p_")
 
     if "PA_unknown" in df.columns:
         df = df.drop("PA_unknown")
@@ -432,10 +412,6 @@ def pitching(
     return df
 
 
-# endregion
-
-
-# region fielding functions
 @_source_schema_errors
 def fielding(
     team: BREFTeams,
@@ -555,9 +531,5 @@ def fielding(
     if "ranker" in df.columns:
         df = df.drop("ranker")
 
-    df = df.select(pl.all().name.map(lambda col_name: col_name.replace("f_", "")))
-    df = df.select(pl.all().name.map(lambda col_name: col_name.replace("_abbr", "")))
+    df = _normalize_bref_columns(df, "f_")
     return df
-
-
-# endregion

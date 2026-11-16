@@ -9,6 +9,7 @@ from pybaseballstats._consts.bref_consts import (
     BREF_SINGLE_PLAYER_PITCHING_URL,
 )
 from pybaseballstats._utils.bref_utils import (
+    _normalize_bref_columns,
     _required_table,
     _source_schema_errors,
 )
@@ -89,8 +90,7 @@ def single_player_batting(
     else:
         table_id = f"batting_{metric_type}"
     df = _required_table(resp.text, table_id, "single_player_batting")
-    df = df.select(pl.all().name.map(lambda col_name: col_name.replace("b_", "")))
-    df = df.select(pl.all().name.map(lambda col_name: col_name.replace("_abbr", "")))
+    df = _normalize_bref_columns(df, "b_")
     return df
 
 
@@ -163,8 +163,7 @@ def single_player_pitching(
         table_id = f"pitching_{metric_type}"
     df = _required_table(resp.text, table_id, "single_player_pitching")
 
-    df = df.select(pl.all().name.map(lambda col_name: col_name.replace("p_", "")))
-    df = df.select(pl.all().name.map(lambda col_name: col_name.replace("_abbr", "")))
+    df = _normalize_bref_columns(df, "p_")
     return df
 
 
@@ -250,7 +249,7 @@ def single_player_fielding(
             "p",
         ]:
             raise ValueError(f"Invalid position: {position}")
-    table_id = ""
+
     if metric_type == "standard":
         table_id = "players_standard_fielding"
     elif metric_type == "sabermetric":
@@ -267,6 +266,5 @@ def single_player_fielding(
         verbose=verbose,
     )
     df = _required_table(resp.text, table_id, "single_player_fielding")
-    df = df.select(pl.all().name.map(lambda col_name: col_name.replace("f_", "")))
-    df = df.select(pl.all().name.map(lambda col_name: col_name.replace("_abbr", "")))
+    df = _normalize_bref_columns(df, "f_")
     return df

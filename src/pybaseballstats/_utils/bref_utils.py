@@ -28,7 +28,18 @@ def _source_schema_errors(function: Callable[P, T]) -> Callable[P, T]:
     return wrapped
 
 
-# region shared
+def _check_team_year(team: BREFTeams, year: int) -> None:
+    if not isinstance(team, BREFTeams):
+        raise TypeError("team must be a BREFTeams value")
+    if type(year) is not int:
+        raise TypeError("year must be an integer")
+    if year < 1871:
+        raise ValueError("year must be at least 1871")
+
+
+def _normalize_bref_columns(df: pl.DataFrame, prefix: str) -> pl.DataFrame:
+    """Remove the table prefix and abbreviation suffix from column names."""
+    return df.rename(lambda name: name.removeprefix(prefix).removesuffix("_abbr"))
 
 
 def get_bref_table_html(html_content: str, table_id: str) -> str | None:
@@ -36,15 +47,16 @@ def get_bref_table_html(html_content: str, table_id: str) -> str | None:
     Extracts a specific table from Baseball Reference HTML.
     Checks the standard DOM first, then searches inside HTML comments
     for lazy-loaded tables.
+    Returns None if unable to locate the table.
     """
     soup = BeautifulSoup(html_content, "html.parser")
 
-    # 1. Check if the table is normally rendered in the DOM
+    # check if the table is normally rendered in the DOM
     target_table = soup.find("table", id=table_id)
     if target_table:
         return str(target_table)
 
-    # 2. If not found, it is likely hidden inside an HTML comment
+    # if the table is not found, we may be able to find it inside an HTML comment
     comments = soup.find_all(string=lambda text: isinstance(text, Comment))
     for comment in comments:
         if f'id="{table_id}"' in comment or f"id='{table_id}'" in comment:
@@ -53,7 +65,7 @@ def get_bref_table_html(html_content: str, table_id: str) -> str | None:
             hidden_table = hidden_soup.find("table", id=table_id)
             if hidden_table:
                 return str(hidden_table)
-
+    # if unable to find table in DOM or in some comment, return None
     return None
 
 
@@ -227,7 +239,7 @@ def resolve_bref_team_code(team: BREFTeams, year: int) -> str:
         if start_year <= year <= end_year:
             return team_code
 
-    # If outside known bounds (e.g., a future year), use nearest known code.
+    # Outside the mapped years, use the oldest or newest code to construct the URL.
     if year < ranges[0][0]:
         return ranges[0][2]
     if year > ranges[-1][1]:
@@ -235,16 +247,6 @@ def resolve_bref_team_code(team: BREFTeams, year: int) -> str:
 
     raise ValueError(
         f"No Baseball Reference team code mapping found for {team.name} in {year}."
-    )
-
-
-# endregion
-
-
-# region bref_draft
-def _clean_draft_dataframes(draft_df: pl.DataFrame) -> pl.DataFrame:
-    return draft_df.drop("draft_abb").with_columns(
-        pl.col("player").str.replace_all(r"\s+\(minors\)$", "").alias("player")
     )
 
 
@@ -257,6 +259,12 @@ def _get_draft_dataframe(url: str, verbose: bool = False) -> pl.DataFrame | None
 
     polars_data = _extract_table(BeautifulSoup(table_html, "html.parser"))
     try:
-        return _clean_draft_dataframes(pl.DataFrame(polars_data))
+        return (
+            pl.DataFrame(polars_data)
+            .drop("draft_abb")
+            .with_columns(
+                pl.col("player").str.replace_all(r"\s+\(minors\)$", "").alias("player")
+            )
+        )
     except pl.exceptions.PolarsError as exc:
         raise RuntimeError(f"draft: invalid Baseball Reference table at {url}") from exc

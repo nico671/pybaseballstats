@@ -359,3 +359,78 @@ def test_pitch_by_pitch_data_invalid_team():
             end_date="2023-07-03",
             team=StatcastTeams.METZ,
         )
+
+
+@pytest.mark.parametrize("streamed", [False, True])
+@pytest.mark.parametrize("show_progress", [False, True])
+def test_loader_preparation_progress(tmp_path, capsys, streamed, show_progress):
+    chunks = [
+        pl.DataFrame(schema={"value": pl.Int64, "empty_only": pl.String}),
+        pl.DataFrame({"value": [2]}),
+    ]
+    if streamed:
+        sources = [tmp_path / f"chunk-{index}.csv" for index in range(len(chunks))]
+        for frame, source in zip(chunks, sources):
+            frame.write_csv(source)
+    else:
+        sources = chunks
+
+    result = statcast_utils._load_all_data(sources, show_progress=show_progress)[0]
+    output = capsys.readouterr().out
+
+    assert ("Preparing chunks..." in output) is show_progress
+    if show_progress:
+        assert "2/2" in output
+    assert isinstance(result, pl.LazyFrame)
+    frame = result.collect()
+    assert frame["value"].to_list() == [2]
+    assert frame["empty_only"].to_list() == [None]
+
+
+@pytest.mark.parametrize("running_loop", [False, True])
+def test_pitch_by_pitch_parses_dates_once(monkeypatch, running_loop):
+    calls = []
+    handle_dates = sc_impl._handle_dates
+
+    def record_dates(*args):
+        calls.append(args)
+        return handle_dates(*args)
+
+    async def fetch(*_args, **_kwargs):
+        return [pl.DataFrame({"game_date": ["2025-04-01"]})]
+
+    def request():
+        return sc.pitch_by_pitch_data(
+            "2025-04-01", "2025-04-01", force_collect=True, show_progress=False
+        )
+
+    async def in_loop():
+        return request()
+
+    monkeypatch.setattr(sc_impl, "_handle_dates", record_dates)
+    monkeypatch.setattr(sc_impl, "_fetch_all_data", fetch)
+
+    result = asyncio.run(in_loop()) if running_loop else request()
+
+    assert calls == [("2025-04-01", "2025-04-01")]
+    assert result["game_date"].to_list() == ["2025-04-01"]
+
+
+@pytest.mark.parametrize(
+    ("start", "end", "error"),
+    [
+        (None, "2025-04-01", TypeError),
+        ("2025-04-01", None, TypeError),
+        ("2025-4-01", "2025-04-01", ValueError),
+        ("2025-04-01", "2025-4-01", ValueError),
+        ("2025-02-30", "2025-04-01", ValueError),
+        ("2025-04-02", "2025-04-01", ValueError),
+    ],
+)
+def test_pitch_by_pitch_rejects_dates_before_download(monkeypatch, start, end, error):
+    async def unexpected_fetch(*_args, **_kwargs):
+        pytest.fail("Invalid dates must fail before download")
+
+    monkeypatch.setattr(sc_impl, "_fetch_all_data", unexpected_fetch)
+    with pytest.raises(error):
+        sc.pitch_by_pitch_data(start, end, show_progress=False)

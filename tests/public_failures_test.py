@@ -1,5 +1,6 @@
 """Public failure and valid-empty behavior without network access."""
 
+from datetime import date
 from types import SimpleNamespace
 
 import polars as pl
@@ -7,6 +8,7 @@ import pytest
 
 from pybaseballstats import (
     _bref_managers,
+    _statcast_single_game,
     _umpire_scorecards,
     statcast_single_game,
     umpire_scorecards,
@@ -16,6 +18,7 @@ from pybaseballstats._utils import (
     retrosheet_utils,
     statcast_single_game_utils,
 )
+from pybaseballstats.enums import UmpireScorecardTeams
 from pybaseballstats.statcast_leaderboards import _fielding, _park
 
 DATES = {"start_date": "2025-07-01", "end_date": "2025-07-07"}
@@ -218,3 +221,89 @@ async def test_single_game_browser_closes_on_setup_failure(monkeypatch, failure_
     assert closed == (
         ["browser"] if failure_at == "new_context" else ["context", "browser"]
     )
+
+
+@pytest.mark.parametrize(
+    "cause",
+    [
+        RuntimeError("request failed"),
+        pl.exceptions.ComputeError("invalid CSV"),
+        statcast_single_game_utils.PlaywrightError("browser failed"),
+    ],
+)
+def test_single_game_errors_keep_operation_and_cause(monkeypatch, cause):
+    def fail(_url):
+        raise cause
+
+    monkeypatch.setattr(_statcast_single_game, "get_csv", fail)
+    with pytest.raises(RuntimeError, match="single_game_pitch_by_pitch") as caught:
+        statcast_single_game.single_game_pitch_by_pitch(123)
+    assert caught.value.__cause__ is cause
+
+
+@pytest.mark.parametrize(
+    ("function", "extra"),
+    [
+        (umpire_scorecards.game_data, {}),
+        (umpire_scorecards.umpire_data, {}),
+        (umpire_scorecards.team_data, {}),
+        (umpire_scorecards.player_data, {"player_type": "C"}),
+    ],
+)
+@pytest.mark.parametrize(
+    ("invalid", "error"),
+    [
+        ({"start_date": None}, TypeError),
+        ({"end_date": "2025-7-07"}, ValueError),
+        ({"start_date": "2025-02-30"}, ValueError),
+        ({"start_date": "2025-07-08"}, ValueError),
+        ({"start_date": "2014-07-01"}, ValueError),
+        ({"end_date": f"{date.today().year + 1}-01-01"}, ValueError),
+        ({"game_type": None}, TypeError),
+        ({"game_type": "invalid"}, ValueError),
+    ],
+)
+def test_umpire_common_inputs_fail_before_request(
+    monkeypatch, function, extra, invalid, error
+):
+    def unexpected_request(_url):
+        pytest.fail("Invalid inputs must fail before a request")
+
+    monkeypatch.setattr(_umpire_scorecards, "get_json", unexpected_request)
+    with pytest.raises(error):
+        function(**(DATES | extra | invalid))
+
+
+@pytest.mark.parametrize(
+    ("function", "invalid", "error"),
+    [
+        (umpire_scorecards.game_data, {"umpire_name": None}, TypeError),
+        (umpire_scorecards.game_data, {"focus_team": "NYY"}, TypeError),
+        (umpire_scorecards.game_data, {"opponent_team": "BOS"}, TypeError),
+        (umpire_scorecards.game_data, {"focus_team_home_away": None}, TypeError),
+        (umpire_scorecards.game_data, {"focus_team_home_away": "invalid"}, ValueError),
+        (
+            umpire_scorecards.game_data,
+            {
+                "focus_team": UmpireScorecardTeams.YANKEES,
+                "opponent_team": UmpireScorecardTeams.YANKEES,
+            },
+            ValueError,
+        ),
+        (umpire_scorecards.umpire_data, {"min_games_called": True}, TypeError),
+        (umpire_scorecards.umpire_data, {"min_games_called": -1}, ValueError),
+        (umpire_scorecards.team_data, {"focus_team": "NYY"}, TypeError),
+        (umpire_scorecards.player_data, {"player_type": None}, TypeError),
+        (umpire_scorecards.player_data, {"player_type": "invalid"}, ValueError),
+        (umpire_scorecards.player_data, {"player_type": "C", "team": "NYY"}, TypeError),
+    ],
+)
+def test_umpire_specific_inputs_fail_before_request(
+    monkeypatch, function, invalid, error
+):
+    def unexpected_request(_url):
+        pytest.fail("Invalid inputs must fail before a request")
+
+    monkeypatch.setattr(_umpire_scorecards, "get_json", unexpected_request)
+    with pytest.raises(error):
+        function(**(DATES | invalid))

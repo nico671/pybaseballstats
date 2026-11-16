@@ -27,7 +27,7 @@ This module provides functions to retrieve grouped player-season stats and pitch
 - `player_type` ("batter" | "pitcher"): Player perspective. Use `"batter"` for pitches seen by the player or `"pitcher"` for pitches thrown by the player.
 - `force_collect` (bool): If `True`, returns a Polars `DataFrame`; otherwise returns a Polars `LazyFrame`.
 - `chunk_size_days` (int): Number of days per request chunk. Must be greater than 0.
-- `show_progress` (bool): Show progress indicators while downloading and processing chunks.
+- `show_progress` (bool): Show download progress and the number of chunks prepared for the result. This does not measure final frame collection.
 - `concurrency` (int | None): Optional maximum number of concurrent HTTP requests. When omitted, concurrency is selected automatically.
 - `verbose` (bool): Print additional runtime logs.
 

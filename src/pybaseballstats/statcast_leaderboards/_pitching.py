@@ -3,6 +3,7 @@ from typing import List, Literal
 
 import polars as pl
 
+from pybaseballstats._consts.statcast_consts import STATCAST_DATE_FORMAT
 from pybaseballstats._consts.statcast_leaderboard_consts import (
     ACTIVE_SPIN_LEADERBOARD_URL,
     ARM_ANGLE_LEADERBOARD_URL,
@@ -271,13 +272,13 @@ def arm_angle_leaderboard(
     """
     # validate date inputs
     if end_date is None:
-        end_date = datetime.today().strftime("%Y-%m-%d")
+        end_date = datetime.today().strftime(STATCAST_DATE_FORMAT)
     try:
-        start_date_obj = datetime.strptime(start_date, "%Y-%m-%d")
+        start_date_obj = datetime.strptime(start_date, STATCAST_DATE_FORMAT)
     except ValueError:
         raise ValueError("start_date must be in YYYY-MM-DD format")
     try:
-        end_date_obj = datetime.strptime(end_date, "%Y-%m-%d")
+        end_date_obj = datetime.strptime(end_date, STATCAST_DATE_FORMAT)
     except ValueError:
         raise ValueError("end_date must be in YYYY-MM-DD format")
     if end_date_obj < start_date_obj:

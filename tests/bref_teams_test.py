@@ -5,7 +5,6 @@ import pybaseballstats.bref_teams as bt
 from pybaseballstats.enums import BREFTeams
 
 
-# region random function tests
 @pytest.mark.xdist_group(name="bref_test")
 def test_schedule_results():
     with pytest.raises(TypeError):
@@ -61,10 +60,6 @@ def test_batting_orders():
     assert df.select(pl.col("batting_9_player").n_unique()).item() == 12
 
 
-# endregion
-
-
-# region pitching function tests
 @pytest.mark.xdist_group(name="bref_test")
 def test_pitching_bad_inputs():
     with pytest.raises(TypeError):
@@ -119,10 +114,6 @@ def test_pitching():
     )
 
 
-# endregion
-
-
-# region fielding function tests
 @pytest.mark.xdist_group(name="bref_test")
 def test_fielding_standard_all_and_position():
     with pytest.raises(TypeError):
@@ -192,10 +183,6 @@ def test_fielding_invalid_metric_type():
         )
 
 
-# endregion
-
-
-# region batting function tests
 @pytest.mark.xdist_group(name="bref_test")
 def test_batting_bad_inputs():
     with pytest.raises(TypeError):
@@ -238,6 +225,3 @@ def test_batting():
     assert (
         "League Average" not in df.select(pl.col("player_name")).to_series().to_list()
     )
-
-
-# endregion

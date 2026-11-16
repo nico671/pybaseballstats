@@ -167,7 +167,6 @@ def pitch_by_pitch_data(
         raise TypeError(
             "Team must be a valid StatcastTeams enum value. See StatcastTeams class for valid values."
         )
-    _handle_dates(start_date, end_date)
     if not isinstance(force_collect, bool):
         raise TypeError("force_collect must be a boolean")
     if type(chunk_size_days) is not int:
@@ -197,6 +196,5 @@ def pitch_by_pitch_data(
         return asyncio.run(coro)
     else:
         # Event loop already running - Jupyter notebooks, existing async context
-
         nest_asyncio.apply()
         return loop.run_until_complete(coro)

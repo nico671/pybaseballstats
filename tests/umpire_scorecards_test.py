@@ -7,8 +7,6 @@ from pybaseballstats.enums import UmpireScorecardTeams
 
 pytestmark = pytest.mark.live
 
-# region game_data function tests
-
 
 def test_game_data_general():
     with pytest.raises(TypeError):
@@ -134,11 +132,6 @@ def test_game_data_umpire_filtering():
     assert df.select(pl.col("umpire").unique()).item() == "Alan Porter"
 
 
-# endregion
-
-# region umpire_data function tests
-
-
 def test_umpire_data_general():
     # general test
     df = us.umpire_data(start_date="2025-01-01", end_date="2025-10-01", game_type="R")
@@ -211,12 +204,6 @@ def test_umpire_data_min_games_param():
     assert_numeric(df["n"], minimum=20, count=True)
 
 
-# endregion
-
-
-# region team_data function tests
-
-
 def test_team_data_general():
     # general test
     df = us.team_data(start_date="2025-01-01", end_date="2025-10-30", game_type="R")
@@ -242,12 +229,6 @@ def test_team_data_focus_team():
     assert df.height == 1
     assert_live_frame(df, columns=("team",), unique_by=("team",))
     assert df.select(pl.col("team").unique()).item() == "LAA"
-
-
-# endregion
-
-
-# region player_data function tests
 
 
 def test_player_data_general():
@@ -401,6 +382,3 @@ def test_player_data_team_filtering():
     assert_live_frame(
         df_angels_batters, counts=("player_id", "n_pitches"), unique_by=("player_id",)
     )
-
-
-# endregion

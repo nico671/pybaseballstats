@@ -1,11 +1,9 @@
 import asyncio
-from functools import wraps
-from typing import Any, Callable, Coroutine, Dict, ParamSpec, TypeVar
+from typing import Any, Coroutine, Dict
 
 import nest_asyncio
 import polars as pl
 from bs4 import BeautifulSoup
-from playwright.async_api import Error as PlaywrightError
 
 from pybaseballstats._consts.statcast_consts import (
     STATCAST_SINGLE_GAME_EV_PV_WP_URL,
@@ -14,6 +12,7 @@ from pybaseballstats._consts.statcast_consts import (
 from pybaseballstats._statcast import pitch_by_pitch_data
 from pybaseballstats._utils.request_utils import get_csv
 from pybaseballstats._utils.statcast_single_game_utils import (
+    _game_errors,
     _handle_single_game_date,
     fetch_gamefeed_table_html,
     get_page_async,
@@ -26,22 +25,6 @@ __all__ = [
     "single_game_pitch_velocity",
     "single_game_win_probability",
 ]
-
-P = ParamSpec("P")
-T = TypeVar("T")
-
-
-def _game_errors(function: Callable[P, T]) -> Callable[P, T]:
-    function_name = getattr(function, "__name__", type(function).__name__)
-
-    @wraps(function)
-    def wrapped(*args: P.args, **kwargs: P.kwargs) -> T:
-        try:
-            return function(*args, **kwargs)
-        except (RuntimeError, pl.exceptions.PolarsError, PlaywrightError) as exc:
-            raise RuntimeError(f"{function_name}: game data retrieval failed") from exc
-
-    return wrapped
 
 
 def _validate_game_pk(game_pk: int) -> None:
@@ -99,7 +82,7 @@ def get_available_game_pks_for_date(
     if not {"game_pk", "home_team", "away_team"}.issubset(df.columns):
         raise RuntimeError("game discovery response lacks required columns")
 
-    for i, group in df.group_by("game_pk"):
+    for _, group in df.group_by("game_pk"):
         game_pk = group.select(pl.col("game_pk").first()).item()
         game_data = {}
         game_data["game_pk"] = game_pk

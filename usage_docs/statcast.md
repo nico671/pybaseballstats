@@ -18,7 +18,7 @@ This module provides functions to retrieve data from the [Statcast](https://base
 - `team` (StatcastTeams | None): Optional team filter. Must be a `StatcastTeams` enum value (not a raw string).
 - `force_collect` (bool): If `True`, returns a Polars `DataFrame`; otherwise returns a Polars `LazyFrame`.
 - `chunk_size_days` (int): Number of days per request chunk. Must be greater than 0.
-- `show_progress` (bool): Show progress indicators while downloading/loading chunked responses.
+- `show_progress` (bool): Show download progress and the number of chunks prepared for the result. This does not measure final frame collection.
 - `concurrency` (int | None): Optional max concurrency override for HTTP requests.
 - `verbose` (bool): Print additional runtime logs.
 

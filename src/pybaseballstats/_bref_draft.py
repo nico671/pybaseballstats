@@ -40,9 +40,8 @@ def draft_order_by_year_round(
         raise ValueError("Draft data is only available from 1965 onwards")
     if draft_round < 1 or draft_round > 60:
         raise ValueError("Draft round must be between 1 and 60")
-    df = _get_draft_dataframe(
-        BREF_DRAFT_YEAR_ROUND_URL.format(year=year, round=draft_round), verbose
-    )
+    request_url: str = BREF_DRAFT_YEAR_ROUND_URL.format(year=year, round=draft_round)
+    df = _get_draft_dataframe(request_url, verbose)
     if df is None:
         raise RuntimeError(
             f"draft_order_by_year_round: no draft table for {year} round {draft_round}"
@@ -78,14 +77,14 @@ def franchise_draft_order(
         )
 
     resolved_code = resolve_bref_team_code(team=team, year=year)
-
     candidate_codes = [resolved_code]
+
+    # add the default value if the resolved_code differs for completeness
     if team.value != resolved_code:
         candidate_codes.append(team.value)
     for candidate_code in candidate_codes:
-        df = _get_draft_dataframe(
-            TEAM_YEAR_DRAFT_URL.format(year=year, team=candidate_code), verbose
-        )
+        request_url = TEAM_YEAR_DRAFT_URL.format(year=year, team=candidate_code)
+        df = _get_draft_dataframe(request_url, verbose)
         if df is not None:
             return df
 

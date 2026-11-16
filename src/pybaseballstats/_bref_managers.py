@@ -22,7 +22,7 @@ def managers_basic_data(year: int, verbose: bool = False) -> pl.DataFrame:
         verbose (bool, optional): If True, print debug information during the request process. Defaults to False. Useful for troubleshooting Cloudflare blocks.
 
     Raises:
-                ValueError: If ``year`` is earlier than 1871.
+        ValueError: If ``year`` is earlier than 1871.
         TypeError: If ``year`` is not an integer.
 
     Returns:
@@ -32,7 +32,8 @@ def managers_basic_data(year: int, verbose: bool = False) -> pl.DataFrame:
         raise TypeError("Year must be an integer")
     if year < 1871:
         raise ValueError("Year must be at least 1871")
-    resp = session.get(BREF_MANAGERS_GENERAL_URL.format(year=year), verbose=verbose)
+    request_url = BREF_MANAGERS_GENERAL_URL.format(year=year)
+    resp = session.get(request_url, verbose=verbose)
     df = _required_table(resp.text, "manager_record", "managers_basic_data")
     df = df.drop("ranker")
     df = df.with_columns(
@@ -53,7 +54,7 @@ def managers_tendencies_data(year: int, verbose: bool = False) -> pl.DataFrame:
         verbose (bool, optional): If True, print debug information during the request process. Defaults to False. Useful for troubleshooting Cloudflare blocks.
 
     Raises:
-                ValueError: If ``year`` is earlier than 1871.
+        ValueError: If ``year`` is earlier than 1871.
         TypeError: If ``year`` is not an integer.
 
     Returns:
@@ -63,7 +64,8 @@ def managers_tendencies_data(year: int, verbose: bool = False) -> pl.DataFrame:
         raise TypeError("Year must be an integer")
     if year < 1871:
         raise ValueError("Year must be at least 1871")
-    resp = session.get(BREF_MANAGER_TENDENCIES_URL.format(year=year), verbose=verbose)
+    request_url = BREF_MANAGER_TENDENCIES_URL.format(year=year)
+    resp = session.get(request_url, verbose=verbose)
     df = _required_table(resp.text, "manager_tendencies", "managers_tendencies_data")
     df = df.drop("ranker")
     df = df.with_columns(
