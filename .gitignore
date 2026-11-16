@@ -20,7 +20,9 @@ todolist.txt
 .env
 deprecated_or_broken/
 *.md
+!AGENTS.md
 !README.md
 !contributing.md
 .nvim-agent-comments.json
 .vibe-wise/
+docs/
