@@ -17,7 +17,7 @@ A Python package for scraping baseball statistics from the web. Inspired by the 
 3. [Baseball Reference](https://www.baseball-reference.com/)
     - This source provides comprehensive, high detail stats for all MLB players and teams since 1871.
 4. [Retrosheet](https://retrosheet.org/)
-    - This source provides play-by-play data for all MLB games since 1871. This data is primarily used for the player_lookup function as well as ejection data. I am considering adding support for the play by play data as well.
+    - The package reads available Retrosheet play-by-play records, logs, schedules, reference tables, and ejection data. It also looks up players by name. See the [Retrosheet usage guide](usage_docs/retrosheet.md).
 
 > [!NOTE]
 > Although past versions had support for Fangraphs, I have decided to remove support for this source as they have recently implemented very aggressive anti-scraping measures that have made it very difficult to scrape data from their site. I may consider adding support for this source again in the future if they change their anti-scraping measures, but for now I have decided to focus on the other sources that are more reliable and easier to scrape data from.

@@ -5,6 +5,7 @@ import pytest
 from live_assertions import assert_live_frame
 
 import pybaseballstats.retrosheet as rs
+from pybaseballstats import _retrosheet
 from pybaseballstats._utils import retrosheet_utils
 from pybaseballstats._utils.retrosheet_utils import _clear_people_cache
 
@@ -62,6 +63,18 @@ def test_ejections_data_errors():
         rs.ejections_data(inning=-2)
     with pytest.raises(ValueError):
         rs.ejections_data(inning=21)
+
+
+def test_ejections_validates_innings_outside_requested_dates(monkeypatch):
+    data = (
+        b"DATE,INNING,EJECTEENAME,UMPIRENAME\n"
+        b"04/01/2010,1,Smith,Jones\n"
+        b"04/01/2009,invalid,Smith,Jones\n"
+    )
+    monkeypatch.setattr(_retrosheet, "get_bytes", lambda _url: data)
+    with pytest.raises(RuntimeError, match="could not retrieve or parse") as caught:
+        rs.ejections_data(start_date="04/01/2010")
+    assert isinstance(caught.value.__cause__, pl.exceptions.PolarsError)
 
 
 @pytest.mark.live

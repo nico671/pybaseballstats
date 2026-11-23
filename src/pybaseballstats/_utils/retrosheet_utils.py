@@ -10,25 +10,16 @@ from pybaseballstats._consts.retrosheet_consts import (
 from pybaseballstats._utils.request_utils import get_bytes
 
 
-# TODO: implement using lazyframes
 @lru_cache(maxsize=1)
 def _get_people_data() -> pl.DataFrame:
     """Fetch and cache people data from Retrosheet."""
     df_list = []
-    for i in range(0, 10):
-        url = PEOPLES_URL.format(num=i)
+    for suffix in [*range(10), "a", "b", "c", "d", "f"]:
+        url = PEOPLES_URL.format(num=suffix)
         try:
-            df = pl.read_csv(get_bytes(url)).select(pl.col(RETROSHEET_KEEP_COLS))
-        except (pl.exceptions.PolarsError, RuntimeError) as exc:
-            raise RuntimeError(
-                f"player_lookup: invalid Retrosheet shard {url}"
-            ) from exc
-        df_list.append(df)
-
-    for letter in ["a", "b", "c", "d", "f"]:
-        url = PEOPLES_URL.format(num=letter)
-        try:
-            df = pl.read_csv(get_bytes(url)).select(pl.col(RETROSHEET_KEEP_COLS))
+            scan = pl.scan_csv(get_bytes(url)).select(pl.col(RETROSHEET_KEEP_COLS))
+            # Collect one projected shard at a time to release its source bytes.
+            df = scan.collect()
         except (pl.exceptions.PolarsError, RuntimeError) as exc:
             raise RuntimeError(
                 f"player_lookup: invalid Retrosheet shard {url}"

@@ -43,7 +43,7 @@ def player_lookup(
     if not first_name and not last_name:
         raise ValueError("At least one of first_name or last_name must be provided")
 
-    full_df = _get_people_data()
+    full_df = _get_people_data().lazy()
 
     # Normalize input
     if first_name:
@@ -105,10 +105,7 @@ def player_lookup(
     else:  # last_name only
         df = full_df.filter(pl.col("name_last_lower") == last_name)
 
-    # Select only the original columns (not the lowercase/score columns)
-    result_cols = RETROSHEET_KEEP_COLS.copy()
-
-    return df.select([col for col in result_cols if col in df.columns])
+    return df.select(RETROSHEET_KEEP_COLS).collect()
 
 
 def ejections_data(
@@ -167,18 +164,19 @@ def ejections_data(
         raise ValueError("start_date must be before end_date")
 
     try:
-        df = pl.read_csv(
+        scan = pl.scan_csv(
             get_bytes(EJECTIONS_URL),
             infer_schema_length=None,
             truncate_ragged_lines=True,
             schema_overrides={"INNING": pl.String},
         )
         required = {"DATE", "INNING", "EJECTEENAME", "UMPIRENAME"}
-        if not required.issubset(df.columns):
+        if not required.issubset(scan.collect_schema().names()):
             raise RuntimeError("ejections_data: missing Retrosheet columns")
-        df = df.with_columns(pl.col("DATE").str.to_date("%m/%d/%Y").alias("DATE"))
-        df = df.filter(pl.col("INNING") != "Cy Rigler")
-        df = df.with_columns(pl.col("INNING").cast(pl.Int8))
+        scan = scan.with_columns(pl.col("DATE").str.to_date("%m/%d/%Y"))
+        scan = scan.filter(pl.col("INNING") != "Cy Rigler")
+        scan = scan.with_columns(pl.col("INNING").cast(pl.Int8))
+        df = scan.collect()
     except (pl.exceptions.PolarsError, RuntimeError) as exc:
         raise RuntimeError(
             "ejections_data: could not retrieve or parse Retrosheet CSV"
