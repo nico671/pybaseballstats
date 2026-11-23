@@ -1,55 +1,33 @@
-"""Public query implementations for Retrosheet's archive datasets."""
+"""Daily Logs, including parsed play-by-play and player and team statistics."""
 
-import csv
-import re
 from datetime import datetime
-from os import PathLike
 from pathlib import Path
 from typing import Literal, TypeAlias
 
 import polars as pl
 
-from ._consts.retrosheet_tables import (
-    GAME_LOG_COLUMNS,
-    GAME_LOG_NUMERIC,
-    PLAY_COLUMNS,
-    PLAYER_LOG_COLUMNS,
-    SCHEDULE_COLUMNS,
-    daily_type,
-)
-from ._utils.retrosheet_archives import (
+from .._consts.retrosheet_tables import PLAY_COLUMNS, PLAYER_LOG_COLUMNS, daily_type
+from .._utils.retrosheet_archives import (
     DAILY,
-    GAMES,
     PLAYS,
     ROOT,
-    SCHEDULES,
     ArchiveMemberAbsent,
     ArchiveNotFound,
     archive_members,
     named_link,
     season_links,
 )
+from ._common import (
+    ArchivePath,
+    Result,
+    _enum,
+    _id,
+    _options,
+    _result,
+    _validate_season,
+)
 
-ArchivePath: TypeAlias = str | PathLike[str]
-Result: TypeAlias = pl.LazyFrame | pl.DataFrame
 StatType: TypeAlias = Literal["value", "official", "lower", "upper", "all"]
-GameType: TypeAlias = Literal[
-    "regular",
-    "world_series",
-    "all_star",
-    "wild_card",
-    "division_series",
-    "league_championship",
-    "chronicle_telegraph_cup",
-]
-_EVENTS = {
-    "world_series": ("World Series", "glws.txt"),
-    "all_star": ("All-Star", "glas.txt"),
-    "wild_card": ("WildCard Game", "glwc.txt"),
-    "division_series": ("Division Series", "gldv.txt"),
-    "league_championship": ("LCS", "gllc.txt"),
-    "chronicle_telegraph_cup": ("Chronicle-Telegraph Cup", "glct.txt"),
-}
 _COLLECTIONS = {
     "american_national_league": "American/National League",
     "federal_league": "Federal League",
@@ -69,52 +47,6 @@ _COLLECTIONS = {
 }
 _PLAYER_STATS = {"batting.csv": "b", "pitching.csv": "p", "fielding.csv": "f"}
 _BULK_COLLECTIONS = {"american_national_league", "negro_leagues", "regular"}
-
-
-def _id(name: str, value: str | None, pattern: str) -> None:
-    if value is None:
-        return
-    if not isinstance(value, str):
-        raise TypeError(f"{name} must be a string")
-    if re.fullmatch(pattern, value) is None:
-        raise ValueError(f"Invalid Retrosheet {name}: {value!r}")
-
-
-def _validate_season(season: int | None) -> None:
-    if season is not None:
-        if type(season) is not int:
-            raise TypeError("season must be an integer")
-        if not 1000 <= season <= 9999:
-            raise ValueError("season must be a four-digit year")
-
-
-def _options(
-    force_collect: bool, archive_path: ArchivePath | None, allow_bulk_download: bool
-) -> Path | None:
-    for name, value in (
-        ("force_collect", force_collect),
-        ("allow_bulk_download", allow_bulk_download),
-    ):
-        if type(value) is not bool:
-            raise TypeError(f"{name} must be a boolean")
-    if archive_path is not None and not isinstance(archive_path, (str, PathLike)):
-        raise TypeError("archive_path must be a path")
-    return None if archive_path is None else Path(archive_path)
-
-
-def _enum(name: str, value: object, choices: tuple[str, ...] | dict[str, str]) -> None:
-    if not isinstance(value, str):
-        raise TypeError(f"{name} must be a string")
-    if value not in choices:
-        raise ValueError(f"{name} must be one of {', '.join(choices)}")
-
-
-def _result(frame: pl.LazyFrame, force_collect: bool, label: str) -> Result:
-    try:
-        frame.collect_schema()
-        return frame.collect() if force_collect else frame
-    except pl.exceptions.PolarsError as exc:
-        raise RuntimeError(f"{label}: invalid Retrosheet source data") from exc
 
 
 def _daily_scan(
@@ -682,153 +614,3 @@ def plays(
         archive_path=archive_path,
         allow_bulk_download=allow_bulk_download,
     )
-
-
-def manager_logs(
-    *,
-    manager_id: str,
-    force_collect: bool = False,
-    archive_path: ArchivePath | None = None,
-) -> Result:
-    """Return a manager's game logs and ejection flags."""
-    _id("manager_id", manager_id, r"[a-z0-9-]{5}[0-9]{3}")
-    if manager_id is None:
-        raise TypeError("manager_id must be a string")
-    local = _options(force_collect, archive_path, False)
-    source = local or ROOT + f"downloads/managers/{manager_id}_mgr.zip"
-    (path,) = archive_members(source, (f"{manager_id}_mlog.csv",))
-    frame = _daily_scan(path, "manager.csv").filter(pl.col("mgr") == manager_id)
-    return _result(frame, force_collect, "manager_logs")
-
-
-def umpire_logs(
-    *,
-    umpire_id: str,
-    force_collect: bool = False,
-    archive_path: ArchivePath | None = None,
-) -> Result:
-    """Return an umpire's game logs and per-game ejection counts."""
-    _id("umpire_id", umpire_id, r"[a-z0-9-]{5}[0-9]{3}")
-    if umpire_id is None:
-        raise TypeError("umpire_id must be a string")
-    local = _options(force_collect, archive_path, False)
-    source = local or ROOT + f"downloads/umpires/{umpire_id}_ump.zip"
-    (path,) = archive_members(source, (f"{umpire_id}_ulog.csv",))
-    frame = _daily_scan(path, "umpire.csv").filter(pl.col("uid") == umpire_id)
-    return _result(frame, force_collect, "umpire_logs")
-
-
-def game_logs(
-    *,
-    season: int,
-    team_id: str | None = None,
-    game_type: GameType = "regular",
-    force_collect: bool = False,
-    archive_path: ArchivePath | None = None,
-) -> Result:
-    """Return Retrosheet's 161-field game logs for a season and game type."""
-    _validate_season(season)
-    if season is None:
-        raise TypeError("season must be an integer")
-    _id("team_id", team_id, r"[A-Z0-9]{3}")
-    _enum("game_type", game_type, ("regular", *_EVENTS))
-    local = _options(force_collect, archive_path, False)
-    if game_type == "regular":
-        source = local or season_links(GAMES, season)[season]
-        member = f"gl{season}.txt"
-    else:
-        label, member = _EVENTS[game_type]
-        source = local or named_link(GAMES, label)
-    (path,) = archive_members(source, (member,))
-    schema = {
-        name: pl.Int64 if name in GAME_LOG_NUMERIC else pl.String
-        for name in GAME_LOG_COLUMNS
-    }
-    frame = (
-        pl.scan_csv(path, has_header=False, schema=schema, raise_if_empty=False)
-        .with_columns(pl.col("date").str.to_date("%Y%m%d"))
-        .filter(pl.col("date").dt.year() == season)
-    )
-    if team_id is not None:
-        frame = frame.filter(
-            (pl.col("home_team") == team_id) | (pl.col("visitor_team") == team_id)
-        )
-    return _result(frame, force_collect, "game_logs")
-
-
-def schedules(
-    *,
-    season: int,
-    team_id: str | None = None,
-    force_collect: bool = False,
-    archive_path: ArchivePath | None = None,
-) -> Result:
-    """Return originally planned games and known postponement details."""
-    _validate_season(season)
-    if season is None:
-        raise TypeError("season must be an integer")
-    _id("team_id", team_id, r"[A-Z0-9]{3}")
-    local = _options(force_collect, archive_path, False)
-    source = local or season_links(SCHEDULES, season)[season]
-    members = (
-        ("2020sched-orig.csv", "2020schedule.csv")
-        if season == 2020
-        else (f"{season}schedule.csv",)
-    )
-    versions = ("original", "revised") if season == 2020 else ("original",)
-    paths = archive_members(source, members)
-    scans = []
-    for path, version in zip(paths, versions, strict=True):
-        try:
-            with path.open(encoding="utf-8-sig", newline="") as data:
-                header = next(csv.reader(data), [])
-        except (OSError, UnicodeError, csv.Error) as exc:
-            raise RuntimeError(
-                f"Cannot read Retrosheet schedule header in {path.name}"
-            ) from exc
-        expected = [
-            "Date",
-            "Num",
-            "Day",
-            "Visitor",
-            "League",
-            "Game",
-            "Home",
-            "League",
-            "Game",
-            "Day/Night",
-            "Postponed",
-            "Makeup",
-        ]
-        columns = SCHEDULE_COLUMNS
-        has_park = header[10:11] == ["Location"]
-        if has_park:
-            expected.insert(10, "Location")
-            columns = [*columns[:10], "park_id", *columns[10:]]
-        if header != expected:
-            raise RuntimeError(f"Unexpected Retrosheet schedule header in {path.name}")
-        frame = pl.scan_csv(
-            path,
-            has_header=False,
-            skip_rows=1,
-            schema=dict.fromkeys(columns, pl.String),
-        ).with_columns(
-            pl.col("date").str.to_date("%Y%m%d"),
-            pl.col("visitor_game_number", "home_game_number").cast(pl.Int64),
-            pl.lit(version).alias("schedule_version"),
-        )
-        if not has_park:
-            frame = frame.with_columns(pl.lit(None, dtype=pl.String).alias("park_id"))
-        frame = frame.select(
-            *SCHEDULE_COLUMNS[:10],
-            "park_id",
-            *SCHEDULE_COLUMNS[10:],
-            "schedule_version",
-        )
-        scans.append(frame)
-    result = pl.concat(scans)
-    if team_id is not None:
-        result = result.filter(
-            (pl.col("home_team") == team_id) | (pl.col("visitor_team") == team_id)
-        )
-    return _result(result, force_collect, "schedules")

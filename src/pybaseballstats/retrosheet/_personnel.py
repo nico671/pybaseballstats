@@ -1,111 +1,49 @@
+"""Manager and umpire game logs and ejection records."""
+
 from datetime import datetime
 from typing import Optional
 
 import polars as pl
 
-from pybaseballstats._consts.retrosheet_consts import (
-    EJECTIONS_URL,
-    RETROSHEET_KEEP_COLS,
-)
-from pybaseballstats._utils.request_utils import get_bytes
-from pybaseballstats._utils.retrosheet_utils import _get_people_data, _strip_accents
-
-__all__ = ["player_lookup", "ejections_data"]
+from .._consts.retrosheet_consts import EJECTIONS_URL
+from .._utils.request_utils import get_bytes
+from .._utils.retrosheet_archives import ROOT, archive_members
+from ._common import ArchivePath, Result, _id, _options, _result
+from ._daily_logs import _daily_scan
 
 
-def player_lookup(
-    first_name: Optional[str] = None,
-    last_name: Optional[str] = None,
-    strip_accents: Optional[bool] = False,
-) -> pl.DataFrame:
-    """Look up players in Retrosheet's people registry.
+def manager_logs(
+    *,
+    manager_id: str,
+    force_collect: bool = False,
+    archive_path: ArchivePath | None = None,
+) -> Result:
+    """Return a manager's game logs and ejection flags."""
+    _id("manager_id", manager_id, r"[a-z0-9-]{5}[0-9]{3}")
+    if manager_id is None:
+        raise TypeError("manager_id must be a string")
+    local = _options(force_collect, archive_path, False)
+    source = local or ROOT + f"downloads/managers/{manager_id}_mgr.zip"
+    (path,) = archive_members(source, (f"{manager_id}_mlog.csv",))
+    frame = _daily_scan(path, "manager.csv").filter(pl.col("mgr") == manager_id)
+    return _result(frame, force_collect, "manager_logs")
 
-    Args:
-        first_name (str | None, optional): Player first name filter.
-        last_name (str | None, optional): Player last name filter.
-        strip_accents (bool | None, optional): Whether to normalize accents before
-            matching.
 
-    Raises:
-        ValueError: If neither ``first_name`` nor ``last_name`` is provided.
-        TypeError: If ``first_name`` is provided and is not a string.
-        TypeError: If ``last_name`` is provided and is not a string.
-
-    Returns:
-        pl.DataFrame: Matching player rows with canonical Retrosheet columns.
-    """
-    if first_name is not None and not isinstance(first_name, str):
-        raise TypeError("first_name must be a string")
-    if last_name is not None and not isinstance(last_name, str):
-        raise TypeError("last_name must be a string")
-    if strip_accents is not None and not isinstance(strip_accents, bool):
-        raise TypeError("strip_accents must be a boolean or None")
-    if not first_name and not last_name:
-        raise ValueError("At least one of first_name or last_name must be provided")
-
-    full_df = _get_people_data().lazy()
-
-    # Normalize input
-    if first_name:
-        first_name = first_name.lower().strip()
-    if last_name:
-        last_name = last_name.lower().strip()
-
-    # Apply accent stripping if requested
-    if strip_accents:
-        if first_name:
-            first_name = _strip_accents(first_name)
-        if last_name:
-            last_name = _strip_accents(last_name)
-
-        # Strip accents from all name columns in the dataframe
-        full_df = full_df.with_columns(
-            [
-                pl.col("name_last_lower")
-                .map_elements(
-                    lambda s: _strip_accents(s) if s else s, return_dtype=pl.String
-                )
-                .alias("name_last_lower"),
-                pl.col("name_first_lower")
-                .map_elements(
-                    lambda s: _strip_accents(s) if s else s, return_dtype=pl.String
-                )
-                .alias("name_first_lower"),
-                pl.col("name_given_lower")
-                .map_elements(
-                    lambda s: _strip_accents(s) if s else s, return_dtype=pl.String
-                )
-                .alias("name_given_lower"),
-                pl.col("name_nick_lower")
-                .map_elements(
-                    lambda s: _strip_accents(s) if s else s, return_dtype=pl.String
-                )
-                .alias("name_nick_lower"),
-                pl.col("name_matrilineal_lower")
-                .map_elements(
-                    lambda s: _strip_accents(s) if s else s, return_dtype=pl.String
-                )
-                .alias("name_matrilineal_lower"),
-                pl.col("name_suffix_lower")
-                .map_elements(
-                    lambda s: _strip_accents(s) if s else s, return_dtype=pl.String
-                )
-                .alias("name_suffix_lower"),
-            ]
-        )
-
-    # Exact matching
-    if first_name and last_name:
-        df = full_df.filter(
-            (pl.col("name_first_lower") == first_name)
-            & (pl.col("name_last_lower") == last_name)
-        )
-    elif first_name:
-        df = full_df.filter(pl.col("name_first_lower") == first_name)
-    else:  # last_name only
-        df = full_df.filter(pl.col("name_last_lower") == last_name)
-
-    return df.select(RETROSHEET_KEEP_COLS).collect()
+def umpire_logs(
+    *,
+    umpire_id: str,
+    force_collect: bool = False,
+    archive_path: ArchivePath | None = None,
+) -> Result:
+    """Return an umpire's game logs and per-game ejection counts."""
+    _id("umpire_id", umpire_id, r"[a-z0-9-]{5}[0-9]{3}")
+    if umpire_id is None:
+        raise TypeError("umpire_id must be a string")
+    local = _options(force_collect, archive_path, False)
+    source = local or ROOT + f"downloads/umpires/{umpire_id}_ump.zip"
+    (path,) = archive_members(source, (f"{umpire_id}_ulog.csv",))
+    frame = _daily_scan(path, "umpire.csv").filter(pl.col("uid") == umpire_id)
+    return _result(frame, force_collect, "umpire_logs")
 
 
 def ejections_data(

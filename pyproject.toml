@@ -79,7 +79,7 @@ dev = [
 packages = { find = { where = ["src/"] } }
 
 [tool.setuptools.package-data]
-pybaseballstats = ["py.typed", "*.pyi", "statcast_leaderboards/*.pyi"]
+pybaseballstats = ["py.typed", "*.pyi", "retrosheet/*.pyi", "statcast_leaderboards/*.pyi"]
 
 [tool.pytest.ini_options]
 addopts = "-ra --strict-markers -m 'not live'"

@@ -1,11 +1,14 @@
-"""Retrosheet's biographical tables and legacy Game Logs reference files."""
+"""Player lookup, biographies, and Retrosheet reference tables."""
 
 from pathlib import Path
+from typing import Optional
 
 import polars as pl
 
-from ._retrosheet_logs import ArchivePath, _id, _options
-from ._utils.retrosheet_archives import DAILY, GAMES, archive_members, named_link
+from .._consts.retrosheet_consts import RETROSHEET_KEEP_COLS
+from .._utils.retrosheet_archives import DAILY, GAMES, archive_members, named_link
+from .._utils.retrosheet_utils import _get_people_data, _strip_accents
+from ._common import ArchivePath, _id, _options
 
 _LEGACY_PEOPLE = "Player, Manager, Coach, Umpire IDs"
 
@@ -132,3 +135,98 @@ def franchise_codes(
     return _reference(
         "teams.csv", ("TEAM",), team_id, archive_path, label="Franchise/Team IDs"
     )
+
+
+def player_lookup(
+    first_name: Optional[str] = None,
+    last_name: Optional[str] = None,
+    strip_accents: Optional[bool] = False,
+) -> pl.DataFrame:
+    """Look up players in Retrosheet's people registry.
+
+    Args:
+        first_name (str | None, optional): Player first name filter.
+        last_name (str | None, optional): Player last name filter.
+        strip_accents (bool | None, optional): Whether to normalize accents before
+            matching.
+
+    Raises:
+        ValueError: If neither ``first_name`` nor ``last_name`` is provided.
+        TypeError: If ``first_name`` is provided and is not a string.
+        TypeError: If ``last_name`` is provided and is not a string.
+
+    Returns:
+        pl.DataFrame: Matching player rows with canonical Retrosheet columns.
+    """
+    if first_name is not None and not isinstance(first_name, str):
+        raise TypeError("first_name must be a string")
+    if last_name is not None and not isinstance(last_name, str):
+        raise TypeError("last_name must be a string")
+    if strip_accents is not None and not isinstance(strip_accents, bool):
+        raise TypeError("strip_accents must be a boolean or None")
+    if not first_name and not last_name:
+        raise ValueError("At least one of first_name or last_name must be provided")
+
+    full_df = _get_people_data().lazy()
+
+    # Normalize input
+    if first_name:
+        first_name = first_name.lower().strip()
+    if last_name:
+        last_name = last_name.lower().strip()
+
+    # Apply accent stripping if requested
+    if strip_accents:
+        if first_name:
+            first_name = _strip_accents(first_name)
+        if last_name:
+            last_name = _strip_accents(last_name)
+
+        # Strip accents from all name columns in the dataframe
+        full_df = full_df.with_columns(
+            [
+                pl.col("name_last_lower")
+                .map_elements(
+                    lambda s: _strip_accents(s) if s else s, return_dtype=pl.String
+                )
+                .alias("name_last_lower"),
+                pl.col("name_first_lower")
+                .map_elements(
+                    lambda s: _strip_accents(s) if s else s, return_dtype=pl.String
+                )
+                .alias("name_first_lower"),
+                pl.col("name_given_lower")
+                .map_elements(
+                    lambda s: _strip_accents(s) if s else s, return_dtype=pl.String
+                )
+                .alias("name_given_lower"),
+                pl.col("name_nick_lower")
+                .map_elements(
+                    lambda s: _strip_accents(s) if s else s, return_dtype=pl.String
+                )
+                .alias("name_nick_lower"),
+                pl.col("name_matrilineal_lower")
+                .map_elements(
+                    lambda s: _strip_accents(s) if s else s, return_dtype=pl.String
+                )
+                .alias("name_matrilineal_lower"),
+                pl.col("name_suffix_lower")
+                .map_elements(
+                    lambda s: _strip_accents(s) if s else s, return_dtype=pl.String
+                )
+                .alias("name_suffix_lower"),
+            ]
+        )
+
+    # Exact matching
+    if first_name and last_name:
+        df = full_df.filter(
+            (pl.col("name_first_lower") == first_name)
+            & (pl.col("name_last_lower") == last_name)
+        )
+    elif first_name:
+        df = full_df.filter(pl.col("name_first_lower") == first_name)
+    else:  # last_name only
+        df = full_df.filter(pl.col("name_last_lower") == last_name)
+
+    return df.select(RETROSHEET_KEEP_COLS).collect()
